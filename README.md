@@ -49,7 +49,7 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
-### 9.30 — Qimen ju by 置闰 (Zhi Run), hour void
+### 9.31 — Qimen ju by 置闰 (Zhi Run), hour void, Formations screen, detector fixes
 
 Checked against a reference chart (2026-11-01 15:01, 阴遁6局, Zhi Run): the app had used only 拆补, which gives
 阴遁5局 there because 己卯 starts an upper yuan six days before 立冬. With the ju corrected every outer palace — heaven

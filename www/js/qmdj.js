@@ -952,7 +952,7 @@
   // Each threat's manifestation index runs on its own scale (a resource palace is usually healthy, a hazard
   // symbol always marks its palace), so "live" is set per threat at about its 70th percentile over month and
   // hour plates for a spread of charts (2018-2033): live in roughly three plates in ten. Health was re-set to 2.5 in
-  // 9.30, once 腾蛇 (spelt 螣蛇 here before, so never matched on the plate) began to count as one of its agents.
+  // 9.31, once 腾蛇 (spelt 螣蛇 here before, so never matched on the plate) began to count as one of its agents.
   var HOT_AT = { financial: 1.0, legal: 1.8, friction: 0.5, health: 2.5, relationship: 3.5, upheaval: 2.1 };
 
   function locate(chart, kind, ch) {
@@ -1538,7 +1538,7 @@
   var GRID_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
   // How often each auspicious formation falls in a given palace (% of palace-hours over 2,880 hourly plates, 2026-27,
   // 置闰 with the hour void). The common ones describe an ordinary good palace and only support a structure; the rare
-  // ones make it. Re-measured in 9.30 after the 伏吟/反吟 and deity detectors were fixed.
+  // ones make it. Re-measured in 9.31 after the 伏吟/反吟 and deity detectors were fixed.
   var FORMATION_FREQ = {
     xing_men_xiang_sheng: 31.6, ji_men_dao: 29.6, san_he: 25, ji_men_he_ji_xing: 19.7, deity_harmony: 19,
     zhi_shi_xiang_sheng: 16.6, men_sheng_gong: 16.5, san_qi_you_liu_yi: 13, san_qi_sheng_dian: 7, fei_dun_cheng: 6.6,
