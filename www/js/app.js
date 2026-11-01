@@ -5710,6 +5710,30 @@
       profile(A) + profile(B);
   }
 
+  // Sexual attraction and compatibility (partners, both 18 or over): the couple's fit, counter-measures when chemistry
+  // or libido needs work, and each person's profile in bed.
+  function sexualHtml(s, rm, item) {
+    var best = rm && rm.windows.byDimension.desire;
+    var inBed = function (q) {
+      return block('In bed: ' + esc(q.name), q.element + ' is strongest in their chart',
+        '<div class="stack-sm">' + rows([
+          ['Libido', q.libido], ['Sexual style', q.style], ['Turns them on', q.on], ['Turns them off', q.off],
+          ['Foreplay', q.foreplay], ['Leading or following', q.role], ['Talking about sex', q.voice]
+        ].concat(q.intensity ? [['Intensity', q.intensity]] : []).concat(q.magnetism ? [['Magnetism', q.magnetism]] : [])
+         .concat([['Stamina', q.stamina], ['Best hours', q.hours.charAt(0).toUpperCase() + q.hours.slice(1) + '.']]).map(function (r) {
+          return [r[0], '<div class="plain">' + esc(r[1]) + '</div>'];
+        })) + '</div>');
+    };
+    var counter = s.counter.concat(best ? ['Time it: the strongest time for desire in the next 30 days is ' + weekdayOf(best.date) + ' ' + best.date + ', ' + best.range + '.'] : []);
+    return block('Sexual attraction and compatibility', 'frank, for the two of you only',
+        '<div class="stack-sm">' + rows(s.items.map(item)) + '</div>' +
+        (s.counter.length ? '<div class="panel plain" style="margin-top:8px"><b>Counter-measures to build sexual chemistry</b><ol>' +
+          counter.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>' : '') +
+        '<div class="hint">Shown because you are both adults and Profile › Relationship screen includes intimacy. Tendencies from the ' +
+          'charts, not rules — consent and talking to each other come first. For sexual health questions, see a doctor.</div>') +
+      inBed(s.profiles[0]) + inBed(s.profiles[1]);
+  }
+
   function renderTogether(host) {
     var list = loadTogether();
     if (!list.length || tgAdding) { renderTogetherForm(host, list); return; }
@@ -5739,9 +5763,14 @@
         '<div class="verdictbar"><span class="big ' + bandCls + '">' + res.band + '</span><span class="sub">' + other.pillars.day.cn + ' day &middot; ' +
           esc(other.deep.dayMasterEn) + (other.deep.strong ? ' (strong)' : ' (weak)') + '</span></div>' +
         '<div class="panel plain" style="margin-top:10px">' + esc(res.summary) + '</div>' +
-        (pt.type === 'partner' && !withIntimacy ? '<div class="hint">Attraction, desire and intimacy are switched off in Profile › Relationship screen.</div>' : '')) +
+        // The relationship can be changed here; attraction, desire and intimacy are read only for a partner.
+        '<label for="tgRel">Relationship</label><select id="tgRel">' + Object.keys(TG_TYPES).map(function (k) {
+          return '<option value="' + k + '"' + (k === pt.type ? ' selected' : '') + '>' + TG_TYPES[k] + '</option>'; }).join('') + '</select>' +
+        (pt.type !== 'partner' ? '<div class="hint">Attraction, desire and intimacy are read only for a partner or spouse. Change the relationship above to include them.</div>'
+          : !withIntimacy ? '<div class="hint">Attraction, desire and intimacy are switched off in Profile › Relationship screen.</div>' : '')) +
       (rm ? romanceHtml(res, rm, pt) : '') +
       (res.desire ? desireHtml(res.desire, rm, item) : '') +
+      (res.sexual ? sexualHtml(res.sexual, rm, item) : '') +
       block('Ways to strengthen the relationship', 'start here',
         '<div class="panel plain"><ol style="margin:0;padding-left:20px">' + res.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
         '</ol></div>') +
@@ -5765,11 +5794,14 @@
 
     host.querySelectorAll('[data-tg]').forEach(function (b) { b.onclick = function () { tgSel = b.dataset.tg; renderChart(); }; });
     $('tgAdd').onclick = function () { tgAdding = true; renderChart(); };
+    $('tgRel').onchange = function () {
+      var l = loadTogether(); l.forEach(function (x) { if (x.id === pt.id) x.type = $('tgRel').value; }); saveTogether(l); renderChart();
+    };
     $('tgDel').onclick = function () {
       if ($('tgDel').dataset.armed !== '1') { $('tgDel').dataset.armed = '1'; $('tgDel').textContent = 'Tap again to remove ' + pt.name; return; }
       saveTogether(loadTogether().filter(function (x) { return x.id !== pt.id; })); tgSel = null; renderChart();
     };
-    aiPanel('aiTogether', 'together', pt.id + '.' + year + '.' + (withIntimacy ? 'i' : 'n') + '.v2',
+    aiPanel('aiTogether', 'together', pt.id + '.' + year + '.' + (withIntimacy ? 'i' : 'n') + '.v3',
       function (cfg) { return window.QPAI.analyseTogether(cfg, user, other, res); }, [
         { label: 'The two of you', path: 'headline' },
         { label: 'How you work together', path: 'dynamics' },
@@ -5779,6 +5811,7 @@
         { label: 'Attraction', path: 'attraction' },
         { label: 'Desire', path: 'desire' },
         { label: 'Intimacy and closeness', path: 'intimacy' },
+        { label: 'Sexual compatibility', path: 'sexual' },
         { label: 'Qimen: what strengthens and what weakens', path: 'remedies' },
         { label: 'Timing this year', path: 'timing' },
         { label: 'Ways to strengthen the relationship', path: 'steps' },

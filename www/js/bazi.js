@@ -1018,6 +1018,64 @@
     '比肩': 'wants an equal partnership in closeness — give and take, neither leading all the time',
     '劫财': 'can be competitive and intense, enjoys playful challenge'
   };
+  /*
+   * One adult's sexual profile, read from the chart: libido (Fire, Peach Blossom 咸池, the output gods 食神/伤官, Day
+   * Master strength), sexual style and what turns them on or off (the strongest element), whether they lead or follow
+   * in bed (yang Day Master and the self/output gods lead; resource and officer gods follow), how vocal they are (食伤
+   * talk, 官印 keep it private), foreplay needs and stamina. Frank about sex; never a description of acts or anatomy.
+   */
+  var SEX_ELEM = [
+    { style: 'playful and experimental — likes variety, laughter and trying something new',
+      on: 'novelty: a new place or a new idea, flirting through the day, being told they are desirable, a little challenge',
+      off: 'sex that has become the same routine, being rushed or pressured, criticism',
+      foreplay: 'a moderate build-up that feels playful rather than scripted' },
+    { style: 'passionate and visual — intense, spontaneous, and turned on by being wanted',
+      on: 'being openly desired: eye contact, compliments on their body, lingerie or attractive clothes, warm light, spontaneity',
+      off: 'coldness, indifference, criticism of their looks, sex that feels like a duty',
+      foreplay: 'a short build-up is fine, but heat has to be there from the start' },
+    { style: 'sensual and slow — touch-led, comfort-seeking, steady once relaxed',
+      on: 'being pampered: a long massage, a warm bed, a good meal first, slow undressing, feeling secure',
+      off: 'rushing, an untidy room, worries left unspoken, feeling used',
+      foreplay: 'a long, unhurried build-up — plenty of foreplay and touch before sex' },
+    { style: 'controlled and discerning — reserved at first, intense once trust and anticipation are there',
+      on: 'anticipation and quality: knowing in advance that the night is planned, clean sheets, a fresh scent, respect and appreciation',
+      off: 'crude remarks, sloppiness, an untidy space, broken promises',
+      foreplay: 'a deliberate build-up; anticipation through the day counts as foreplay' },
+    { style: 'deep and emotional — sex is about merging, and connection comes first',
+      on: 'emotional closeness: talking first, whispered words, dim light or darkness, a bath or shower together, tenderness',
+      off: 'pressure, emotional distance, an argument left unresolved, harsh light',
+      foreplay: 'a slow, emotionally connected build-up, and staying close afterwards' }
+  ];
+  function sexualProfile(x) {
+    var D = x.deep, p = x.pillars, dm = p.day.stem, q = intimacyProfile(x);
+    var top = D.shares.indexOf(Math.max.apply(null, D.shares)), el = SEX_ELEM[top];
+    var gods = {};
+    [p.year.stem, p.month.stem, p.hour.stem].concat([p.year, p.month, p.day, p.hour].map(function (r) { return C.HIDDEN[r.branch][0]; }))
+      .forEach(function (s) { var g = C.tenGod(dm, s).cn; gods[g] = (gods[g] || 0) + 1; });
+    var g = function (k) { return gods[k] || 0; };
+    var lead = (C.STEM_YIN[dm] === 0 ? 1 : -0.5) + 0.5 * (g('比肩') + g('劫财') + g('伤官')) - 0.5 * (g('正印') + g('偏印') + g('正官'));
+    var vocal = g('食神') + g('伤官') - g('正官') - g('正印');
+    var peachSelf = D.stars.some(function (s) { return s.key === 'peach' && (s.at.indexOf('Day') >= 0 || s.at.indexOf('Hour') >= 0); });
+    var libido = q.level === 'high' ? 'High' : q.level === 'moderate' ? 'Moderate' : 'Lower';
+    return {
+      name: x.name, element: C.ELEM_EN[top], level: q.level, lead: lead,
+      libido: libido + ' libido — ' + (q.level === 'high' ? 'wants sex often and feels its absence quickly' : q.level === 'moderate' ? 'a steady appetite that rises with closeness'
+        : 'desire comes when the mood and connection are right, rather than on its own') + ' (' + q.drivePlain.replace(/^[^(]*\(/, '').replace(/\)\.$/, '') + ').',
+      style: upper1(el.style) + '.',
+      on: upper1(el.on) + '.', off: upper1(el.off) + '.', foreplay: upper1(el.foreplay) + '.',
+      role: lead >= 1 ? 'Tends to lead in bed — likes to initiate and set the pace.' : lead <= -0.5 ? 'Tends to follow in bed — enjoys a partner who takes the lead and sets the pace.'
+        : 'Switches between leading and following, depending on the mood.',
+      intensity: g('七杀') ? 'Enjoys intensity and a strong, confident partner (七杀).' : '',
+      voice: vocal >= 1 ? 'Expressive — enjoys talking about sex, saying what they want, and hearing it.' : vocal <= -1 ? 'Private — prefers to show rather than say; needs trust before talking about sex.'
+        : 'Talks about sex when asked, more easily in a relaxed moment than in the moment itself.',
+      magnetism: peachSelf ? 'Strong sexual magnetism: Peach Blossom (咸池) sits close to the self, so being desired matters a great deal to them.' : '',
+      stamina: q.stamina, hours: q.hours
+    };
+    function upper1(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  }
+  // Age in whole years on a date, from the birth record.
+  function ageOn(b, t) { return t.getFullYear() - b.y - ((t.getMonth() + 1 < b.m || (t.getMonth() + 1 === b.m && t.getDate() < b.d)) ? 1 : 0); }
+
   function intimacyProfile(x) {
     var D = x.deep, p = x.pillars, dm = p.day.stem;
     var top = D.shares.indexOf(Math.max.apply(null, D.shares)), el = DESIRE_ELEM[top];
@@ -1240,6 +1298,62 @@
       desire = { profiles: [qa, qb], couple: couple };
     }
 
+    // 7c. Sexual compatibility (partner, opt-in, both people 18 or over): frank about sex, never graphic.
+    var sexual = null, today = new Date();
+    if (partner && opts.intimacy && ageOn(a.birth, today) >= 18 && ageOn(b.birth, today) >= 18) {
+      var sa = sexualProfile(a), sb = sexualProfile(b), sx = [];
+      var fireAvg2 = (A.shares[1] + B.shares[1]) / 2;
+      var chem = attraction.length + (dl ? ({ union: 2, triad: 1, clash: 1, same: 0.5, harm: -1, punish: -1, destruction: -0.5 }[dl.kind] || 0) : 0) +
+        (fireAvg2 >= 22 ? 1 : fireAvg2 < 12 ? -1 : 0);
+      var chemLevel = chem >= 4 ? 'Strong' : chem >= 2 ? 'Good' : 'Needs building';
+      sx.push({ title: 'Sexual chemistry — ' + chemLevel, tone: chem >= 4 ? 'good' : chem >= 2 ? 'mixed' : 'caution',
+        plain: (attraction.length ? 'Physical attraction markers link your charts (' + attraction.length + '). ' : 'No classical attraction markers link your charts. ') +
+          (dl && dl.kind === 'union' ? 'Your spouse palaces combine — sex tends to feel natural and easy between you. ' :
+           dl && dl.kind === 'clash' ? 'Your spouse palaces clash — strong physical heat, often strongest after an argument, but it can swing. ' :
+           dl && (dl.kind === 'harm' || dl.kind === 'punish') ? 'Your spouse palaces rub — unspoken mismatches in what each wants in bed. ' : '') +
+          'Fire, the element of sexual heat, averages ' + Math.round(fireAvg2) + '% across your charts.',
+        todo: chem >= 4 ? 'The chemistry is there; protect it with regular time for sex that is not squeezed into the end of a tiring day.'
+          : chem >= 2 ? 'Good foundations; keep it alive with novelty and by telling each other plainly what you enjoy.'
+          : 'Chemistry here is built rather than given: see the counter-measures below, and give it time — it grows with trust and practice.' });
+      var lv = { gentle: 0, moderate: 1, high: 2 }, gap2 = lv[sa.level] - lv[sb.level], hiS = gap2 > 0 ? sa : sb, loS = gap2 > 0 ? sb : sa;
+      sx.push(gap2 === 0
+        ? { title: 'Libido', tone: 'good', plain: 'Your sex drives are similar (' + sa.level + '), so how often you have sex is unlikely to become a fight.',
+            todo: 'Keep a rhythm that suits you both, and say so if it drifts.' }
+        : { title: 'Libido', tone: Math.abs(gap2) > 1 ? 'caution' : 'mixed',
+            plain: hiS.name + ' wants sex more often (' + hiS.level + ') than ' + loS.name + ' (' + loS.level + '). Left unspoken, one feels rejected and the other pressured.',
+            todo: 'Agree a baseline — for example set nights each week — and treat anything more as a bonus. ' + hiS.name + ' initiates warmly and accepts a no gracefully; ' +
+              loS.name + ' suggests what would make sex appealing (see their profile). Closeness that does not end in sex still counts.' });
+      var role = sa.lead >= 1 && sb.lead >= 1 ? { tone: 'mixed', plain: 'You both like to lead in bed.', todo: 'Take turns leading, and say whose night it is; the contrast keeps it interesting.' }
+        : sa.lead <= -0.5 && sb.lead <= -0.5 ? { tone: 'caution', plain: 'You both prefer to follow, so sex can wait for an invitation neither gives.', todo: 'Decide who initiates this week, or plan nights in advance; leading can be learned and enjoyed.' }
+        : { tone: 'good', plain: (sa.lead >= sb.lead ? sa : sb).name + ' tends to lead and ' + (sa.lead >= sb.lead ? sb : sa).name + ' to follow — a natural fit.',
+            todo: (sa.lead >= sb.lead ? sa : sb).name + ' sets the pace but checks in; ' + (sa.lead >= sb.lead ? sb : sa).name + ' says what they want more of.' };
+      role.title = 'Who leads in bed'; sx.push(role);
+      var slow = function (s) { return s.element === 'Earth' || s.element === 'Water' || s.element === 'Metal'; };
+      sx.push(slow(sa) === slow(sb)
+        ? { title: 'Sexual style', tone: 'good', plain: 'Your styles are close: ' + sa.name + ' is ' + sa.style.toLowerCase().split(' — ')[0] + ', ' + sb.name + ' ' + sb.style.toLowerCase().split(' — ')[0] + '.',
+            todo: slow(sa) ? 'Give sex time; long foreplay suits you both.' : 'Keep the spontaneity — and add new ideas before routine sets in.' }
+        : { title: 'Sexual style', tone: 'mixed', plain: (slow(sa) ? sb : sa).name + ' is ' + (slow(sa) ? sb : sa).style.toLowerCase().split(' — ')[0] + '; ' + (slow(sa) ? sa : sb).name +
+              ' is ' + (slow(sa) ? sa : sb).style.toLowerCase().split(' — ')[0] + '.',
+            todo: 'Start at ' + (slow(sa) ? sa : sb).name + '\'s pace — a longer build-up and plenty of foreplay — then let ' + (slow(sa) ? sb : sa).name + '\'s heat take over.' });
+      var quiet = [sa, sb].filter(function (s) { return /^Private/.test(s.voice); });
+      sx.push({ title: 'Talking about sex', tone: quiet.length ? 'mixed' : 'good',
+        plain: quiet.length ? quiet.map(function (s) { return s.name; }).join(' and ') + ' find' + (quiet.length > 1 ? '' : 's') + ' it hard to say what they want in bed.'
+          : 'You can both talk about sex reasonably openly.',
+        todo: quiet.length ? 'Use a private "yes / no / maybe" list: each of you marks it alone, then you compare only where you both said yes or maybe. Talk outside the bedroom, not in the moment.'
+          : 'Keep talking — a short check-in now and then about what is working and what you would like more of.' });
+      var counter = [];
+      if (chem < 2 || Math.abs(gap2) > 0) {
+        counter = [
+          'Break the routine: a new place, a weekend away, or simply a different room or time of day.',
+          'Warm the bedroom: candles or warm low light, red or pink fabrics, a scent of rose or ylang-ylang; keep work and phones out.',
+          'Take the pressure off for a week: touch, massage and kissing with an agreement not to have sex — then let it build back up.',
+          'Plan sex nights so desire has time to build through the day — a message in the afternoon counts as foreplay.',
+          'Look after the basics: sleep, exercise and stress. If desire drops suddenly, or sex is painful or difficult, see a doctor — it is common and treatable.'
+        ];
+      }
+      sexual = { profiles: [sa, sb], chemistry: chemLevel, items: sx, counter: counter };
+    }
+
     // 8. Timing: both annual forecasts month by month.
     var year = opts.year || new Date().getFullYear(), timing = null;
     try {
@@ -1304,7 +1418,7 @@
     var steps = items.filter(function (x) { return x.tone === 'caution'; }).concat(items.filter(function (x) { return x.tone === 'good'; }))
       .map(function (x) { return x.todo; }).filter(function (v, i, arr) { return arr.indexOf(v) === i; }).slice(0, 6);
     return { a: na, b: nb, type: type, score: score, band: band, summary: summary, items: items, intimacy: intimacy,
-             attraction: attraction, natal: natal, desire: desire, steps: steps, timing: timing };
+             attraction: attraction, natal: natal, desire: desire, sexual: sexual, steps: steps, timing: timing };
   }
 
   global.QPBazi = {

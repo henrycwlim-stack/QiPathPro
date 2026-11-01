@@ -1981,7 +1981,7 @@
 
   var TOGETHER_SCHEMA = { type:'object', properties:{
     headline:{type:'string'}, dynamics:{type:'string'}, strengths:{type:'string'}, frictions:{type:'string'},
-    communication:{type:'string'}, attraction:{type:'string'}, desire:{type:'string'}, intimacy:{type:'string'},
+    communication:{type:'string'}, attraction:{type:'string'}, desire:{type:'string'}, intimacy:{type:'string'}, sexual:{type:'string'},
     remedies:{type:'string'}, timing:{type:'string'},
     steps:{type:'array', items:{type:'string'}}, caution:{type:'string'} },
     required:['headline','dynamics','strengths','frictions','communication','timing','steps','caution'] };
@@ -2016,6 +2016,10 @@
           return '- ' + q.name + ' (' + q.element + ' strongest): ' + q.drivePlain + ' Initiation: ' + q.initiates + '. Pace: ' + q.pace + '. Aroused by: ' +
             q.arouses + '. Cooled by: ' + q.cools + '. Touch: ' + q.touch + '. Setting: ' + q.setting + '. Best hours: ' + q.hours + '. ' + q.stamina + ' ' + q.god;
         }).join('\n') + '\nHOW THEY FIT:\n' + res.desire.couple.map(line).join('\n') + '\n' : '') +
+      (res.sexual ? '\nSEXUAL COMPATIBILITY (both are adults; chemistry ' + res.sexual.chemistry + '):\n' + res.sexual.profiles.map(function (q) {
+          return '- ' + q.name + ': ' + q.libido + ' Style: ' + q.style + ' Turned on by: ' + q.on + ' Turned off by: ' + q.off + ' Foreplay: ' + q.foreplay +
+            ' ' + q.role + ' ' + q.voice + ' ' + q.intensity + ' ' + q.magnetism + ' ' + q.stamina;
+        }).join('\n') + '\n' + res.sexual.items.map(line).join('\n') + '\n' : '') +
       (res.timing ? '\nTHE YEAR ' + res.timing.year + ' (' + res.timing.pillarCn + ') MONTH BY MONTH — scores for ' + res.a + ' / ' + res.b + ':\n' +
         res.timing.months.map(function (m) {
           return '  ' + m.pillar + ' ' + m.start + ' → ' + m.end + ': ' + m.a + ' / ' + m.b + (m.both ? ' | best together' : '') +
@@ -2026,7 +2030,9 @@
         ? 'INTIMACY: they are adults and have asked for specific detail on attraction, desire and intimacy. Be frank and concrete: ' +
           'each person\'s level of desire, who initiates and how to invite, pace and the length of build-up and foreplay, what arouses ' +
           'and what cools each of them, the kind of touch, massage and setting that suits each, the best times of day, stamina, and how ' +
-          'to handle a mismatch in desire. Keep it tasteful and non-graphic: no description of sexual acts or anatomy. For health or ' +
+          'to handle a mismatch in desire. Where SEXUAL COMPATIBILITY is given, write frankly about sex itself — sexual chemistry, ' +
+          'libido, arousal and turn-offs, foreplay, sexual style, who leads, how often, and talking about sex — using plain words ' +
+          'such as sex, libido and arousal. Keep it non-graphic: no description of sexual acts or anatomy. For health or ' +
           'fertility, mention ordinary habits only and suggest a doctor; never diagnose. Where a dimension is weak, give detailed ' +
           'counter-measures: Qimen remedies (the direction to activate, objects, colours, scents and words that strengthen it, and ' +
           'those that weaken it), behaviour, and the dates and hours from the data. Never invent a date that is not in the data.\n\n'
@@ -2040,6 +2046,7 @@
       '  "attraction": "' + (withIntimacy ? 'How strong the pull between them is, in the charts and this month; if weak, the counter-measures (90-140 words).' : '') + '",\n' +
       '  "desire": "' + (withIntimacy ? 'Each person\'s desire specifically — level, initiation, pace and build-up, what arouses and what cools them — how the two fit, how to handle any mismatch, and counter-measures if desire is weak. Frank but non-graphic (150-220 words).' : '') + '",\n' +
       '  "intimacy": "' + (withIntimacy ? 'Tenderness and physical closeness specifically — the touch, massage, setting and best hours for each, what to do before, during and after closeness, and counter-measures if intimacy is weak. Frank but non-graphic (150-220 words).' : '') + '",\n' +
+      '  "sexual": "' + (res.sexual ? 'Their sexual compatibility, frankly: chemistry, each person\'s libido and what turns them on and off, foreplay, who leads, how often, how to talk about it, and specific counter-measures where chemistry or libido needs work — non-graphic (150-230 words).' : '') + '",\n' +
       '  "remedies": "' + (withIntimacy ? 'Qimen for this month: the direction to activate and why, the objects, colours, scents and words that strengthen, those that weaken, the directions to avoid, and the strongest and weakest dates and hours (120-180 words).' : '') + '",\n' +
       '  "timing": "This year for the two of them: the best months together for joint plans, the months to take care, with dates (80-130 words).",\n' +
       '  "steps": ["5 to 7 concrete, everyday steps to strengthen the relationship, most important first, each naming who does what."],\n' +

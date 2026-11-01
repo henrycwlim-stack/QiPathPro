@@ -166,6 +166,13 @@ numbered counter-measures; every rating shows the reasons from both parts.
   and temperament (the most frequent ten god). `compatibility().desire` sets the two side by side — matching or
   different desire, who initiates, pace, setting the scene, shared hours — and the screen adds a plan for the
   strongest desire time from the Qimen scan. Frank and specific, never graphic.
+- **Sexual attraction and compatibility (9.31; partners, both 18 or over by birth date).** `sexualProfile(x)` in
+  `bazi.js` gives each adult's libido, sexual style, what turns them on and off, foreplay needs (strongest element),
+  whether they lead or follow in bed (yang Day Master and 比劫/伤官 lead; 印/官 follow), how openly they talk about
+  sex (食伤 vs 官印), 七杀 intensity, Peach Blossom magnetism, stamina and best hours. `compatibility().sexual`
+  rates sexual chemistry (attraction markers, spouse palaces, Fire) and sets libido, leading, style and talking
+  about sex side by side, with counter-measures when chemistry or libido needs work and the strongest desire time
+  from the Qimen scan. Frank about sex, never a description of acts or anatomy; the AI reading follows the same rule.
 - **Qimen remedies.** The plate names the direction to activate (the strongest of 六合, 丁, 休门, 景门 that is neither
   void nor hostile) and, from its element, the objects, colours, scents and words that strengthen it
   (`QPQimen.ELEMENT_REMEDY`); the element that controls it, and its words, weaken it. When the two seats control each
@@ -181,6 +188,8 @@ numbered counter-measures; every rating shows the reasons from both parts.
   copied in only with that profile's PIN.
 - **Relationship types.** Partner, family, friend or business; attraction and intimacy appear only for a
   partner, and intimacy only when its toggle is on.
+  The relationship can be changed on the person's screen at any time (9.31); for anyone other than a partner the
+  screen says why attraction, desire and intimacy are not shown.
 - **AI reading.** `QPAI.analyseTogether` (registry key `together`) writes a plain-language reading with
   steps; with intimacy on it covers warmth, closeness and timing in respectful, non-explicit terms.
 
