@@ -68,7 +68,28 @@ and earth stems (己 lodged with 天芮 and in 坤), stars, doors and deities �
 - **腾蛇 spelling.** The plate writes the deity 腾蛇, but six lookups in `qmdj.js` used the variant 螣蛇 and never
   matched: `HOSTILE_DEITY`, the Health and Relationship threat agents, and the Together screen's disruptors. All now
   use 腾蛇. With 腾蛇 counting, Health strain's live threshold moved from 2.3 to 2.5 (30.8% of month and hour plates).
-- **Profile › Qimen charts** switches the ju method (置闰 / 拆补) and the void (hour / day) for the device. Chart
+- **Profile › Qimen charts** switches the ju method (置闰 / 拆补) and the void (hour / day) for the device.
+
+#### Consult › Formations (formerly Search)
+
+Pick one or more formations — **Good** (auspicious, the default), Special, Challenging or All — filter by name or
+purpose, and scan any date range up to a year. Each formation in the list shows its rarity; each selected one is
+explained: what it is, what it favours, how often it occurs (share of hourly plates and about how many waking hours
+a month, `QPQimen.formationInfo`), its seasonal strength this month, and how to use it. The scan covers every
+double-hour in the range (a year in about 0.4 s), optionally waking hours only, and lists results strongest first —
+ranked over the whole range, top 200 shown — or by date. Strength is the palace quality plus the formation's rarity
+weight. Each result opens the palace, the full plate, a save, an AI reading and *Use this window for a manifestation*.
+
+**Formation detector fixes** (`qpdata.js`, `systems.js`), found checking the 2027-12-09 and 2027-12-12 references:
+- 门伏吟 and 星伏吟 compared elements with the palace instead of the home palace (开门 in 兑 7 was flagged though
+  its home is 乾 6). They now use the home palaces; 门反吟 and 星反吟 are added. The plate-wide 伏吟格 and 反吟格
+  now fire (`meta.fuYin` / `meta.fanYin`, from the heaven plate's shift). 2027-12-12 now reads 伏吟格 + 门反吟 and
+  2027-12-09 门伏吟, as the reference shows.
+- The chart now gives each deity its element (神门相生, 神煞相克), each stem its yin/yang, and the day and hour
+  stems their element (时墓); 阴阳倒 accepts 阴遁/阳遁.
+- `FORMATION_FREQ` (per palace) and the new `FORMATION_HOURLY` (per plate) were re-measured over 2,880 plates.
+  Still never seen: 龙吟虎啸 and 五行缺 (they count palace elements, which never change), 伏断格 (asks one stem to
+  differ from itself in yin/yang) and 三奇贵禄 (needs all three Wonders well placed at once). Chart
   screens show the method, the term the ju was taken from with its 超神/接气 days, and both voids.
 
 ### 9.30 — Daily Qimen structures: scan, digest, email and manifestation links

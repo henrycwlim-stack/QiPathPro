@@ -1470,6 +1470,9 @@
     var days = Math.max(0, Math.round(jd1 - jd0)) + 1;
     var want = {};
     ids.forEach(function (i) { want[i] = true; });
+    // opts: limit (default 60), waking (skip 丑寅卯, 01:00–06:59), fav (favourable elements, for the strength score).
+    // Each hit carries a score — its palace's quality plus the formation's rarity weight — so results can be ranked.
+    // A capped search marks the array `truncated`.
     var cap = opts.limit || 60;
 
     for (var d = 0; d < days; d++) {
@@ -1477,6 +1480,7 @@
       var gy = g.y, gm = g.m, gd = Math.floor(g.d);
       var jdn = A.civilJDN(gy, gm, gd);
       for (var b = 0; b < 12; b++) {
+        if (opts.waking && b >= 1 && b <= 3) continue;
         var hh = b === 0 ? 23 : (b * 2 - 1);
         var p = C.fourPillars(gy, gm, gd, hh, 30);
         if (b === 0 && p.dayJDN !== jdn) continue;
@@ -1488,7 +1492,9 @@
         var host = forms.filter(function (f) { return f.category === 'hostile'; }).length;
         hits.forEach(function (f) {
           var pals = (f.palaces && f.palaces.length ? f.palaces : [chart.best[0] ? chart.best[0].num : 1]);
+          var main = pals.filter(function (n) { return n >= 1 && n <= 9 && n !== 5; })[0];
           out.push({
+            score: Math.round(((main ? palaceQuality(chart, forms, main, opts.fav || null).score : 0) + formationWeight(f)) * 10) / 10,
             y: gy, m: gm, d: gd, hour: hh, hourBranch: b,
             range: C.HOUR_RANGE[b], branchCn: C.BRANCHES[b],
             dayPillar: p.day, hourPillar: p.hour, pillars: p,
@@ -1497,7 +1503,7 @@
             mansion: chart.mansion, net: ausp - host, ausp: ausp, hostile: host
           });
         });
-        if (out.length >= cap) return out;
+        if (out.length >= cap) { out.truncated = true; return out; }
       }
     }
     return out;
@@ -1530,13 +1536,66 @@
     '天蓬': 'bold risk-taking', '天芮': 'study of faults and problems', '天柱': 'speaking out and breaking old patterns'
   };
   var GRID_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
-  // How often each auspicious formation falls in a given palace (% of palace-hours, 1,440 hourly plates across 2026).
-  // The common ones describe an ordinary good palace and only support a structure; the rare ones make it.
-  var FORMATION_FREQ = { xing_men_xiang_sheng: 31.6, ji_men_dao: 29.5, san_he: 25.0, ji_men_he_ji_xing: 19.7, men_sheng_gong: 16.5,
-    zhi_shi_xiang_sheng: 16.5, san_qi_you_liu_yi: 12.9, san_qi_sheng_dian: 7.0, fei_dun_cheng: 6.6, jiu_tian_tong_ling: 4.6 };
+  // How often each auspicious formation falls in a given palace (% of palace-hours over 2,880 hourly plates, 2026-27,
+  // 置闰 with the hour void). The common ones describe an ordinary good palace and only support a structure; the rare
+  // ones make it. Re-measured in 9.30 after the 伏吟/反吟 and deity detectors were fixed.
+  var FORMATION_FREQ = {
+    xing_men_xiang_sheng: 31.6, ji_men_dao: 29.6, san_he: 25, ji_men_he_ji_xing: 19.7, deity_harmony: 19,
+    zhi_shi_xiang_sheng: 16.6, men_sheng_gong: 16.5, san_qi_you_liu_yi: 13, san_qi_sheng_dian: 7, fei_dun_cheng: 6.6,
+    jiu_tian_tong_ling: 4.7, ding_qi_sheng: 2.9, jiao_tai: 2.9, bing_qi_sheng: 2.7, yu_nv_shou: 2.6,
+    qing_long_hui: 2.5, qi_yi_xiang_he: 2.2, huan_xi: 1.5, zhi_fu_xiang_sheng: 1.4, yi_qi_sheng: 1.4, bing_jia: 1.1,
+    ding_jia: 1.1, fei_niao_die: 1.1, gui_yi: 1.1, wu_bing: 1.1, wu_ding: 1.1, yi_gui: 1.1, ren_yi: 1, yi_jia: 1,
+    yi_ren: 1, san_qi_de_shi: 0.7, fei_niao_ru_long: 0.4, yun_dun: 0.2, di_dun: 0.2, tian_dun: 0.2, ren_dun: 0.1,
+    feng_dun: 0.1, long_dun: 0, gui_dun: 0, tian_xian_shi: 0, shen_dun: 0, san_qi_gui_lu: 0, hu_dun: 0
+  };
+  // How often each formation appears anywhere on an hourly plate (% of hours), for the Formations screen.
+  var FORMATION_HOURLY = {
+    ji_men_dao: 100, san_he: 100, stem_kong: 100, men_kong: 100, ji_xing_lin: 100, star_kong: 100,
+    xiong_xing_lin: 90.2, ji_men_he_ji_xing: 90, deity_clash: 88.2, deity_harmony: 80.3, fei_xing_ge: 77.7,
+    men_po: 66.8, men_xing_xiang: 66.7, xing_zhi: 66.7, ge_dou: 66.6, san_qi_you_liu_yi: 65.7,
+    xing_men_xiang_sheng: 63.6, men_sheng_gong: 55.3, zhi_shi_xiang_sheng: 55.2, zhi_shi_yin: 55.2,
+    liu_yi_ru_mu: 53.5, san_qi_sheng_dian: 46.7, kong_wang: 46.7, fei_dun_cheng: 45.8, jiu_tian_tong_ling: 37.6,
+    zhi_fu_yin: 33.3, men_ru_mu: 33.1, san_qi_ru_mu: 30.6, jiu_di_xiong: 28.3, ding_qi_sheng: 23, liu_he_xiong: 22.5,
+    fan_yin: 22.3, xing_fu_yin: 22.3, zhi_fu_kong: 22.2, fu_yin_men: 22.2, zhi_fu_xiong: 22.1, bing_qi_sheng: 21.5,
+    yu_nv_shou: 20.5, yin_yang_dao: 20.4, di_wang_zhe_bi: 20.1, qing_long_hui: 20, fei_duan_ge: 20,
+    tian_wang_si_zhang: 19.7, bai_hu: 19.7, qi_yi_xiang_he: 17.4, jiao_tai: 16.7, teng_she: 16.3, xuan_wu: 12.7,
+    huan_xi: 12.3, ji_ji_xing: 11.6, men_fan_yin: 11.5, zhi_fu_xiang_sheng: 11.3, tai_yin_xiong: 11.3,
+    yi_qi_sheng: 11.2, jiu_tian_xiong: 11.2, geng_ji_xing: 11.1, shi_mu: 11.1, xin_ji_xing: 11.1, wu_ji_xing: 11,
+    fan_yin_2: 10.9, gui_ji_xing: 10.9, ren_ji_xing: 10.9, xing_fan_yin: 10.9, tian_xian_shi: 10, xin_ren: 9.3,
+    wu_ren: 9.3, yi_gui: 9.1, geng_xin: 9.1, xing_ge: 9.1, xin_yi: 9.1, ding_jia: 9, yi_ji: 9, wu_bing: 8.9,
+    gui_geng: 8.9, ren_geng: 8.9, geng_ji_geng: 8.9, qing_long_tao: 8.9, shang_ge: 8.9, xin_ding: 8.9, wu_ding: 8.8,
+    wu_ji: 8.8, wu_xin: 8.8, bing_ren: 8.8, gui_ren: 8.8, tian_yi_fu_gong: 8.8, ren_bing: 8.8, ren_ding: 8.8,
+    zei_ge: 8.8, tai_bai_ru_ying: 8.8, ren_xin: 8.7, bei_ge: 8.7, ying_ru_tai_bai: 8.7, ding_xin: 8.6, ding_gui: 8.6,
+    ji_ding: 8.6, gui_yi: 8.5, bing_jia: 8.4, fei_niao_die: 8.4, wu_jia_xin_ge: 8.4, ding_ren: 8.4, ji_bing: 8.4,
+    xiao_ge: 8.4, wu_yi: 8.4, tian_yi_di_wang: 8.3, da_ge: 8.3, 'gan_he-xing': 8.3, yi_geng: 8.3, yi_jia: 8.2,
+    yi_ren: 8.2, xin_gui: 8.1, gui_bing: 8, she_yao_jiao: 8, ren_yi: 7.8, bing_xin: 7.7, san_qi_de_shi: 5.7,
+    wu_jia_di: 5.2, wu_jia_tian: 4.6, wu_jia_ren: 4.4, wu_jia_shen: 3.7, fei_niao_ru_long: 3.2, wu_jia_gui: 3,
+    san_zha: 1.7, di_dun: 1.6, yun_dun: 1.3, tian_dun: 1.3, feng_dun: 0.9, ren_dun: 0.8, long_dun: 0.3, gui_dun: 0.3,
+    shen_dun: 0.1, hu_dun: 0.1, san_qi_gui_lu: 0, long_yin: 0, wu_xing_que: 0, fu_duan_ge: 0
+  };
+  /**
+   * What the Formations screen says about one formation: how often it occurs, roughly how many waking hours a month
+   * carry it, what it favours (the part of its description after the dash), and its seasonal strength this month.
+   */
+  function formationInfo(f, month) {
+    var D = global.QPData, pct = FORMATION_HOURLY[f.id] || 0;
+    var perMonth = Math.round(pct / 100 * 30 * 9 * 10) / 10;    // 9 waking double-hours a day (07:00–00:59)
+    var band = pct === 0 ? 'Unseen' : pct < 1 ? 'Very rare' : pct < 5 ? 'Rare' : pct < 20 ? 'Occasional' : 'Common';
+    return {
+      pct: pct, band: band, perMonth: perMonth,
+      often: pct === 0 ? 'did not occur in 2,880 hourly plates across 2026–27' :
+        'in ' + pct + '% of hourly plates — about ' + (perMonth >= 1 ? Math.round(perMonth) + ' waking hour' + (Math.round(perMonth) === 1 ? '' : 's') + ' a month'
+          : 'once every ' + Math.round(1 / perMonth) + ' months in waking hours'),
+      favours: (f.description.split(' — ')[1] || f.description).replace(/\.$/, ''),
+      seasonal: D && D.formationSeasonalStrength ? D.formationSeasonalStrength(f, month || (new Date().getMonth() + 1)) : '',
+      use: f.category === 'auspicious' ? 'Plan the matter it favours for that hour, face the palace it sits in, and open the manifestation script to work with it by name.'
+        : f.category === 'hostile' ? 'Avoid starting important matters in that hour, or work from a different palace.'
+        : 'Read it with the rest of the chart; it colours the hour rather than deciding it.'
+    };
+  }
   function formationWeight(f) {
     var pct = FORMATION_FREQ[f.id];
-    return pct === undefined ? 2 : pct >= 15 ? 0 : pct >= 5 ? 0.75 : 1.5;
+    return pct === undefined || pct < 1 ? 2 : pct >= 15 ? 0 : pct >= 5 ? 0.75 : 1.5;
   }
 
   function structureAt(res, fav) {
@@ -1753,7 +1812,7 @@
 
   global.QPQimen = {
     romancePlate: romancePlate, romanceWindows: romanceWindows, ELEMENT_REMEDY: ELEMENT_REMEDY,
-    structureScan: structureScan, STEM_ROLE: STEM_ROLE, STAR_PLAIN: STAR_PLAIN,
+    structureScan: structureScan, STEM_ROLE: STEM_ROLE, STAR_PLAIN: STAR_PLAIN, formationInfo: formationInfo,
     CHART_TYPES: CHART_TYPES, chartFor: chartFor, DOOR_INTENT: DOOR_INTENT,
     formationCatalogue: formationCatalogue, searchFormations: searchFormations,
     CATEGORIES: CATEGORIES, SCENARIOS: SCENARIOS, SEARCH_FIELDS: SEARCH_FIELDS, qimenAnnual: qimenAnnual, threatBridge: threatBridge, THREATS: THREATS, threatMonths: threatMonths, threatMonthText: threatMonthText, threatMonthTextFull: threatMonthTextFull, monthJiazi: monthJiazi,

@@ -327,8 +327,9 @@ input:focus,select:focus{border-color:var(--brass);outline:none}
 .sheet-body{padding-top:14px}
 
 /* ---------- pickers ---------- */
-.picker{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.picker.three{grid-template-columns:1fr 1fr 1fr}
+/* minmax(0,1fr): a date input's natural width must not push the pair past a phone's edge */
+.picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.picker.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .picker label{margin-top:0}
 
 /* ---------- multi-select formation list ---------- */

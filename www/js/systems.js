@@ -559,11 +559,11 @@
         // shape consumed by the ported formation detectors
         number: q,
         element: PAL_ELEM[q],
-        heavenStem: hs !== undefined ? { char: C.STEMS[hs], element: STEM_ELEM_EN[hs] } : null,
-        earthStem: es !== undefined ? { char: C.STEMS[es], element: STEM_ELEM_EN[es] } : null,
+        heavenStem: hs !== undefined ? { char: C.STEMS[hs], element: STEM_ELEM_EN[hs], yinYang: C.STEM_YIN[hs] ? 'yin' : 'yang' } : null,
+        earthStem: es !== undefined ? { char: C.STEMS[es], element: STEM_ELEM_EN[es], yinYang: C.STEM_YIN[es] ? 'yin' : 'yang' } : null,
         door: gate ? { char: gate.charAt(0), element: GATE_ELEM[gate], nature: GATE_NATURE[gate] } : null,
         star: star ? { char: star, element: STAR_ELEM[star] } : null,
-        deity: spirit ? { char: spirit, nature: SPIRIT_NATURE[spirit] } : null,
+        deity: spirit ? { char: spirit, nature: SPIRIT_NATURE[spirit], element: SPIRIT_ELEM[spirit] || null } : null,
         isEmpty: C.voidBranches(voidIdx).some(function (b) {
           return (PAL_BRANCHES[q] || []).indexOf(b) >= 0; }),
         // display fields used by the UI
@@ -613,10 +613,15 @@
       best: ranked.slice(0, 2), worst: ranked.slice(-2),
       // detector-facing view
       palacesByNumber: byNumber,
+      // The formation detectors read stems with element and yin/yang, and the plate-wide 伏吟 / 反吟: every star in its
+      // home palace (the heaven plate unmoved, shift 0) or in the opposite one (shift 4).
       meta: {
         dun: yin ? '阴遁' : '阳遁', ju: ju, term: termName,
-        dayPillar: { stem: { char: C.STEMS[p.day.stem] }, branch: { char: C.BRANCHES[p.day.branch] } },
-        hourPillar: { stem: { char: C.STEMS[p.hour.stem] }, branch: { char: C.BRANCHES[p.hour.branch] } },
+        dayPillar: { stem: { char: C.STEMS[p.day.stem], element: STEM_ELEM_EN[p.day.stem], yinYang: C.STEM_YIN[p.day.stem] ? 'yin' : 'yang' },
+                     branch: { char: C.BRANCHES[p.day.branch] } },
+        hourPillar: { stem: { char: C.STEMS[p.hour.stem], element: STEM_ELEM_EN[p.hour.stem], yinYang: C.STEM_YIN[p.hour.stem] ? 'yin' : 'yang' },
+                      branch: { char: C.BRANCHES[p.hour.branch] } },
+        fuYin: shift === 0, fanYin: shift === 4,
         solarTime: null, month: null
       }
     };

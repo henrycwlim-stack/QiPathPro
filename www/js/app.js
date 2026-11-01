@@ -2205,7 +2205,7 @@
 
   var consultK = 'sancai';
   var manifestPick = null;
-  var searchState = { ids: [], from: null, to: null, results: null, picked: null };
+  var searchState = { ids: [], from: null, to: null, results: null, picked: null, cat: 'auspicious', waking: true, sort: 'best' };
 
   function toneCls(t) { return t === 'good' ? 'good' : t === 'danger' ? 'danger' : 'neutral'; }
 
@@ -3626,10 +3626,15 @@
         var j = A.gregToJD(dt.y, dt.m, dt.d) + 30, g = A.jdToGreg(j);
         searchState.to = isoOf({ y:g.y, m:g.m, d:Math.floor(g.d) });
       }
+      var CATS = [['auspicious', 'Good'], ['special', 'Special'], ['hostile', 'Challenging'], ['all', 'All']];
+      var mo = dt.m;
       host.innerHTML =
-        block('Choose formations', cat.length + ' structures in the library',
+        block('Choose formations', 'pick one or more, then a date range to scan',
           '<div class="panel">' +
-          '<input class="fsearch" id="fFilter" type="text" placeholder="Filter by name, e.g. dragon, tiger, wealth">' +
+          '<div class="chips" id="fCats">' + CATS.map(function (c) {
+            return '<button class="chip" data-fcat="' + c[0] + '"' + (searchState.cat === c[0] ? ' aria-selected="true"' : '') + '>' + c[1] +
+              ' <small>' + (c[0] === 'all' ? cat.length : cat.filter(function (f) { return f.category === c[0]; }).length) + '</small></button>'; }).join('') + '</div>' +
+          '<input class="fsearch" id="fFilter" type="text" placeholder="Filter by name or purpose, e.g. dragon, wealth, negotiation">' +
           '<div class="flist" id="fList"></div>' +
           '<div class="selcount" id="fCount">Nothing selected yet.</div>' +
           '<div id="fDesc"></div>' +
@@ -3637,21 +3642,28 @@
           '<input id="sFrom" type="date" value="' + searchState.from + '"></div>' +
           '<div><label for="sTo">Search to</label>' +
           '<input id="sTo" type="date" value="' + searchState.to + '"></div></div>' +
+          '<label class="tg-toggle"><input type="checkbox" id="sWake"' + (searchState.waking ? ' checked' : '') + '> Waking hours only (07:00–00:59)</label>' +
+          '<label for="sSort">Order the results</label><select id="sSort">' +
+            '<option value="best"' + (searchState.sort === 'best' ? ' selected' : '') + '>Strongest first</option>' +
+            '<option value="date"' + (searchState.sort === 'date' ? ' selected' : '') + '>By date</option></select>' +
+          '<div class="hint">Every double-hour in the range is cast and checked, up to a year at a time. Strength is the palace\'s ' +
+            'quality (door, star, deity, void, your favourable elements) plus how rare the formation is.</div>' +
           '<button class="btn" id="sGo">Find when these occur</button></div>') +
         '<div id="srchOut"></div>';
 
       function paintList() {
         var q = ($('fFilter').value || '').toLowerCase();
         var shown = cat.filter(function (f) {
-          return !q || (f.nameEn + ' ' + f.name + ' ' + f.description).toLowerCase().indexOf(q) >= 0;
+          return (searchState.cat === 'all' || f.category === searchState.cat) &&
+            (!q || (f.nameEn + ' ' + f.name + ' ' + f.description).toLowerCase().indexOf(q) >= 0);
         });
         $('fList').innerHTML = shown.map(function (f) {
-          var on = searchState.ids.indexOf(f.id) >= 0;
+          var on = searchState.ids.indexOf(f.id) >= 0, inf = Q.formationInfo(f, mo);
           return '<label class="frow' + (on ? ' sel' : '') + '">' +
             '<input type="checkbox" data-fid="' + f.id + '"' + (on ? ' checked' : '') + '>' +
             '<span class="t"><b>' + f.name + ' &middot; ' + f.nameEn + '</b>' +
-            '<small>' + esc(f.description) + '</small></span>' +
-            '<span class="cat ' + f.category + '">' + f.category.slice(0,4) + '</span></label>';
+            '<small>' + esc(upperFirst(inf.favours)) + '.</small></span>' +
+            '<span class="cat ' + f.category + '">' + inf.band + '</span></label>';
         }).join('') || '<div class="empty" style="padding:14px">No formation matches that filter.</div>';
         $('fList').querySelectorAll('[data-fid]').forEach(function (cb) {
           cb.onchange = function () {
@@ -3668,18 +3680,29 @@
         var sel = cat.filter(function (f) { return searchState.ids.indexOf(f.id) >= 0; });
         $('fCount').textContent = sel.length
           ? sel.length + ' selected' : 'Nothing selected yet.';
+        // The explanation of each selected formation: what it is, what it favours, how often, this season, how to use it.
         $('fDesc').innerHTML = sel.length
-          ? '<div class="rows">' + sel.map(function (f) {
-              return '<div class="row"><span class="k" style="flex:0 0 42%">' + f.name +
-                '<br><small style="color:var(--muted)">' + f.nameEn + '</small></span>' +
-                '<span class="v"><small>' + esc(f.description) + '</small>' +
-                '<small style="color:' + (f.category === 'auspicious' ? 'var(--celadon)'
-                  : f.category === 'hostile' ? 'var(--cinnabar)' : 'var(--brass)') + '">' +
-                f.category + '</small></span></div>';
-            }).join('') + '</div>' : '';
+          ? '<div class="stack-sm">' + rows(sel.map(function (f) {
+              var inf = Q.formationInfo(f, mo), col = f.category === 'auspicious' ? 'good-t' : f.category === 'hostile' ? 'bad-t' : '';
+              return ['<span class="' + col + '">' + f.name + '</span><small>' + f.nameEn + ' &middot; ' + f.category + '</small>',
+                '<div class="plain"><b>What it is:</b> ' + esc(f.description.split(' — ')[0]) + '.' +
+                '<br><b>What it favours:</b> ' + esc(inf.favours) + '.' +
+                '<br><b>How often:</b> ' + inf.band.toLowerCase() + ' — ' + esc(inf.often) + '.' +
+                (inf.seasonal ? '<br><b>This season:</b> ' + esc(inf.seasonal) + '.' : '') +
+                '<div class="todo"><b>How to use it:</b> ' + esc(inf.use) + '</div></div>'];
+            })) + '</div>' : '';
       }
       paintList(); paintCount();
       $('fFilter').oninput = paintList;
+      host.querySelectorAll('[data-fcat]').forEach(function (b) {
+        b.onclick = function () {
+          searchState.cat = b.dataset.fcat;
+          host.querySelectorAll('[data-fcat]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+          paintList();
+        };
+      });
+      $('sWake').onchange = function () { searchState.waking = $('sWake').checked; };
+      $('sSort').onchange = function () { searchState.sort = $('sSort').value; };
 
       $('sGo').onclick = function () {
         if (!searchState.ids.length) {
@@ -3687,9 +3710,18 @@
           return;
         }
         searchState.from = $('sFrom').value; searchState.to = $('sTo').value;
+        var f0 = fromISO(searchState.from), f1 = fromISO(searchState.to);
+        var span = A.gregToJD(f1.y, f1.m, f1.d) - A.gregToJD(f0.y, f0.m, f0.d);
+        if (!(span >= 0)) { $('srchOut').innerHTML = '<div class="notice">The end date is before the start date.</div>'; return; }
+        if (span > 366) { $('srchOut').innerHTML = '<div class="notice">Scan at most a year at a time.</div>'; return; }
         $('srchOut').innerHTML = '<div class="panel"><div class="empty">Scanning every double-hour in that range…</div></div>';
         setTimeout(function () {
-          var res = Q.searchFormations(fromISO(searchState.from), fromISO(searchState.to), searchState.ids);
+          // Ranked results come from the whole range: scan it all (a year of hours takes well under a second), sort, then
+          // show the top 200. By date, the first 200 are the earliest.
+          var all = Q.searchFormations(f0, f1, searchState.ids, { limit: 20000, waking: searchState.waking, fav: user.deep.favourable });
+          var total = all.length;
+          if (searchState.sort === 'best') all = all.slice().sort(function (a, b) { return b.score - a.score; });
+          var res = all.slice(0, 200), capped = total > 200;
           searchState.results = res;
           if (!res.length) {
             $('srchOut').innerHTML = block('Not found in that range', '',
@@ -3698,15 +3730,19 @@
               'the rarer structures can go months without appearing.</div>');
             return;
           }
-          $('srchOut').innerHTML = block(res.length + ' occurrence' + (res.length === 1 ? '' : 's'),
-            'tap one to see the palace in full',
+          var days = {}; all.forEach(function (x) { days[x.y + '-' + x.m + '-' + x.d] = 1; });
+          $('srchOut').innerHTML = block(total + ' occurrence' + (total === 1 ? '' : 's'),
+            (searchState.sort === 'best' ? 'strongest first' : 'by date') + ' &middot; on ' + Object.keys(days).length + ' day' +
+              (Object.keys(days).length === 1 ? '' : 's') + ' &middot; tap one to see the palace in full',
+            (capped ? '<div class="notice" style="margin-bottom:8px">Showing the ' + (searchState.sort === 'best' ? '200 strongest' : 'first 200') +
+              ' of ' + total + '. Narrow the dates or choose rarer formations to list them all.</div>' : '') +
             '<div class="rows">' + res.map(function (x, i) {
               var pa = x.palaces[0];
               return '<div class="row"><span class="k" style="flex:0 0 40%">' +
-                x.d + ' ' + MON[x.m-1].slice(0,3) + ' &middot; ' + x.branchCn +
+                WD[new Date(x.y, x.m - 1, x.d).getDay()].slice(0, 3) + ' ' + x.d + ' ' + MON[x.m-1].slice(0,3) + ' ' + x.y + ' &middot; ' + x.branchCn +
                 '<br><small style="color:var(--muted)">' + x.range + '</small></span>' +
                 '<span class="v"><b style="color:var(--brass)">' + x.formation.name + '</b>' +
-                '<small>' + x.formation.nameEn + '</small>' +
+                '<small>' + x.formation.nameEn + ' &middot; strength ' + x.score + '</small>' +
                 '<small>P' + (pa ? pa.num + ' ' + pa.dir : '?') + ' &middot; ' +
                 (pa && pa.gate ? pa.gate : '') + ' &middot; 宿' + x.mansion.cn + '</small>' +
                 '<button class="btn ghost" style="margin-top:6px;padding:7px" data-hit="' + i + '">Open</button>' +

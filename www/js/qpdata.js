@@ -34,6 +34,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     water: 4
   };
   var MYSTERY = ["乙", "丙", "丁"];
+  // Home (original) palaces of the doors and stars, and each palace's opposite across the centre, for 伏吟 / 反吟.
+  var DOOR_HOME = { "休": 1, "死": 2, "伤": 3, "杜": 4, "开": 6, "惊": 7, "生": 8, "景": 9 };
+  var STAR_HOME = { "天蓬": 1, "天芮": 2, "天冲": 3, "天辅": 4, "天禽": 5, "天心": 6, "天柱": 7, "天任": 8, "天英": 9 };
+  var OPPOSITE = { 1: 9, 9: 1, 2: 8, 8: 2, 3: 7, 7: 3, 4: 6, 6: 4 };
   var AUSP_DOORS = ["开", "生", "休"];
   var HOSTILE_DOORS = ["惊", "死", "伤", "杜"];
   var AUSP_STARS = ["天心", "天任", "天辅", "天冲"];
@@ -660,7 +664,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "伏吟格",
     nameEn: "Fu Yin (Concealed/Stagnant)",
     category: "hostile",
-    description: "Stems and branches repeat/lock (fuYin) — energy is stagnant, trapped. Avoid initiating; delays and blockages likely.",
+    description: "The whole heaven plate sits unmoved — every star and stem in its home palace — energy is stagnant, trapped. Avoid initiating; delays and blockages likely.",
     detect: function detect(p, meta) {
       return (meta == null ? void 0 : meta.fuYin) === true ? [0] : null;
     }
@@ -669,7 +673,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "反吟格",
     nameEn: "Fan Yin (Reversal/Clash)",
     category: "hostile",
-    description: "Hour clashes day (fanYin) — reversal of fortune, instability, sudden changes. High risk for new initiatives.",
+    description: "The whole heaven plate is turned over — every star and stem in the palace opposite its home — reversal of fortune, instability, sudden changes. High risk for new initiatives.",
     detect: function detect(p, meta) {
       return (meta == null ? void 0 : meta.fanYin) === true ? [0] : null;
     }
@@ -1564,10 +1568,25 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "伏吟门",
     nameEn: "Door Fu Yin",
     category: "hostile",
-    description: "A door sits in its native palace (no flight) — the channel is stuck; action repeats without progress.",
+    description: "Each door sits in its own home palace (no flight) — the channel is stuck; action repeats without progress.",
+    // A door is in 伏吟 in its home palace and 反吟 in the opposite one. The doors turn together, so either holds for
+    // the whole plate. (It once compared elements, which flagged e.g. 开门 in 兑 7 though 开门's home is 乾 6.)
     detect: function detect(p) {
       return p.filter(function (x) {
-        return x.door && x.door.element === x.element && !x.isEmpty;
+        return x.door && DOOR_HOME[x.door.char] === x.number;
+      }).map(function (x) {
+        return x.number;
+      });
+    }
+  }, {
+    id: "men_fan_yin",
+    name: "门反吟",
+    nameEn: "Door Fan Yin",
+    category: "hostile",
+    description: "Each door sits in the palace opposite its home — the channel is reversed; plans turn back on themselves and agreements unwind.",
+    detect: function detect(p) {
+      return p.filter(function (x) {
+        return x.door && DOOR_HOME[x.door.char] && OPPOSITE[DOOR_HOME[x.door.char]] === x.number;
       }).map(function (x) {
         return x.number;
       });
@@ -1577,10 +1596,23 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "星伏吟",
     nameEn: "Star Fu Yin",
     category: "hostile",
-    description: "A star sits in its native palace — environment is static; inertia, no external catalyst.",
+    description: "Each star sits in its own home palace — environment is static; inertia, no external catalyst.",
     detect: function detect(p) {
       return p.filter(function (x) {
-        return x.star && x.star.element === x.element && !x.isEmpty;
+        return x.star && STAR_HOME[x.star.char] === x.number;
+      }).map(function (x) {
+        return x.number;
+      });
+    }
+  }, {
+    id: "xing_fan_yin",
+    name: "星反吟",
+    nameEn: "Star Fan Yin",
+    category: "hostile",
+    description: "Each star sits in the palace opposite its home — the environment turns against the plan; sudden reversals.",
+    detect: function detect(p) {
+      return p.filter(function (x) {
+        return x.star && STAR_HOME[x.star.char] && OPPOSITE[STAR_HOME[x.star.char]] === x.number;
       }).map(function (x) {
         return x.number;
       });
@@ -1743,7 +1775,9 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
         var _x$heavenStem31;
         return ((_x$heavenStem31 = x.heavenStem) == null ? void 0 : _x$heavenStem31.yinYang) === "yin";
       }).length;
-      return meta.dun === "Yin" && yang > yin || meta.dun === "Yang" && yin > yang ? [0] : null;
+      // The chart labels dun in Chinese (阴遁 / 阳遁); accept the English form too.
+      var yinDun = meta.dun === "Yin" || meta.dun === "阴遁", yangDun = meta.dun === "Yang" || meta.dun === "阳遁";
+      return yinDun && yang > yin || yangDun && yin > yang ? [0] : null;
     }
   }, {
     id: "xiong_xing_lin",
