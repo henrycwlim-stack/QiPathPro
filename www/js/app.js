@@ -128,6 +128,31 @@
       return '<div class="row"><span class="k">' + p[0] + '</span><span class="v">' + p[1] + '</span></div>';
     }).join('') + '</div>';
   }
+  /* ---------------- Qimen chart method (Profile › Qimen charts) ---------------- */
+  // 置闰 or 拆补 for the hourly ju, and the hour's or the day's xun for the void. Device-wide, applied before any chart.
+  var QM_OPTS_KEY = 'qipath.qm.opts';
+  function loadQmOpts() {
+    var o = null; try { o = JSON.parse(localStorage.getItem(QM_OPTS_KEY) || 'null'); } catch (e) { o = null; }
+    return { method: o && o.method === 'chaibu' ? 'chaibu' : 'zhirun', voidBy: o && o.voidBy === 'day' ? 'day' : 'hour' };
+  }
+  function applyQmOpts(o) { if (S && S.setQimenOptions) S.setQimenOptions(o); }
+  applyQmOpts(loadQmOpts());
+  function qmMethodLabel(ch) {
+    return ch.method === 'zhirun' ? ' <small>置闰 Zhi Run' + (ch.zhiRun && ch.zhiRun.leap ? ', 闰 repeat' : '') + '</small>'
+      : ch.method === 'chaibu' ? ' <small>拆补 Chai Bu</small>' : '';
+  }
+  function qmTermLabel(ch, p) {
+    var actual = p && p.term ? p.term.name : ch.term;
+    if (ch.method !== 'zhirun' || actual === ch.term) return ch.term;
+    var dr = ch.zhiRun ? ch.zhiRun.drift : 0;
+    return ch.term + ' <small>ju taken from ' + ch.term + ' (' + (dr > 0 ? '超神, ' + dr + ' days early' : '接气, ' + (-dr) + ' days late') +
+      '); the solar term itself is ' + actual + '</small>';
+  }
+  function qmVoidLabel(ch) {
+    if (!ch.hourVoid) return ch.voidBranches.join(' ');
+    return ch.voidBranches.join(' ') + ' <small>hour ' + ch.hourVoid.join('') + ' · day ' + ch.dayVoid.join('') + '</small>';
+  }
+
   function block(title, note, body) {
     return '<div class="block"><h2>' + title + (note ? '<em>' + note + '</em>' : '') + '</h2>' + body + '</div>';
   }
@@ -1805,12 +1830,12 @@
           rows([
             ['Four pillars', res.pillars.year.cn + ' ' + res.pillars.month.cn + ' ' +
               res.pillars.day.cn + ' ' + res.pillars.hour.cn],
-            ['Plate', ch.dun + ' &middot; ju ' + ch.ju + ' &middot; ' + ch.yuan],
-            ['Solar term at birth', ch.term],
+            ['Plate', ch.dun + ' &middot; ju ' + ch.ju + ' &middot; ' + ch.yuan + qmMethodLabel(ch)],
+            ['Solar term at birth', qmTermLabel(ch, res.pillars)],
             ['Chief star 值符', ch.chief + ' <small>' + ch.chiefEn + '</small>'],
             ['Envoy gate 值使', ch.envoy + ' <small>palace ' + ch.envoyPalace + '</small>'],
             ['Constellation 宿', ch.mansion.cn + ' <small>' + ch.mansion.en + '</small>'],
-            ['Void 空亡', ch.voidBranches.join(' ')],
+            ['Void 空亡', qmVoidLabel(ch)],
             ['Structures', '<span style="color:var(--celadon)">+' +
               res.formations.filter(function (f) { return f.category === 'auspicious'; }).length +
               '</span> / <span style="color:var(--cinnabar)">\u2212' +
@@ -4212,12 +4237,12 @@
             rows([
               ['Four pillars', res.pillars.year.cn + ' ' + res.pillars.month.cn + ' ' +
                 res.pillars.day.cn + ' ' + res.pillars.hour.cn],
-              ['Plate', ch.dun + ' &middot; ju ' + ch.ju + ' &middot; ' + (ch.basis ? esc(ch.basis) : ch.yuan)],
-              ['Solar term', ch.term],
+              ['Plate', ch.dun + ' &middot; ju ' + ch.ju + ' &middot; ' + (ch.basis ? esc(ch.basis) : ch.yuan) + qmMethodLabel(ch)],
+              ['Solar term', qmTermLabel(ch, res.pillars)],
               ['Chief star 值符', ch.chief + ' <small>' + ch.chiefEn + '</small>'],
               ['Envoy gate 值使', ch.envoy + ' <small>palace ' + ch.envoyPalace + '</small>'],
               ['Constellation 宿', ch.mansion.cn + ' <small>' + ch.mansion.en + '</small>'],
-              ['Void 空亡', ch.voidBranches.join(' ')],
+              ['Void 空亡', qmVoidLabel(ch)],
               ['Structures', '<span style="color:var(--celadon)">+' +
                 res.formations.filter(function (f) { return f.category === 'auspicious'; }).length +
                 '</span> / <span style="color:var(--cinnabar)">−' +
@@ -6783,6 +6808,17 @@
         '<div class="hint">Together reads your chart alongside someone else\'s and says how to strengthen the relationship. ' +
           'Turning it off hides the screen; the people you added stay saved on this device.</div></div>') +
 
+      block('Qimen charts', 'how the hourly plate is set',
+        '<div class="panel">' +
+        '<label for="pfQmMethod">Ju method</label><select id="pfQmMethod">' +
+          '<option value="zhirun"' + (loadQmOpts().method === 'zhirun' ? ' selected' : '') + '>置闰 Zhi Run (default)</option>' +
+          '<option value="chaibu"' + (loadQmOpts().method === 'chaibu' ? ' selected' : '') + '>拆补 Chai Bu</option></select>' +
+        '<label for="pfQmVoid">Void (空亡) on hourly charts</label><select id="pfQmVoid">' +
+          '<option value="hour"' + (loadQmOpts().voidBy === 'hour' ? ' selected' : '') + '>The hour\'s xun (default)</option>' +
+          '<option value="day"' + (loadQmOpts().voidBy === 'day' ? ' selected' : '') + '>The day\'s xun</option></select>' +
+        '<div class="hint">置闰 follows the 符头 in 15-day blocks and repeats 芒种 or 大雪 when 超神 passes nine days; 拆补 uses the ' +
+          'current solar term. They agree most days and differ near term changes. Applies to every chart on this device.</div></div>') +
+
       block('Daily structures', 'the strongest Qimen structures, each morning',
         '<div class="panel">' +
         '<label class="tg-toggle"><input type="checkbox" id="pfDigest"' + (digestPrefs().notify ? ' checked' : '') + '> Notify me at 06:00 each day</label>' +
@@ -6847,6 +6883,12 @@
     paintNarrStats();
 
     // provider switch repopulates the model list
+    $('pfQmMethod').onchange = $('pfQmVoid').onchange = function () {
+      var o = { method: $('pfQmMethod').value, voidBy: $('pfQmVoid').value };
+      try { localStorage.setItem(QM_OPTS_KEY, JSON.stringify(o)); } catch (e) {}
+      applyQmOpts(o);
+      structCache = null; tgRomCache = {};   // scans were cast on the old plates
+    };
     $('pfDigest').onchange = function () {
       var on = $('pfDigest').checked, p = digestPrefs(); p.notify = on; saveDigestPrefs(p);
       $('pfDigestMsg').textContent = 'Working…';

@@ -361,7 +361,7 @@
   var GATES8 = { 1:'休门', 2:'死门', 3:'伤门', 4:'杜门', 6:'开门', 7:'惊门', 8:'生门', 9:'景门' };
   var GATES8_EN = { 1:'Rest', 2:'Death', 3:'Harm', 4:'Delusion', 6:'Open', 7:'Fright', 8:'Life', 9:'Scenery' };
   var GATE_RANK = { 8:2, 6:2, 1:2, 9:1, 4:1, 3:0, 7:0, 2:0 }; // 2 auspicious, 1 neutral, 0 inauspicious
-  var SPIRITS = ['值符','螣蛇','太阴','六合','白虎','玄武','九地','九天'];
+  var SPIRITS = ['值符','腾蛇','太阴','六合','白虎','玄武','九地','九天'];
   var SPIRITS_EN = ['Chief','Serpent','Moon','Harmony','Tiger','Warrior','Earth','Heaven'];
   var RING = [1,8,3,4,9,2,7,6]; // clockwise palace ring, excluding centre
   var YI_ORDER = [4,5,6,7,8,9,3,2,1]; // 戊己庚辛壬癸丁丙乙 as stem indices
@@ -416,22 +416,67 @@
   var PAL_RING = { 1:'outer', 9:'outer', 3:'outer', 7:'outer',
                    2:'inner', 4:'inner', 6:'inner', 8:'inner', 5:'centre' };
 
+  /*
+   * Two ways to set the hourly ju, chosen in Profile (setQimenOptions):
+   *  - 置闰 Zhi Run (default): the ju runs in 15-day blocks, each starting on an upper-yuan 符头 day (甲子 己卯 甲午 己酉)
+   *    with five days each of 上元 中元 下元. Blocks take the 24 terms in sequence; a block that starts before its term
+   *    is 超神, after it 接气. When 超神 passes nine days at 芒种 or 大雪, that term's block is repeated (置闰). The
+   *    sequence is anchored on the latest 正授 block — a 符头 on its term's own day — and walked forward from there.
+   *  - 拆补 Chai Bu: the current solar term, with the yuan from the leading 甲/己 day.
+   * The void (空亡) on an hourly plate is the hour's xun by default, as most charting software marks it; the day's
+   * xun is the alternative. Both are always reported on the chart.
+   */
+  var QM_OPTS = { method: 'zhirun', voidBy: 'hour' };
+  function setQimenOptions(o) { if (o && o.method) QM_OPTS.method = o.method; if (o && o.voidBy) QM_OPTS.voidBy = o.voidBy; }
+  var UPPER_HEADS = [0, 15, 30, 45];      // 甲子 己卯 甲午 己酉
+  var zhiRunCache = {};
+  function localDayJDN(jd) { var g = A.jdToLocal(jd); return A.civilJDN(g.y, g.m, Math.floor(g.d)); }
+  function zhiRun(p) {
+    var D = p.dayJDN, i0 = mod(p.day.i - D, 60), F = D - mod(mod(D + i0, 60), 15);
+    if (zhiRunCache[F]) return zhiRunCache[F];
+    var y = new Date().getFullYear(), g = A.jdToLocal(p.jdn || D);
+    y = g && g.y ? g.y : y;
+    var pool = [];
+    [y - 3, y - 2, y - 1, y, y + 1].forEach(function (yy) {
+      A.termsForYear(yy).forEach(function (t) { pool.push({ name: t.name, day: localDayJDN(t.jd) }); }); });
+    pool.sort(function (a, b) { return a.day - b.day; });
+    // Anchor: the latest block at or before F whose 符头 day is a term's day (正授).
+    var anchorF = null, anchorT = -1;
+    for (var k = 0; k < 120 && anchorF === null; k++) {
+      var f = F - 15 * k;
+      for (var j = 0; j < pool.length; j++) if (pool[j].day === f) { anchorF = f; anchorT = j; break; }
+    }
+    if (anchorF === null) return null;
+    var t = anchorT, repeated = false;
+    for (var b = anchorF; b < F; b += 15) {
+      var nm = pool[t].name;
+      if (!repeated && (nm === '芒种' || nm === '大雪') && pool[t].day - b > 9) { repeated = true; continue; }  // 置闰: repeat this term
+      repeated = false; t++;
+    }
+    return (zhiRunCache[F] = { term: pool[t].name, start: F, drift: pool[t].day - F, leap: repeated });
+  }
+
   function qimen(p) {
     var termName = p.term.name;
+    var dayIdx = p.day.i, yuan, zr = null;
+    if (QM_OPTS.method === 'zhirun' && !p.qmOverride) { try { zr = zhiRun(p); } catch (e) { zr = null; } }
+    if (zr) {
+      termName = zr.term;
+      yuan = Math.floor(mod(p.dayJDN - zr.start, 15) / 5);
+    } else {
+      // Yuan via the Chai-bu method: the leading Jia/Ji day sets upper / middle / lower.
+      var head = dayIdx;
+      while (!(head % 10 === 0 || head % 10 === 5)) head = mod(head - 1, 60);
+      var hb = head % 12;
+      yuan = ([0,6,3,9].indexOf(hb) >= 0) ? 0 : ([2,8,5,11].indexOf(hb) >= 0) ? 1 : 2;
+    }
     var yin = YIN_TERMS.indexOf(termName) >= 0;
     var juSet = QM_JU[termName] || [1,1,1];
-
-    // Yuan via the Chai-bu method: the leading Jia/Ji day sets upper / middle / lower.
-    var dayIdx = p.day.i;
-    var head = dayIdx;
-    while (!(head % 10 === 0 || head % 10 === 5)) head = mod(head - 1, 60);
-    var hb = head % 12;
-    var yuan = ([0,6,3,9].indexOf(hb) >= 0) ? 0 : ([2,8,5,11].indexOf(hb) >= 0) ? 1 : 2;
     var ju = juSet[yuan];
     // Day / month / year plates fix their own dun and ju (see qmdj.js chartFor).
     var ov = p.qmOverride;
     if (ov) { yin = ov.yin; ju = ov.ju; yuan = ov.yuan === undefined ? yuan : ov.yuan; }
-    var voidIdx = ov && ov.voidIdx !== undefined ? ov.voidIdx : p.day.i;
+    var voidIdx = ov && ov.voidIdx !== undefined ? ov.voidIdx : (QM_OPTS.voidBy === 'hour' ? p.hour.i : p.day.i);
 
     // Earth plate: place the nine stems starting at the ju palace.
     var earth = {}; // palace -> stem index
@@ -558,6 +603,9 @@
       dun: yin ? '阴遁' : '阳遁', dunEn: yin ? 'Yin Dun' : 'Yang Dun',
       ju: ju, yuan: ['上元','中元','下元'][yuan], yuanEn: ['Upper','Middle','Lower'][yuan],
       term: termName, basis: ov ? ov.basis : null, chief: chief, chiefEn: STARS9_EN[STARS9.indexOf(chief)],
+      method: ov ? 'scope' : zr ? 'zhirun' : 'chaibu', zhiRun: zr,
+      hourVoid: C.voidBranches(p.hour.i).map(function (b) { return C.BRANCHES[b]; }),
+      dayVoid: C.voidBranches(p.day.i).map(function (b) { return C.BRANCHES[b]; }),
       envoy: chartEnvoy, envoyPalace: envoyPalace,
       mansion: C.lunarMansion(p.jdn),
       voidBranches: C.voidBranches(voidIdx).map(function (b) { return C.BRANCHES[b]; }),
@@ -883,6 +931,7 @@
   }
 
   global.QPSystems = {
+    setQimenOptions: setQimenOptions, qimenOptions: function () { return { method: QM_OPTS.method, voidBy: QM_OPTS.voidBy }; },
     analyseBazi: analyseBazi, luckPillars: luckPillars,
     zwds: zwds, ZW_PALACES: ZW_PALACES, ZW_PALACES_EN: ZW_PALACES_EN,
     zwdsPeriod: zwdsPeriod, zwdsDecades: zwdsDecades, SIHUA: SIHUA, HUA: HUA, STAR_TONE: STAR_TONE,

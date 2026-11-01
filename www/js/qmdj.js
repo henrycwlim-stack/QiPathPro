@@ -942,17 +942,18 @@
     { key: 'friction', label: 'Executive friction', cn: '上司是非', symbols: [['door', '开门'], ['chief', '']],
       agents: ['庚', '惊门', '伤门'], hide: 'Go quiet with superiors: document decisions, avoid open confrontation, and let the matter cool behind the Hide Door.' },
     { key: 'health', label: 'Health strain', cn: '病災', hazard: true, symbols: [['star', '天芮'], ['door', '死门']],
-      agents: ['白虎', '螣蛇'], hide: 'Rest and recover out of the public eye; postpone strenuous commitments.' },
+      agents: ['白虎', '腾蛇'], hide: 'Rest and recover out of the public eye; postpone strenuous commitments.' },
     { key: 'relationship', label: 'Relationship rupture', cn: '感情破裂', symbols: [['deity', '六合'], ['stem', '乙'], ['stem', '庚']],
-      agents: ['玄武', '螣蛇', '惊门'], hide: 'Keep disputes private; do not escalate in public or in writing.' },
+      agents: ['玄武', '腾蛇', '惊门'], hide: 'Keep disputes private; do not escalate in public or in writing.' },
     { key: 'upheaval', label: 'Upheaval and relocation', cn: '動盪', hazard: true, symbols: [['door', '伤门'], ['deity', '九天']],
       agents: ['白虎', '惊门'], hide: 'Delay irreversible moves; keep plans flexible and unannounced.' }
   ];
-  var HOSTILE_DEITY = ['白虎', '玄武', '勾陈', '螣蛇', '朱雀'], HOSTILE_DOOR = ['死门', '惊门', '伤门'];
+  var HOSTILE_DEITY = ['白虎', '玄武', '勾陈', '腾蛇', '朱雀'], HOSTILE_DOOR = ['死门', '惊门', '伤门'];
   // Each threat's manifestation index runs on its own scale (a resource palace is usually healthy, a hazard
   // symbol always marks its palace), so "live" is set per threat at about its 70th percentile over month and
-  // hour plates for a spread of charts (2018-2033): live in roughly three plates in ten.
-  var HOT_AT = { financial: 1.0, legal: 1.8, friction: 0.5, health: 2.3, relationship: 3.5, upheaval: 2.1 };
+  // hour plates for a spread of charts (2018-2033): live in roughly three plates in ten. Health was re-set to 2.5 in
+  // 9.30, once 腾蛇 (spelt 螣蛇 here before, so never matched on the plate) began to count as one of its agents.
+  var HOT_AT = { financial: 1.0, legal: 1.8, friction: 0.5, health: 2.5, relationship: 3.5, upheaval: 2.1 };
 
   function locate(chart, kind, ch) {
     var hit = null;
@@ -1025,7 +1026,7 @@
             return extra.length ? ' (' + extra.join(', ') + ')' : ''; })() + (mf.pressing ? ', pressing on your year seat' : ''));
       });
       var DOOR_T = { '惊门': 'legal', '死门': 'health', '伤门': 'upheaval' };
-      var DEITY_T = { '玄武': 'financial', '勾陈': 'legal', '朱雀': 'legal', '白虎': 'health', '螣蛇': 'relationship' };
+      var DEITY_T = { '玄武': 'financial', '勾陈': 'legal', '朱雀': 'legal', '白虎': 'health', '腾蛇': 'relationship' };
       if (DOOR_T[qa.seat.gate]) add(DOOR_T[qa.seat.gate], 0.75, 'your Qimen year seat (' + qa.seat.dir + ') has ' + qa.seat.gate);
       if (DEITY_T[qa.seat.deity]) add(DEITY_T[qa.seat.deity], 0.75, 'your Qimen year seat (' + qa.seat.dir + ') has ' + qa.seat.deity);
     }
@@ -1610,7 +1611,7 @@
    * The two people are their natal Day Stems (natalSeat). The relationship symbols, as the classics use them:
    * 六合 the union and go-between; 乙 the woman and 庚 the man (乙庚合); 丁 the Jade Maiden (玉女) — tenderness and
    * romance; 丙 ardour and desire; 景门 passion shown openly; 休门 rest, ease and intimacy. Disruptors: 玄武 secrecy and
-   * temptation, 螣蛇 suspicion and anxiety, 白虎 quarrels and fatigue, 惊门 fright and arguments, and a void (空亡)
+   * temptation, 腾蛇 suspicion and anxiety, 白虎 quarrels and fatigue, 惊门 fright and arguments, and a void (空亡)
    * palace, which leaves a feeling hollow. Each finding is phrased for a reader with no Qimen training. */
   var EL5 = ['wood', 'fire', 'earth', 'metal', 'water'];
   // What brings an element into a room or a relationship, and the words that carry it. Index = element.
@@ -1633,7 +1634,7 @@
   ];
   var ROMANCE_DISRUPT = {
     '玄武': 'is in a guarded, private phase now, when misunderstandings over plans and messages creep in — be open about plans, messages and whereabouts',
-    '螣蛇': 'may feel anxious or suspicious now — reassure, and do not leave things ambiguous',
+    '腾蛇': 'may feel anxious or suspicious now — reassure, and do not leave things ambiguous',
     '白虎': 'is tired and quick to quarrel now — keep serious talks for another time',
     '惊门': 'is easily startled into arguments now — speak gently and do not surprise them with bad news'
   };
@@ -1677,7 +1678,7 @@
     intimacy -= 0.5 * warn.length;
 
     // The direction to activate: the strongest of the union, tenderness and ease palaces that is neither void nor hostile.
-    var bad = ['玄武', '白虎', '螣蛇'];
+    var bad = ['玄武', '白虎', '腾蛇'];
     var cands = [[lh, '六合 union'], [ding, '丁 Jade Maiden'], [xiu, '休门 ease'], [jing, '景门 passion']].filter(function (c) {
       return c[0] && !P[c[0]].isEmpty && bad.indexOf(P[c[0]].spirit) < 0; })
       .sort(function (x, y) { return q(y[0]) - q(x[0]); });

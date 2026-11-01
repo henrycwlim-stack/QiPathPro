@@ -49,6 +49,28 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 9.30 — Qimen ju by 置闰 (Zhi Run), hour void
+
+Checked against a reference chart (2026-11-01 15:01, 阴遁6局, Zhi Run): the app had used only 拆补, which gives
+阴遁5局 there because 己卯 starts an upper yuan six days before 立冬. With the ju corrected every outer palace — heaven
+and earth stems (己 lodged with 天芮 and in 坤), stars, doors and deities — matched the reference.
+
+- **置闰 is now the default** (`systems.js`, `zhiRun`). The ju runs in 15-day blocks from each upper-yuan 符头
+  (甲子 己卯 甲午 己酉); blocks take the 24 terms in sequence, anchored on the latest 正授 block (a 符头 on its term's
+  day); when 超神 passes nine days at 芒种 or 大雪 that term repeats (闰). Checked 2018–2035: no break in the term
+  sequence, 闰 at 2019 芒种 and 大雪 2021, 2024, 2027, 2030, 2033. Whether the 闰 needs more than nine days or nine
+  or more changes no chart from mid-2019 to mid-2036; the app uses more than nine.
+- **Void on hourly plates is the hour's xun** by default (the reference marks 戌亥 on 乾), with the day's xun shown
+  alongside. Day, month and year plates keep their own.
+- **Five reference charts match palace for palace** (stems, stars, doors, deities, lodged centre stem, chief, envoy,
+  void): 2026-11-01 15:01 阴遁6 (超神 into 立冬), 2026-10-31 15:01 阴遁2, 2026-10-07 06:01 阴遁9 (超神 into 寒露),
+  2027-12-09 06:01 阴遁1 and 2027-12-12 06:01 阴遁4 (the repeated 大雪, 闰). 拆补 gets the two 超神 charts wrong.
+- **腾蛇 spelling.** The plate writes the deity 腾蛇, but six lookups in `qmdj.js` used the variant 螣蛇 and never
+  matched: `HOSTILE_DEITY`, the Health and Relationship threat agents, and the Together screen's disruptors. All now
+  use 腾蛇. With 腾蛇 counting, Health strain's live threshold moved from 2.3 to 2.5 (30.8% of month and hour plates).
+- **Profile › Qimen charts** switches the ju method (置闰 / 拆补) and the void (hour / day) for the device. Chart
+  screens show the method, the term the ju was taken from with its 超神/接气 days, and both voids.
+
 ### 9.30 — Daily Qimen structures: scan, digest, email and manifestation links
 
 **Consult › Structures** scans every double-hour plate for the next 60 days (about 720 plates, roughly 0.15 s)
