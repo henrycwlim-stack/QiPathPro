@@ -153,6 +153,19 @@
     return ch.voidBranches.join(' ') + ' <small>hour ' + ch.hourVoid.join('') + ' · day ' + ch.dayVoid.join('') + '</small>';
   }
 
+  /* ---------------- the twelve life areas (Bazi, Zi Wei, Qimen) ---------------- */
+  // Each area: its level, what it means in plain words, what to do, and the chart signals behind it.
+  function lifeAreasHtml(list, title, note) {
+    var cls = { Strong: 'good-t', Steady: '', Weak: 'bad-t' };
+    return block(title, note, '<div class="stack-sm">' + rows(list.map(function (x) {
+      return ['<span class="' + cls[x.level] + '">' + esc(x.label) + ' — ' + x.level + '</span><small>' + x.cn + '</small>',
+        '<div class="plain">' + esc(x.plain) + '<div class="todo"><b>What to do:</b> ' + esc(x.todo) + '</div></div>' +
+        (x.signals.length ? '<details class="tech"><summary>Technical detail</summary>' + x.signals.map(esc).join('<br>') +
+          '<br>score ' + x.score + '</details>' : '')];
+    })) + '</div>');
+  }
+  function areasSafe(fn) { try { return fn(); } catch (e) { return null; } }
+
   function block(title, note, body) {
     return '<div class="block"><h2>' + title + (note ? '<em>' + note + '</em>' : '') + '</h2>' + body + '</div>';
   }
@@ -599,7 +612,7 @@
     { label: 'The year', path: 'headline' }, { label: 'What the year brings', path: 'theme' },
     { label: 'Career', path: 'career' }, { label: 'Wealth', path: 'wealth' }, { label: 'Relationships', path: 'relationships' },
     { label: 'Health', path: 'health' }, { label: 'Timing', path: 'timing' }, { label: 'Key dates', path: 'keyDates' },
-    { label: 'Do', path: 'doList' }, { label: 'Avoid', path: 'avoidList' }, { label: 'What would change this', path: 'caution' }];
+    { label: 'Life areas', path: 'lifeAreas', list: 'areas' }, { label: 'Do', path: 'doList' }, { label: 'Avoid', path: 'avoidList' }, { label: 'What would change this', path: 'caution' }];
   function yearPicker(prefix, year) {
     var now = new Date().getFullYear(), ys = []; for (var y = now; y <= now + 9; y++) ys.push(y);
     return '<div class="chips">' + ys.map(function (y) {
@@ -641,6 +654,8 @@
         ' &middot; nominal age ' + a.age + '<br>flow Life ' + a.lifeScore + ' &middot; decade ' + a.decadeScore + ' &middot; score ' + ySg(a.score) + '</span></div>' +
       rows([['大限 in force', a.decade ? 'Age ' + a.decade.from + '–' + a.decade.to + ' <small>' + esc(a.decade.palace) + ' [' + (a.decade.stars.join('、') || 'empty') + ']</small>' : '—'],
             ['四化 this year', a.hua.map(function (h) { return h.star + h.hua + ' <small>→ natal ' + esc(h.natal || 'off-board') + (h.flow ? ' (flow ' + h.flow + ')' : '') + '</small>'; }).join('<br>')]]) +
+      (function () { var ar = areasSafe(function () { return window.QPFib.zwdsAreasYear(user, a); });
+        return ar ? lifeAreasHtml(ar, 'Life areas in ' + a.year, 'from the twelve flow-year palaces') : ''; })() +
       '<div style="font-size:.85rem;color:var(--brass);margin:12px 0 4px">Flow-year palaces 流年</div>' +
       rows(a.palaces.map(function (p) {
         return [p.label + '<small>' + p.branch + ' &middot; natal ' + esc(p.natal) + '</small>', ySg(p.score) + ' ' + (p.stars.join('、') || '<span style="color:var(--muted)">no major star</span>') +
@@ -692,6 +707,8 @@
             ['The year itself', a.yearStemSeat ? 'Year stem in palace ' + a.yearStemSeat.num + ' ' + a.yearStemSeat.dir + '<small>' + esc(a.yearStemSeat.relation) + '</small>' : '—'],
             ['Best directions', a.bestDirs.map(function (d) { return d.dir + ' ' + ySg(d.score) + ' <small>' + esc(d.why.slice(0, 3).join(', ')) + '</small>'; }).join('<br>')],
             ['Directions to avoid', a.worstDirs.map(function (d) { return d.dir + ' ' + ySg(d.score) + ' <small>' + esc(d.why.slice(0, 3).join(', ')) + '</small>'; }).join('<br>')]]) +
+      (function () { var ar = areasSafe(function () { return window.QPQimen.areasYearPlate(user, a.year); });
+        return ar ? lifeAreasHtml(ar, 'Life areas in ' + a.year, 'the symbol for each area on the year plate, against where you sit') : ''; })() +
       '<div style="font-size:.85rem;color:var(--brass);margin:12px 0 4px">Month plates — where you sit each month</div>' +
       rows(a.months.map(function (m) {
         var isBest = a.best.indexOf(m) >= 0, isWorst = a.worst.indexOf(m) >= 0;
@@ -1096,8 +1113,8 @@
           (a.qimenYear.gate || '—') + ', ' + (a.qimenYear.star || '—') + ', ' + (a.qimenYear.deity || '—') + ' &middot; best ' + a.qimenYear.bestDirs.join(', ') +
           ' &middot; avoid ' + a.qimenYear.worstDirs.join(', ') + '</small>' : '—']
       ]) +
-      '<div style="font-size:.85rem;color:var(--brass);margin:12px 0 4px">Areas of life</div>' +
-      rows(a.domains.map(function (d) { return [d.label, sg(d.score) + '<small>' + esc(d.why.join('; ')) + '</small>']; })) +
+      (function () { var ar = areasSafe(function () { return window.QPBazi.areasYear(user, a); });
+        return ar ? lifeAreasHtml(ar, 'Life areas in ' + a.year, a.pillarCn + ' year against your chart') : ''; })() +
       '<div style="font-size:.85rem;color:var(--brass);margin:12px 0 4px">Month by month &middot; Bazi and Qimen</div>' +
       yearPlain(a) +
       rows(a.months.map(function (m) {
@@ -1145,6 +1162,7 @@
     });
     aiPanelSaving('aiYear', 'baziyear', a.year + '.' + a.pillarCn + '.v3',
       function (cfg) { return window.QPAI.analyseBaziYear(cfg, user, a); }, [
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' },
         { label: 'The year', path: 'headline' },
         { label: 'Counter-measures: are they needed?', path: 'countermeasures' },
         { label: 'What the year brings', path: 'theme' },
@@ -1608,11 +1626,14 @@
               }).join('') + '</div>' : '') + '</div>';
           }).join('')) +
 
+        (function () { var ar = areasSafe(function () { return window.QPBazi.areasNatal(user); });
+          return ar ? lifeAreasHtml(ar, 'Your twelve life areas', 'from your birth chart — a lifelong pattern') : ''; })() +
         block('AI reading of the elements', '', '<div id="aiElem"></div>');
 
       var elCt = mountCounter('aiElem', 'elements', { subtitle: 'this year\'s threats on the plate of this double-hour' });
       aiPanel('aiElem', 'elements', 'v2.ct',
         function (cfg) { return window.QPAI.withCounter(elCt ? counterText(elCt) : null, function () { return window.QPAI.analyseElements(cfg, user); }); }, [
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' },
           { label:'Overall shape', path:'overview' },
           { label:'Career', path:'career' },
           { label:'Wealth', path:'wealth' },
@@ -1681,11 +1702,14 @@
               Math.round(st.power * 100) + '%</small></span></div>';
           }).join('') + '</div>') +
 
+        (function () { var ar = areasSafe(function () { return window.QPBazi.areasRelations(user); });
+          return ar ? lifeAreasHtml(ar, 'Life areas these relations touch', 'each pillar governs areas of life; timing adds what your luck pillar and the coming years set off') : ''; })() +
         block('AI reading of the relations', '', '<div id="aiRel"></div>');
 
       var rlCt = mountCounter('aiRel', 'relations', { focus: ['relationship', 'legal'], subtitle: 'this year\'s threats on the plate of this double-hour' });
       aiPanel('aiRel', 'relations', 'v3.ct',
         function (cfg) { return window.QPAI.withCounter(rlCt ? counterText(rlCt, rlCt.focus) : null, function () { return window.QPAI.analyseRelations(cfg, user); }); }, [
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' },
           { label:'What these relations mean together', path:'overview' },
           { label:'Clashes', path:'clashes' },
           { label:'Punishments and harms', path:'punishments' },
@@ -1871,6 +1895,8 @@
           [4,9,2,3,7,8,1,6].map(function (n) {
             return palaceCard(ch.palacesByNumber[n], ch.mansion, false); }).join('')) +
 
+        (function () { var ar = areasSafe(function () { return Q2.areasDestiny(res, user); });
+          return ar ? lifeAreasHtml(ar, 'Your twelve life areas', 'the classical symbol for each area on your destiny chart, against your own seat') : ''; })() +
         block('AI reading of your destiny chart', '', '<div id="aiDestiny"></div>');
 
       wirePlateTaps('chartBody', ch, res.formations);
@@ -1895,6 +1921,7 @@
       aiPanelSaving('aiDestiny', 'destiny', 'v4.ct',
         function (cfg) { var dsCt = null; try { dsCt = window.QPQimen.threatBridge(user, now().y, now(), { days: 5, jiazi: true, jiaziDays: 30 }); } catch (e) {}
           return window.QPAI.withCounter(dsCt ? counterText(dsCt) : null, function () { return window.QPAI.analyseDestiny(cfg, res, user, dp); }); }, [
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' },
           { label:'The standing configuration', path:'overview' },
           { label:'Your destiny palace', path:'destinyPalace' },
           { label:'Day Master stars', path:'dayMasterStars' },
@@ -1982,6 +2009,8 @@
             harmonicsHtml(zdy.harmonics, { id: 'zwds', window: [Math.max(0, zdy.harmonics.tNow - 15), Math.min(119, zdy.harmonics.tNow + 20)],
               note: 'The flow-year Life palace rotates through all twelve palaces, and the 四化 follow the ten stems, so 12- and ' +
                 '10-year cycles are built in; a strong 2-year term is the yin–yang alternation of the year stems.' }))) +
+        (function () { var ar = areasSafe(function () { return window.QPFib.zwdsAreasNatal(user); });
+          return ar ? lifeAreasHtml(ar, 'Your twelve life areas', 'from the palaces of your birth board') : ''; })() +
         block('AI reading of your Zi Wei chart', '', '<div id="aiZwds"></div>') +
         block('AI forecast', '大限, 流年, 四化 and Fibonacci timing', '<div id="aiZwFc"></div>');
 
@@ -2011,6 +2040,7 @@
       aiPanel('aiZwds', 'zwds', 'v1.ct', function (cfg) {
         return window.QPAI.withCounter(zwCt ? counterText(zwCt) : null, function () { return window.QPAI.analyseZwds(cfg, user); });
       }, [
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' },
         { label: 'Life palace 命宫', path: 'lifePalace' },
         { label: 'Career 官禄', path: 'career' },
         { label: 'Wealth 财帛', path: 'wealth' },
@@ -5271,6 +5301,12 @@
                 '</span></div>';
             }).join('') + '</div>';
           }
+          if (s.list === 'areas') {
+            return '<div class="panel">' + head + '<div class="stack-sm">' + rows(v.map(function (x) {
+              return ['<span>' + esc(x.area || '') + '</span>', '<div class="plain">' + esc(x.outlook || '') +
+                (x.advice ? '<div class="todo"><b>What to do:</b> ' + esc(x.advice) + '</div>' : '') + '</div>'];
+            })) + '</div></div>';
+          }
           if (s.list === 'room') {
             return '<div class="panel">' + head + '<div class="rows">' + v.map(function (r) {
               var col = r.severity === 'problem' ? 'var(--cinnabar)'
@@ -5774,6 +5810,8 @@
       block('Ways to strengthen the relationship', 'start here',
         '<div class="panel plain"><ol style="margin:0;padding-left:20px">' + res.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
         '</ol></div>') +
+      (function () { var ar = areasSafe(function () { return window.QPBazi.areasTogether(user, other); });
+        return ar ? lifeAreasHtml(ar, 'Your life areas with ' + esc(pt.name), 'how the chart of ' + esc(pt.name) + ' supports or strains each area of yours') : ''; })() +
       block('How you fit together', 'each finding in plain words, with what to do',
         '<div class="stack-sm">' + rows(res.items.map(item)) + '</div>') +
       (res.intimacy.length ? block('Closeness in your two charts', 'tendencies, not rules',
@@ -5803,6 +5841,7 @@
     };
     aiPanel('aiTogether', 'together', pt.id + '.' + year + '.' + (withIntimacy ? 'i' : 'n') + '.v3',
       function (cfg) { return window.QPAI.analyseTogether(cfg, user, other, res); }, [
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' },
         { label: 'The two of you', path: 'headline' },
         { label: 'How you work together', path: 'dynamics' },
         { label: 'Your strengths as a pair', path: 'strengths' },

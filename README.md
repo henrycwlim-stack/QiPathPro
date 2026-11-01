@@ -49,6 +49,26 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 9.31 — Twelve life areas in plain English, across Bazi, Zi Wei and Qimen Destiny
+
+Career, Education, Relationship with spouse, Relatives, Children, Colleagues and bosses, Marriage, Health, Finance
+(cash flow), Wealth (assets), Legal matters and Travel — each rated Strong / Steady / Weak (score −3..+3), with what it
+means in plain words, what to do, and the chart signals under *Technical detail*. The areas and the advice for each
+level (worded for a year, or for a lifelong pattern on birth charts) are shared (`QPBazi.AREAS`, `areaResults`);
+each system supplies its own signals:
+
+| Screen | Function | Signals |
+|---|---|---|
+| Chart › Forecast (any year) | `QPBazi.areasYear(user, a)` | the year's stem and main hidden ten gods, Four Harms by pillar, Noble People, 文昌, Peach Blossom, Sky Horse, 紅鸞/天喜, 財庫; plus the best months for each area |
+| Chart › Elements | `QPBazi.areasNatal(user)` | ten-god element shares and Day Master strength, the spouse and children stars, natal clashes by pillar, 傷官見官, 財多身弱, 財庫, stars |
+| Chart › Relations | `QPBazi.areasRelations(user)` | each clash, punishment, harm, destruction or union, by the areas its pillars govern; what the luck pillar and coming years set off |
+| Chart › Together | `QPBazi.areasTogether(user, other)` | the elements the partner brings to each area of yours, spouse and year branches, spouse star, 紅鸞/天喜, Sky Horse |
+| Chart › Zi Wei (birth board, flow year) | `QPFib.zwdsAreasNatal`, `zwdsAreasYear` | the area's palace(s), scored by `zwdsPeriod` and scaled to the 30th/70th percentile of 3,600 palaces; 化忌 and 擎羊/陀罗/天刑 in 官禄/父母 for legal. The flow year now has all twelve palaces. |
+| Chart › Qimen Destiny (birth chart, year plate) | `QPQimen.areasDestiny`, `areasYearPlate` | each area's 用神 (开门/值符, 景门/丁/天辅, 乙/庚, 六合, the person's year/month/hour stems, 天心 against 天芮, 生门/戊/天任, 惊门/勾陈/朱雀/庚, Sky Horse/九天) against the person's seat, palace quality and void |
+
+The AI readings of all eight screens carry the computed areas and return a `lifeAreas` list (outlook and advice per area),
+shown as *Life areas*; readings saved before stay valid.
+
 ### 9.31 — Qimen ju by 置闰 (Zhi Run), hour void, Formations screen, detector fixes
 
 Checked against a reference chart (2026-11-01 15:01, 阴遁6局, Zhi Run): the app had used only 拆补, which gives

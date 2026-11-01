@@ -902,6 +902,25 @@
       '  "guidance": "Concrete, practical guidance — directions, colours, timing, and the kinds of activity that reinforce the favourable elements (90-130 words)."\n}';
   }
 
+  /* ---------- the twelve life areas, in the readings that cover them ---------- */
+  // The areas are computed by the chart engines (QPBazi, QPFib, QPQimen); the prompt passes them as data and asks for
+  // an outlook and advice per area. The field is optional, so readings saved before it existed still display.
+  var AREAS_FIELD = { type: 'array', items: { type: 'object', properties: {
+    area: { type: 'string' }, outlook: { type: 'string' }, advice: { type: 'string' } }, required: ['area', 'outlook', 'advice'] } };
+  function withAreas(schema) { schema.properties.lifeAreas = AREAS_FIELD; return schema; }
+  function addAreas(prompt, list, scope) {
+    if (!list || !list.length) return prompt;
+    var data = '\nTHE TWELVE LIFE AREAS (computed from the chart, ' + scope + '; level and score -3..+3):\n' + list.map(function (x) {
+      return '- ' + x.label + ': ' + x.level + ' (' + x.score + '). ' + x.plain + (x.signals.length ? ' Signals: ' + x.signals.join('; ') : '');
+    }).join('\n') + '\nFor "lifeAreas", cover all twelve in this order, in plain English: what the area looks like and why (cite the signals ' +
+      'in everyday words), then concrete advice. Do not contradict the computed level without saying why.\n\n';
+    var idx = prompt.lastIndexOf('Return STRICT JSON');
+    prompt = idx >= 0 ? prompt.slice(0, idx) + data + prompt.slice(idx) : prompt + data;
+    return prompt.replace(/\n\}\s*$/, ',\n  "lifeAreas": [ { "area": "the area name", "outlook": "plain-English outlook for this area and why (50-90 words)", ' +
+      '"advice": "concrete things to do (30-60 words)" } ]\n}');
+  }
+  function areasOr(fn) { try { return fn(); } catch (e) { return null; } }
+
   var ZWDS_SCHEMA = {
     type: 'object',
     properties: {
@@ -943,7 +962,8 @@
 
   function analyseDaily(cfg, ctx) { return call(cfg, dailyPrompt(ctx), DAILY_SCHEMA); }
   function analyseBazi(cfg, user) { return call(cfg, baziPrompt(user), BAZI_SCHEMA); }
-  function analyseZwds(cfg, user) { return call(cfg, zwdsPrompt(user), ZWDS_SCHEMA); }
+  function analyseZwds(cfg, user) {
+    return call(cfg, addAreas(zwdsPrompt(user), areasOr(function () { return global.QPFib.zwdsAreasNatal(user); }), 'Zi Wei birth board'), withAreas(ZWDS_SCHEMA)); }
 
   /* ---------- Zi Wei forecast: 大限, 流年, 四化 with the Fibonacci timing layer ---------- */
   var ZWDS_FC_SCHEMA = { type:'object', properties:{
@@ -1720,7 +1740,8 @@
         'COUNTER lines: what it is in everyday words, the months it applies to (with dates), and the concrete steps — what to do, ' +
         'what to avoid, which direction to work from. If no, say why and what to keep an eye on (80-150 words)."\n}';
   }
-  function analyseBaziYear(cfg, user, a) { return call(cfg, baziYearPrompt(user, a), BAZI_YEAR_SCHEMA); }
+  function analyseBaziYear(cfg, user, a) {
+    return call(cfg, addAreas(baziYearPrompt(user, a), areasOr(function () { return global.QPBazi.areasYear(user, a); }), 'Bazi, the year ' + a.year), withAreas(BAZI_YEAR_SCHEMA)); }
 
   /* ---------- Zi Wei and Qimen annual forecasts ---------- */
   var SYS_YEAR_SCHEMA = { type:'object', properties:{
@@ -1848,8 +1869,10 @@
   }
   function analyseThreats(cfg, user, r) { return call(cfg, threatPrompt(user, r), THREAT_SCHEMA); }
 
-  function analyseZwdsYear(cfg, user, a) { return call(cfg, zwdsYearPrompt(user, a), SYS_YEAR_SCHEMA); }
-  function analyseQimenYear(cfg, user, a) { return call(cfg, qimenYearPrompt(user, a), SYS_YEAR_SCHEMA); }
+  function analyseZwdsYear(cfg, user, a) {
+    return call(cfg, addAreas(zwdsYearPrompt(user, a), areasOr(function () { return global.QPFib.zwdsAreasYear(user, a); }), 'Zi Wei flow year ' + a.year), withAreas(SYS_YEAR_SCHEMA)); }
+  function analyseQimenYear(cfg, user, a) {
+    return call(cfg, addAreas(qimenYearPrompt(user, a), areasOr(function () { return global.QPQimen.areasYearPlate(user, a.year); }), 'Qimen year plate ' + a.year), withAreas(SYS_YEAR_SCHEMA)); }
 
   function analyseBaziForecast(cfg, user, bf, bh) {
     return call(cfg, baziForecastPrompt(user, bf, bh), BAZI_FC_SCHEMA); }
@@ -1974,8 +1997,10 @@
       '  "guidance": "Concrete responses: what to watch for, what to build, and how a person actually lives well with this configuration (140-190 words)."\n}';
   }
 
-  function analyseElements(cfg, user) { return call(cfg, elementsPrompt(user), ELEM_SCHEMA); }
-  function analyseRelations(cfg, user) { return call(cfg, relationsPrompt(user), REL_SCHEMA); }
+  function analyseElements(cfg, user) {
+    return call(cfg, addAreas(elementsPrompt(user), areasOr(function () { return global.QPBazi.areasNatal(user); }), 'Bazi birth chart'), withAreas(ELEM_SCHEMA)); }
+  function analyseRelations(cfg, user) {
+    return call(cfg, addAreas(relationsPrompt(user), areasOr(function () { return global.QPBazi.areasRelations(user); }), 'the natal relations and what timing sets off'), withAreas(REL_SCHEMA)); }
 
   /* ---------- two charts together (合婚) ---------- */
 
@@ -2052,7 +2077,8 @@
       '  "steps": ["5 to 7 concrete, everyday steps to strengthen the relationship, most important first, each naming who does what."],\n' +
       '  "caution": "Where this reading is least certain — e.g. an uncertain birth time — and what would change it (50-80 words)."\n}';
   }
-  function analyseTogether(cfg, user, other, res) { return call(cfg, togetherPrompt(user, other, res), TOGETHER_SCHEMA); }
+  function analyseTogether(cfg, user, other, res) {
+    return call(cfg, addAreas(togetherPrompt(user, other, res), areasOr(function () { return global.QPBazi.areasTogether(user, other); }), 'how ' + res.b + ' bears on each area of ' + res.a), withAreas(TOGETHER_SCHEMA)); }
 
 
   /* ---------- San Cai execution mandate ---------- */
@@ -2188,7 +2214,8 @@
       '  "guidance": "How to work with this configuration: favoured directions for study, work and rest, and the kinds of undertaking the plate supports (130-180 words)."\n}';
   }
   function analyseDestiny(cfg, res, user, dp) {
-    return call(cfg, destinyPrompt(res, user, dp), DESTINY_SCHEMA);
+    return call(cfg, addAreas(destinyPrompt(res, user, dp), areasOr(function () { return global.QPQimen.areasDestiny(res, user); }), 'Qimen destiny chart'),
+      withAreas(DESTINY_SCHEMA));
   }
 
   /* ---------- Ask: a free-text question read against all of the person's charts ---------- */

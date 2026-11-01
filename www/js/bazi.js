@@ -909,6 +909,345 @@
     };
   }
 
+  /* ================= twelve life areas ================= */
+
+  /*
+   * The same twelve areas are read by every system (Bazi natal and annual, Relations, Together, Zi Wei, Qimen Destiny):
+   * each gets a score (-3..+3), a level (Strong / Steady / Weak), what it means in plain words, what to do, and the
+   * chart signals behind it. Each system supplies its own signals; the advice per area and level is shared here.
+   */
+  var AREAS = [
+    { key: 'career', label: 'Career', cn: '事業' }, { key: 'education', label: 'Education', cn: '學業' },
+    { key: 'spouse', label: 'Relationship with spouse', cn: '夫妻' }, { key: 'relatives', label: 'Relatives', cn: '六親' },
+    { key: 'children', label: 'Children', cn: '子女' }, { key: 'colleagues', label: 'Colleagues and bosses', cn: '同事上司' },
+    { key: 'marriage', label: 'Marriage', cn: '婚姻' }, { key: 'health', label: 'Health', cn: '健康' },
+    { key: 'finance', label: 'Finance (cash flow)', cn: '財務' }, { key: 'wealth', label: 'Wealth (assets)', cn: '財富' },
+    { key: 'legal', label: 'Legal matters', cn: '官非' }, { key: 'travel', label: 'Travel and moves', cn: '出行' }
+  ];
+  var AREA_ADVICE = {
+    career: { Strong: 'Push forward: ask for the promotion, take on visible responsibility, launch the project.',
+              Steady: 'Build quietly: deliver reliably, widen your skills and relationships, and keep options open.',
+              Weak: 'Protect your position: avoid risky job moves, document your work, and let others lead the high-stakes calls.' },
+    education: { Strong: 'Study, sit exams, take the course or certification now; mentors and learning come easily.',
+                 Steady: 'Keep learning steadily; short courses and practical skills pay off more than big commitments.',
+                 Weak: 'Learning feels harder: break it into small steps, find a tutor or mentor, and avoid cramming.' },
+    spouse: { Strong: 'Closeness comes easily: plan time together and share decisions.',
+              Steady: 'Keep up the small things — time, attention, listening — and talk early about anything that bothers you.',
+              Weak: 'Expect friction: give each other space, avoid big rows over small things, and talk issues through calmly.' },
+    relatives: { Strong: 'Family is a source of support: ask for help, and spend time with parents, elders and siblings.',
+                 Steady: 'Keep family ties warm with regular contact; nothing pressing.',
+                 Weak: 'Family matters need care: keep money and family separate, avoid taking sides, and check on elders\' health.' },
+    children: { Strong: 'Good for children — conceiving, their schooling, or time together; their progress brings joy.',
+                Steady: 'Ordinary: stay involved and keep routines steady.',
+                Weak: 'Children need more attention: watch their health and schooling, and keep patience with friction.' },
+    colleagues: { Strong: 'Colleagues support you and bosses notice you: collaborate, and ask seniors for backing.',
+                  Steady: 'Working relationships are workable: be reliable, credit others, and avoid office politics.',
+                  Weak: 'Expect rivalry or friction with bosses: put agreements in writing, avoid gossip, and do not challenge authority openly.' },
+    marriage: { Strong: 'A favourable time for commitment — engagement, marriage, or renewing your bond.',
+                Steady: 'Stable: no strong push either way; keep investing in the relationship.',
+                Weak: 'Marriage is under strain or not well timed: postpone big commitments, and deal with problems early, with help if needed.' },
+    health: { Strong: 'Good vitality: a good time to build fitness and good habits.',
+              Steady: 'Ordinary health: keep sleep, diet and exercise regular.',
+              Weak: 'Look after your health: rest more, avoid overwork and risky activities, and see a doctor about anything that persists.' },
+    finance: { Strong: 'Income flows: a good time to earn, sell or ask for a raise; still keep a budget.',
+               Steady: 'Cash flow is steady: spend within your means and save regularly.',
+               Weak: 'Money leaks: avoid lending, guaranteeing loans or impulse spending, and check bills and contracts twice.' },
+    wealth: { Strong: 'Assets can grow: invest carefully, build savings, consider property.',
+              Steady: 'Hold and accumulate: steady saving beats speculation.',
+              Weak: 'Protect what you have: no speculation or big purchases, diversify, and keep an emergency fund.' },
+    legal: { Strong: 'Little legal risk, and authorities tend to be on your side; a good time to settle paperwork.',
+             Steady: 'Normal: keep contracts and records in order.',
+             Weak: 'Legal exposure: read contracts carefully, avoid disputes and grey areas, keep records, and get advice early.' },
+    travel: { Strong: 'Good for travel, relocation or a change of post; movement brings opportunity.',
+              Steady: 'Travel as needed; no strong signal either way.',
+              Weak: 'Travel brings hassle: allow extra time, check documents and insurance, and postpone non-essential moves.' }
+  };
+  // The same areas read as a lifelong pattern (birth charts), rather than a period.
+  var AREA_ADVICE_NATAL = {
+    career: { Strong: 'Aim high: roles with responsibility and visibility suit you; build your reputation steadily.',
+              Steady: 'Your path is set more by choices than by the chart: pick work that uses your strengths and keep developing them.',
+              Weak: 'Careers with less politics and more autonomy suit you; build skills and allies before taking on heavy responsibility.' },
+    education: { Strong: 'Keep studying throughout life — qualifications and mentors pay off for you.',
+                 Steady: 'Learn practically: courses tied to real work suit you better than long theory.',
+                 Weak: 'Learn by doing; seek patient teachers, and do not judge yourself by exams.' },
+    spouse: { Strong: 'Partnership comes naturally; choose someone who shares your daily rhythm and keep investing in it.',
+              Steady: 'A good relationship is built rather than given: communicate early and keep shared time sacred.',
+              Weak: 'Relationships need more care: give each other space, choose a partner patiently, and talk through friction.' },
+    relatives: { Strong: 'Family is a lifelong support: stay close, and repay it.',
+                 Steady: 'Family ties are what you make of them; keep regular contact.',
+                 Weak: 'Set clear boundaries with family, especially over money, and keep relations courteous.' },
+    children: { Strong: 'Children are a source of joy and support; involvement pays off.',
+                Steady: 'An ordinary pattern with children: stay involved and patient.',
+                Weak: 'Children may come later or need extra care; patience and attention help.' },
+    colleagues: { Strong: 'You work well with others and seniors back you; build your network.',
+                  Steady: 'Be reliable and fair; working relationships stay workable.',
+                  Weak: 'You clash easily with authority or rivals: choose bosses carefully, document agreements, and pick your battles.' },
+    marriage: { Strong: 'Marriage suits you and tends to be supportive; commit when the timing is right.',
+                Steady: 'Marriage is what you build; neither helped nor hindered by the chart.',
+                Weak: 'Marry later or more deliberately, and work on the relationship continuously; counselling is a strength, not a failure.' },
+    health: { Strong: 'A sound constitution; keep good habits to protect it.',
+              Steady: 'Average resilience: regular sleep, diet and exercise keep you well.',
+              Weak: 'Know your weak spots and check them regularly; prevention matters more for you than for most.' },
+    finance: { Strong: 'You earn well from your own efforts; keep a budget so income turns into savings.',
+               Steady: 'Income follows effort; steady work and regular saving suit you.',
+               Weak: 'Money slips away easily: automate saving, avoid lending and guarantees, and keep finances separate from friends.' },
+    wealth: { Strong: 'You can build lasting wealth; property and long-term investing suit you.',
+              Steady: 'Wealth builds through patience and saving rather than windfalls.',
+              Weak: 'Protect rather than chase wealth: avoid speculation, diversify and keep reserves.' },
+    legal: { Strong: 'Protection and goodwill tend to arrive when trouble does.',
+             Steady: 'Ordinary exposure: keep paperwork in order.',
+             Weak: 'You are prone to disputes or friction with authority: read contracts carefully, stay within rules, and settle early.' },
+    travel: { Strong: 'Travel, relocation and working away suit you and bring opportunity.',
+              Steady: 'Travel as life requires; no strong pull either way.',
+              Weak: 'You do better staying rooted; plan moves carefully.' }
+  };
+  function areaLevel(score) { return score >= 1 ? 'Strong' : score <= -1 ? 'Weak' : 'Steady'; }
+  /**
+   * Build the twelve area results from per-area signal lists: sig[key] = [{ v: number, plain: '…', tech: '…' }].
+   * extra[key] adds a sentence to the advice; natal picks the lifelong wording.
+   */
+  function areaResults(sig, extra, natal) {
+    return AREAS.map(function (A0) {
+      var s = sig[A0.key] || [], score = s.reduce(function (t, x) { return t + x.v; }, 0);
+      score = Math.round(Math.max(-3, Math.min(3, score)) * 10) / 10;
+      var level = areaLevel(score);
+      var seen = {}, lead = s.slice().sort(function (x, y) { return Math.abs(y.v) - Math.abs(x.v); })
+        .filter(function (x) { if (!x.plain || seen[x.plain]) return false; seen[x.plain] = 1; return true; }).slice(0, 3);
+      var plain = lead.length ? lead.map(function (x) { return x.plain.charAt(0).toUpperCase() + x.plain.slice(1); }).join('. ') + '.'
+        : 'No strong signal in the chart for this area.';
+      var more = extra && extra[A0.key] ? ' ' + extra[A0.key] : '';
+      return { key: A0.key, label: A0.label, cn: A0.cn, score: score, level: level, plain: plain,
+               todo: (natal ? AREA_ADVICE_NATAL : AREA_ADVICE)[A0.key][level] + more, signals: s.map(function (x) { return x.tech; }).filter(Boolean) };
+    });
+  }
+  var GOD_GROUP = { peer: [0, 1], output: [2, 3], wealth: [4, 5], officer: [6, 7], resource: [8, 9] };
+  var GRAVE = [7, 10, 10, 1, 4];   // tomb (庫) branch of each element: Wood 未, Fire 戌, Earth 戌, Metal 丑, Water 辰
+
+  /** The birth chart's twelve areas. */
+  function areasNatal(user) {
+    var D = user.deep || analyse(user.pillars, user.gender), p = user.pillars, de = D.dayMasterElem, sh = D.shares;
+    var el = { peer: de, resource: mod(de - 1, 5), output: mod(de + 1, 5), wealth: mod(de + 2, 5), officer: mod(de + 3, 5) };
+    var s = {}, S0 = function (k, v, plain, tech) { (s[k] = s[k] || []).push({ v: v, plain: plain, tech: tech }); };
+    var fav = D.favourable, unf = D.unfavourable, strong = D.strong, rel = D.relations;
+    var star = function (k) { return D.stars.some(function (x) { return x.key === k; }); };
+    var on = function (pil, list) { return list.filter(function (c) { return (c.pair || '').indexOf(pil) >= 0 || (c.at || []).indexOf(pil) >= 0; }); };
+    var spouseEl = user.gender === 'M' ? el.wealth : el.officer, childEl = user.gender === 'M' ? el.officer : el.output;
+    var stems = [p.year.stem, p.month.stem, p.hour.stem];
+    var godsVisible = stems.map(function (x) { return C.tenGod(p.day.stem, x).i; });
+
+    // Career: Officer (structure, authority) and Output (independent work).
+    if (sh[el.officer] >= 20) S0('career', strong ? 1.5 : -1, strong ? 'structure and authority suit you — formal roles and responsibility' : 'responsibility tends to arrive before you have the capacity for it',
+      'Officer ' + C.ELEM_EN[el.officer] + ' ' + sh[el.officer] + '%, Day Master ' + (strong ? 'strong' : 'weak'));
+    if (sh[el.output] >= 20) S0('career', 1, 'a self-directed, creative or independent path suits you', 'Output ' + C.ELEM_EN[el.output] + ' ' + sh[el.output] + '%');
+    if (fav.indexOf(el.officer) >= 0) S0('career', 0.5, 'authority and employers tend to help you', 'Officer element favourable');
+    if (on('Month', rel.clashes.concat(rel.punishments)).length) S0('career', -1, 'work tends to change or be unsettled', 'clash or punishment on the Month pillar');
+    if (star('nobleman') || star('general')) S0('career', 0.5, 'help from people with standing', 'Nobleman or General star');
+    // Education: Resource, the Academic star, Output for expression.
+    if (sh[el.resource] >= 18) S0('education', 1, 'learning and mentors come naturally', 'Resource ' + C.ELEM_EN[el.resource] + ' ' + sh[el.resource] + '%');
+    else if (sh[el.resource] < 8) S0('education', -1, 'you learn better by doing than by formal study', 'Resource thin (' + sh[el.resource] + '%)');
+    if (star('academic')) S0('education', 1, 'study, exams and writing come easily', 'Academic Star 文昌');
+    if (sh[el.output] >= 18) S0('education', 0.5, 'good at expressing what you learn — writing, teaching', 'Output strong');
+    // Spouse and marriage: the spouse star and the spouse palace (day branch).
+    var ss = sh[spouseEl];
+    if (ss < 6) { S0('spouse', -1, 'the partner element is faint, so relationships take more effort', 'spouse star ' + C.ELEM_EN[spouseEl] + ' ' + ss + '%'); S0('marriage', -1, 'marriage tends to come later or needs deliberate effort', 'spouse star thin'); }
+    else if (ss <= 30) S0('spouse', 0.5, 'a partner fits naturally into your life', 'spouse star ' + C.ELEM_EN[spouseEl] + ' ' + ss + '%');
+    else if (!strong) S0('spouse', -0.5, 'a partner can dominate your energy; keep your own footing', 'spouse star heavy, Day Master weak');
+    var dayRel = on('Day', rel.clashes.concat(rel.punishments, rel.harms));
+    if (dayRel.length) { S0('spouse', -1.5, 'friction at home — different routines and a need for space', dayRel.map(function (c) { return c.cn; }).join(', ') + ' on the spouse palace');
+      S0('marriage', -1, 'marriage needs steady work to stay stable', 'spouse palace clashed or punished'); S0('health', -0.5, '', 'Day pillar disturbed'); }
+    if (on('Day', rel.unions).length) { S0('spouse', 1, 'a natural bond with your partner', 'Six Union on the spouse palace'); S0('marriage', 0.5, 'commitment comes easily', 'spouse palace combined'); }
+    var spouseGods = user.gender === 'M' ? [4, 5] : [6, 7];
+    if (spouseGods.every(function (gi) { return godsVisible.indexOf(gi) >= 0; })) S0('marriage', -1, 'more than one serious relationship is possible — be clear about commitment', 'both 正 and 偏 spouse stars visible');
+    if (star('goldenCart')) S0('marriage', 1, 'marriage brings comfort and support', 'Golden Carriage 金輿');
+    if (star('lonely') || star('widow')) S0('spouse', -0.5, 'you need time before opening up', 'Solitary/Widow star');
+    if (fav.indexOf(spouseEl) >= 0) S0('marriage', 0.5, 'a partner is good for you', 'spouse element favourable');
+    // Relatives: Peers (siblings), Resource (parents), the Year pillar.
+    if (sh[el.peer] >= 25) S0('relatives', strong ? -0.5 : 1, strong ? 'siblings and peers can compete with you' : 'siblings and peers support you', 'Peers ' + sh[el.peer] + '%, Day Master ' + (strong ? 'strong' : 'weak'));
+    if (fav.indexOf(el.resource) >= 0) S0('relatives', 0.5, 'parents and elders support you', 'Resource element favourable');
+    if (on('Year', rel.clashes.concat(rel.punishments)).length) { S0('relatives', -1, 'distance or friction with family and elders', 'clash or punishment on the Year pillar'); S0('travel', 0.5, 'you may live away from where you grew up', 'Year pillar clashed'); }
+    // Children: the children element and the Hour pillar.
+    if (sh[childEl] < 6) S0('children', -1, 'children may come later or need more effort', 'children element ' + C.ELEM_EN[childEl] + ' ' + sh[childEl] + '%');
+    else if (sh[childEl] <= 30) S0('children', 0.5, 'children are a natural part of your life', 'children element present');
+    if (on('Hour', rel.clashes.concat(rel.punishments)).length) S0('children', -1, 'more friction or worry around children', 'Hour pillar clashed');
+    if (fav.indexOf(childEl) >= 0) S0('children', 0.5, 'children bring support and joy', 'children element favourable');
+    // Colleagues and bosses: Peers (colleagues) and Officer (bosses), with 傷官 against 官 (friction with superiors).
+    if (sh[el.peer] >= 20) S0('colleagues', strong ? -1 : 1, strong ? 'colleagues tend to compete with you' : 'colleagues back you up', 'Peers ' + sh[el.peer] + '%');
+    if (fav.indexOf(el.officer) >= 0 && strong) S0('colleagues', 1, 'bosses value you', 'Officer favourable, Day Master strong');
+    if (godsVisible.indexOf(3) >= 0 && sh[el.officer] >= 10) { S0('colleagues', -1, 'friction with bosses — you see their faults clearly', '傷官見官: Hurting Officer with Officer'); S0('legal', -1, 'clashes with authority can turn formal', '傷官見官'); }
+    // Health: balance, a missing element, the Day pillar.
+    var mx = Math.max.apply(null, sh), mn = Math.min.apply(null, sh), weakEl = sh.indexOf(mn);
+    if (mx >= 40) S0('health', -1, 'one element dominates, which strains its organs', C.ELEM_EN[sh.indexOf(mx)] + ' ' + mx + '%');
+    if (mn < 5) S0('health', -1, 'watch the ' + ORGANS[weakEl], C.ELEM_EN[weakEl] + ' missing (' + mn + '%)');
+    if (mx < 35 && mn >= 8) S0('health', 1, 'the elements are fairly balanced', 'balanced shares');
+    // Finance: Output feeding Wealth; Rob Wealth leaks.
+    if (sh[el.output] >= 15 && sh[el.wealth] >= 12) S0('finance', 1, 'what you produce turns into income', '食神生財: Output feeds Wealth');
+    if (sh[el.peer] >= 30 && strong) S0('finance', -1, 'money goes out through others — loans, shared costs', 'Rob Wealth heavy');
+    if (star('robbery') || star('loss')) S0('finance', -0.5, 'money can slip away through haste', 'Robbery/Loss star');
+    if (fav.indexOf(el.wealth) >= 0) S0('finance', 0.5, 'earning suits you', 'Wealth element favourable');
+    // Wealth: holding money — strength against the wealth element, and the wealth storage (財庫).
+    if (sh[el.wealth] >= 18 && strong) S0('wealth', 1.5, 'you can hold and build wealth', 'Wealth ' + sh[el.wealth] + '%, Day Master strong');
+    if (sh[el.wealth] >= 28 && !strong) S0('wealth', -1.5, 'money passes through rather than accumulating', '財多身弱: wealth heavy, Day Master weak');
+    if (sh[el.wealth] < 8) S0('wealth', -0.5, 'wealth builds slowly through steady saving', 'Wealth thin');
+    if ([p.year, p.month, p.day, p.hour].some(function (x) { return x.branch === GRAVE[el.wealth]; })) S0('wealth', 1, 'you have a natural store for savings and property', '財庫 wealth storage ' + C.BRANCHES[GRAVE[el.wealth]]);
+    if (star('goldenCart') || star('prosperity')) S0('wealth', 0.5, 'material comfort is supported', 'Golden Carriage or Prosperity star');
+    // Legal: heavy Seven Killings on a weak Day Master, punishments, protective stars.
+    if (sh[el.officer] >= 25 && !strong) S0('legal', -1, 'pressure from authority and rules weighs on you', 'Officer/Killing heavy, Day Master weak');
+    if (rel.punishments.length) S0('legal', -1, 'disputes tend to drag on', rel.punishments.map(function (x) { return x.cn; }).join(', '));
+    if (star('blade')) S0('legal', -0.5, 'a sharp streak can provoke conflict', 'Goat Blade 羊刃');
+    if (star('nobleman') || star('heavenVirtue') || star('monthVirtue')) S0('legal', 1, 'help or protection arrives when trouble does', 'Nobleman or Virtue star');
+    // Travel: the Sky Horse, Water, an unsettled Month or Year pillar.
+    if (star('horse')) S0('travel', 1.5, 'travel, relocation and change suit you', 'Sky Horse 驛馬');
+    if (sh[4] >= 25) S0('travel', 0.5, 'restless and mobile by nature', 'Water ' + sh[4] + '%');
+    return areaResults(s, null, true);
+  }
+
+  /*
+   * The areas the natal relations touch. Each pillar governs areas of life (Year: family and origin; Month: work and the
+   * workplace; Day: the self, spouse and marriage; Hour: children and later wealth); a clash, punishment, harm or
+   * destruction between pillars strains those areas, a union steadies them. What the current luck pillar and the
+   * coming years set off against each pillar is added with less weight.
+   */
+  var PILLAR_AREAS = { Year: ['relatives', 'travel'], Month: ['career', 'colleagues'], Day: ['spouse', 'marriage', 'health'], Hour: ['children', 'wealth'] };
+  var REL_KIND = {
+    clashes: [-1.5, 'sudden change or opposition'], punishments: [-1, 'friction that keeps coming back'], harms: [-1, 'quiet undermining'],
+    destructions: [-0.5, 'cracks from the inside'], unions: [1, 'a bond that steadies it'], stemClashes: [-1, 'opposing pulls'], stemUnions: [0.5, 'a bond that steadies it']
+  };
+  function areasRelations(user) {
+    var D = user.deep || analyse(user.pillars, user.gender), rel = D.relations;
+    var s = {}, S0 = function (k, v, plain, tech) { (s[k] = s[k] || []).push({ v: v, plain: plain, tech: tech }); };
+    Object.keys(REL_KIND).forEach(function (list) {
+      (rel[list] || []).forEach(function (r) {
+        var pils = r.pair ? r.pair.split('–') : (r.at || []);
+        pils.forEach(function (pil) {
+          (PILLAR_AREAS[pil] || []).forEach(function (k) {
+            S0(k, REL_KIND[list][0], REL_KIND[list][1] + ' (' + (r.pair || pils.join(', ')) + ' pillars)', r.cn + ' on the ' + pil + ' pillar');
+          });
+        });
+        if (list === 'punishments') S0('legal', -1, 'disputes tend to drag on', r.cn);
+      });
+    });
+    // Timing: what the luck pillar and the coming years set off against the natal pillars.
+    var when = {};   // area → period label → the harms it sets off
+    timingHarms(user).forEach(function (t) {
+      var luck = /^Luck/.test(t.label);
+      t.hits.filter(function (h) { return !h.softened; }).forEach(function (h) {
+        var areas = (PILLAR_AREAS[h.pillar] || []).concat(h.kind === 'punishment' ? ['legal'] : []);
+        areas.forEach(function (k) {
+          S0(k, -0.5, luck ? 'your current luck pillar strains this area' : 'the coming years strain this area', t.label + ': ' + h.cn + ' on the ' + h.pillar + ' pillar');
+          when[k] = when[k] || {}; (when[k][t.label] = when[k][t.label] || []).push(h.cn);
+        });
+      });
+    });
+    var extra = {};
+    Object.keys(when).forEach(function (k) {
+      extra[k] = 'Set off in timing: ' + Object.keys(when[k]).map(function (lab) { return lab + ' (' + when[k][lab].join(', ') + ')'; }).join('; ') + '.';
+    });
+    return areaResults(s, extra, true);
+  }
+
+  /** How a partner's chart bears on each of your twelve areas: the elements they bring, and how your charts link. */
+  function areasTogether(user, other) {
+    var D = user.deep, O = other.deep, p = user.pillars, q = other.pillars, de = D.dayMasterElem, os = O.shares, nm = other.name;
+    var el = { peer: de, resource: mod(de - 1, 5), output: mod(de + 1, 5), wealth: mod(de + 2, 5), officer: mod(de + 3, 5) };
+    var fav = D.favourable, unf = D.unfavourable;
+    var s = {}, S0 = function (k, v, plain, tech) { (s[k] = s[k] || []).push({ v: v, plain: plain, tech: tech }); };
+    var rich = function (e) { return os[e] >= 22; }, pct = function (e) { return C.ELEM_EN[e] + ' ' + os[e] + '% in ' + nm + '\'s chart'; };
+    if (rich(el.officer)) S0('career', fav.indexOf(el.officer) >= 0 ? 1.5 : unf.indexOf(el.officer) >= 0 ? -1 : 0.5,
+      fav.indexOf(el.officer) >= 0 ? nm + ' strengthens your standing and ambition' : unf.indexOf(el.officer) >= 0 ? nm + ' can add pressure to your working life' : nm + ' supports your sense of direction', pct(el.officer));
+    if (rich(el.output)) S0('career', 0.5, nm + ' encourages your creative and independent work', pct(el.output));
+    if (rich(el.resource)) S0('education', fav.indexOf(el.resource) >= 0 ? 1.5 : 0.5, nm + ' encourages your learning and growth', pct(el.resource));
+    var dl = branchLink(p.day.branch, q.day.branch), yl = branchLink(p.year.branch, q.year.branch);
+    var LV = { union: 1.5, triad: 1, same: 0.5, clash: -1.5, harm: -1, punish: -1, destruction: -0.5 };
+    if (dl) { S0('spouse', LV[dl.kind], dl.kind === 'union' || dl.kind === 'triad' ? 'daily life together fits easily' : dl.kind === 'same' ? 'very similar habits' : 'daily life together brings friction', 'spouse palaces ' + dl.cn);
+      S0('marriage', LV[dl.kind] * 0.7, dl.kind === 'union' || dl.kind === 'triad' ? 'a steady base for marriage' : dl.kind === 'same' ? '' : 'marriage needs deliberate care', 'spouse palaces ' + dl.cn); }
+    var spouseEl = user.gender === 'M' ? el.wealth : el.officer;
+    if (O.dayMasterElem === spouseEl) S0('marriage', 1.5, nm + ' is your classical spouse star — a textbook match', nm + '\'s Day Master is ' + C.ELEM_EN[spouseEl]);
+    var hl = mod(3 - p.year.branch, 12);
+    if (q.day.branch === hl || q.day.branch === mod(hl + 6, 12)) S0('marriage', 1, 'a romance star links your charts', '紅鸞/天喜 on ' + nm + '\'s day branch');
+    if (yl && yl.kind !== 'same') S0('relatives', LV[yl.kind], LV[yl.kind] > 0 ? 'your families tend to get on' : 'your families may not mix easily', 'year branches ' + yl.cn);
+    var childEl = user.gender === 'M' ? el.officer : el.output;
+    if (rich(childEl)) S0('children', 1, nm + ' supports having and raising children', pct(childEl));
+    if (rich(el.peer)) S0('colleagues', D.strong ? -0.5 : 1, D.strong ? nm + ' can be competitive alongside you' : nm + ' brings allies and backing', pct(el.peer));
+    var hFav = fav.filter(rich), hUnf = unf.filter(rich);
+    if (hFav.length) S0('health', 1, nm + ' brings the elements that steady your health', hFav.map(pct).join(', '));
+    if (hUnf.length) S0('health', -1, 'long stretches together can tire you', hUnf.map(pct).join(', ') + ' (unfavourable to you)');
+    if (rich(el.wealth)) { S0('finance', D.strong ? 1.5 : -0.5, D.strong ? nm + ' brings money opportunities you can hold' : 'money flows around ' + nm + ' faster than you can hold it', pct(el.wealth));
+      S0('wealth', D.strong ? 1 : -0.5, D.strong ? 'together you can build assets' : 'keep some finances separate', pct(el.wealth)); }
+    if (rich(el.peer) && D.strong) { S0('finance', -1, 'shared spending can drain you', pct(el.peer) + ' (Rob Wealth to you)'); S0('wealth', -0.5, 'agree clearly on shared money', 'Rob Wealth'); }
+    if ((dl && dl.kind === 'punish') || (yl && yl.kind === 'punish')) S0('legal', -1, 'disputes between you can harden — settle them early', 'punishment between your charts');
+    if (rich(el.officer) && !D.strong) S0('legal', -0.5, 'pressure from rules and obligations', pct(el.officer));
+    var horse = HORSE[triadKey(p.year.branch)], oBr = [q.year.branch, q.month.branch, q.day.branch, q.hour.branch];
+    if (oBr.indexOf(horse) >= 0) S0('travel', 1.5, 'you travel and move well together', nm + ' carries your Sky Horse ' + C.BRANCHES[horse]);
+    return areaResults(s, null, true);
+  }
+
+  /** One year's twelve areas, from the annual forecast `a` (annualForecast). Adds the best months for each area. */
+  function areasYear(user, a) {
+    var D = user.deep || analyse(user.pillars, user.gender), p = user.pillars, dm = p.day.stem, fav = D.favourable, unf = D.unfavourable;
+    var yp = a.pillar, g = a.stemGod.i, gb = a.hidden[0].god.i;
+    var has = function (set) { return set.indexOf(g) >= 0 || set.indexOf(gb) >= 0; };
+    var elemOf = function (set) { return C.STEM_ELEM[[yp.stem].concat(C.HIDDEN[yp.branch]).filter(function (x) { return set.indexOf(C.tenGod(dm, x).i) >= 0; })[0]]; };
+    var onP = function (lab, kinds) { return a.harms.filter(function (h) { return h.pillar === lab && !h.softened && (!kinds || kinds.indexOf(h.kind) >= 0); }); };
+    var starOn = function (en) { return a.stars.some(function (x) { return x.en === en; }); };
+    var s = {}, S0 = function (k, v, plain, tech) { (s[k] = s[k] || []).push({ v: v, plain: plain, tech: tech }); };
+    var M = user.gender === 'M', spouseG = M ? [4, 5] : [6, 7], childG = M ? [6, 7] : [2, 3];
+    var hl = mod(3 - p.year.branch, 12), tx = mod(hl + 6, 12), taiSuiClash = SIX_CLASH[yp.branch] === p.year.branch;
+
+    if (has([6, 7])) { var oe = elemOf([6, 7]); S0('career', fav.indexOf(oe) >= 0 ? 1.5 : unf.indexOf(oe) >= 0 ? -0.5 : 0.5, 'authority and recognition come your way' + (unf.indexOf(oe) >= 0 ? ', but with pressure' : ''), 'Officer/Killing arrives' + (fav.indexOf(oe) >= 0 ? ' (favourable)' : '')); }
+    if (has([3])) S0('career', -0.5, 'sharp ideas, but friction with superiors', 'Hurting Officer arrives');
+    if (has([2])) S0('career', 0.5, 'your output and creative work are rewarded', 'Eating God arrives');
+    onP('Month').forEach(function (h) { S0('career', h.kind === 'clash' ? -1 : -0.5, 'change or strain at work', h.cn + ' on the Month pillar'); S0('colleagues', -0.5, 'friction in the workplace', h.cn + ' on the Month pillar'); });
+    if (starOn('Noble People')) { S0('career', 1, 'influential people help you', 'Noble People active'); S0('legal', 1, 'help arrives if trouble does', 'Noble People active'); S0('colleagues', 0.5, 'seniors back you', 'Noble People active'); }
+
+    if (has([8, 9])) { var re = elemOf([8, 9]); S0('education', fav.indexOf(re) >= 0 ? 1.5 : 0.5, 'learning, mentors and qualifications are supported', 'Resource arrives'); S0('relatives', 0.5, 'support from parents and elders', 'Resource arrives'); }
+    if (starOn('Intelligence Star')) S0('education', 1.5, 'study, exams and writing go well', 'Intelligence Star 文昌 active');
+    if (has([2, 3])) S0('education', 0.5, 'a good year to express and share what you know', 'Output arrives');
+
+    if (has(spouseG)) { S0('spouse', 1, 'your partner plays a bigger part in your life', 'spouse star arrives'); S0('marriage', 1, 'commitment is in the air', 'spouse star arrives'); }
+    if (starOn('Peach Blossom')) { S0('spouse', 0.5, 'attraction and romance are heightened', 'Peach Blossom active'); S0('marriage', 0.5, 'romance supports commitment', 'Peach Blossom active'); }
+    if (yp.branch === hl || yp.branch === tx) S0('marriage', 1.5, 'a classic year for engagement, marriage or a happy event', (yp.branch === hl ? '紅鸞' : '天喜') + ' year');
+    if (SIX_UNION[yp.branch] === p.day.branch) { S0('spouse', 1.5, 'the year draws you and your partner closer', 'the year combines with the spouse palace'); S0('marriage', 1, 'the bond strengthens', 'spouse palace combined'); }
+    onP('Day').forEach(function (h) { S0('spouse', h.kind === 'clash' ? -1.5 : -1, 'friction at home', h.cn + ' on the spouse palace'); S0('marriage', h.kind === 'clash' ? -1.5 : -1, 'the marriage is tested', h.cn + ' on the spouse palace'); S0('health', -0.5, 'strain on your own wellbeing', h.cn + ' on the Day pillar'); });
+    if (!M && has([3])) S0('marriage', -1, 'sharp words can strain the marriage', 'Hurting Officer in a woman\'s chart');
+    if (M && has([1])) S0('marriage', -1, 'rivals or money strain can unsettle the marriage', 'Rob Wealth in a man\'s chart');
+
+    onP('Year').forEach(function (h) { S0('relatives', -1, 'family or elders need attention', h.cn + ' on the Year pillar'); });
+    if (taiSuiClash) { S0('relatives', -0.5, 'unsettled family matters', 'the year clashes your Tai Sui'); S0('legal', -0.5, 'a year to stay clear of disputes', 'clash with Tai Sui'); S0('travel', 0.5, 'change and movement', 'clash with Tai Sui'); }
+    if (has([0, 1])) { S0('relatives', D.strong ? -0.5 : 0.5, D.strong ? 'siblings may compete or need help' : 'siblings and peers help', 'Peers arrive'); S0('colleagues', D.strong ? -1 : 1, D.strong ? 'competition from colleagues' : 'colleagues support you', 'Peers arrive'); }
+
+    if (has(childG)) S0('children', 1, 'children bring news or joy — a good year for them, or to have them', 'children star arrives');
+    onP('Hour').forEach(function (h) { S0('children', -1, 'children need more attention', h.cn + ' on the Hour pillar'); });
+
+    if (has([6, 7]) && fav.indexOf(elemOf([6, 7])) >= 0 && D.strong) S0('colleagues', 1, 'bosses notice and reward you', 'favourable Officer, strong Day Master');
+    if (has([3]) && D.shares[mod(D.dayMasterElem + 3, 5)] >= 10) { S0('colleagues', -1, 'friction with bosses', '傷官見官 this year'); S0('legal', -1.5, 'clashes with authority can turn formal', '傷官見官 this year'); }
+
+    var stressed = [C.STEM_ELEM[yp.stem], C.BRANCH_ELEM[yp.branch]].filter(function (e) { return unf.indexOf(e) >= 0; });
+    if (stressed.length) S0('health', -1, 'watch the ' + ORGANS[stressed[0]], C.ELEM_EN[stressed[0]] + ' (unfavourable) in the year');
+    if (fav.indexOf(C.STEM_ELEM[yp.stem]) >= 0) S0('health', 0.5, 'good energy this year', 'favourable year stem');
+
+    if (has([4, 5])) { var we = elemOf([4, 5]); S0('finance', fav.indexOf(we) >= 0 ? 1.5 : D.strong ? 1 : -0.5, 'income and opportunities' + (D.strong || fav.indexOf(we) >= 0 ? '' : ', though harder to hold'), 'Wealth star arrives');
+      S0('wealth', D.strong ? 1 : -0.5, D.strong ? 'savings and assets can grow' : 'money comes but is hard to keep', 'Wealth arrives, Day Master ' + (D.strong ? 'strong' : 'weak')); }
+    if (has([1])) { S0('finance', -1, 'money goes out through others — avoid lending and guarantees', 'Rob Wealth arrives'); S0('wealth', -1, 'protect your assets', 'Rob Wealth arrives'); }
+    if (yp.branch === GRAVE[mod(D.dayMasterElem + 2, 5)]) S0('wealth', 1, 'a year to build savings or property', 'the year is your wealth storage 財庫');
+
+    if (has([6]) && unf.indexOf(elemOf([6])) >= 0) S0('legal', -1.5, 'pressure from officials or rivals', 'unfavourable Seven Killings');
+    onP('Year', ['punishment']).concat(onP('Month', ['punishment']), onP('Day', ['punishment']), onP('Hour', ['punishment'])).forEach(function (h) { S0('legal', -1, 'disputes can drag on', h.cn + ' punishment on the ' + h.pillar + ' pillar'); });
+
+    if (starOn('Sky Horse')) S0('travel', 1.5, 'travel, relocation or a change of post', 'Sky Horse active');
+    if (onP('Month', ['clash']).length || onP('Year', ['clash']).length) S0('travel', 0.5, 'a move or change of base is likely', 'clash on the Month or Year pillar');
+
+    // The best months for each area: months whose own ten god serves it, and that score well overall.
+    var AREA_GODS = { career: [6, 7, 2], education: [8, 9], spouse: spouseG, marriage: spouseG, relatives: [8, 9], children: childG,
+      colleagues: [0, 1, 6, 7], finance: [4, 5, 2], wealth: [4, 5] };
+    var extra = {};
+    Object.keys(AREA_GODS).forEach(function (k) {
+      var ms = a.months.filter(function (m) { return AREA_GODS[k].indexOf(m.god.i) >= 0 && m.score >= 0; })
+        .sort(function (x, y) { return y.score - x.score; }).slice(0, 2);
+      if (ms.length) extra[k] = 'Best months for this: ' + ms.map(function (m) { return m.pillar + ' (' + m.start.slice(5) + ' → ' + m.end.slice(5) + ')'; }).join(', ') + '.';
+    });
+    return areaResults(s, extra);
+  }
+
   /* ================= 合婚 — two charts together ================= */
 
   /*
@@ -1422,7 +1761,8 @@
   }
 
   global.QPBazi = {
-    compatibility: compatibility,
+    compatibility: compatibility, AREAS: AREAS, AREA_ADVICE: AREA_ADVICE, areaResults: areaResults, areaLevel: areaLevel,
+    areasNatal: areasNatal, areasYear: areasYear, areasRelations: areasRelations, areasTogether: areasTogether,
     analyse: analyse, stageOf: stageOf, findStars: findStars, findRelations: findRelations,
     assessStrength: assessStrength, diagnose: diagnose,
     STAGES: STAGES, STAR_META: STAR_META, DOMAIN_DEF: DOMAIN_DEF, TIAO_HOU: TIAO_HOU,

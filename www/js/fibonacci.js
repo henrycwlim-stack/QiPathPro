@@ -489,7 +489,81 @@
    */
   var ZW_FLOW = [[0, 'self', 'Self 命'], [8, 'career', 'Career 官禄'], [4, 'wealth', 'Wealth 财帛'],
                  [2, 'relationships', 'Spouse 夫妻'], [5, 'health', 'Health 疾厄'], [6, 'travel', 'Travel 迁移'],
-                 [9, 'property', 'Property 田宅'], [10, 'wellbeing', 'Wellbeing 福德']];
+                 [9, 'property', 'Property 田宅'], [10, 'wellbeing', 'Wellbeing 福德'],
+                 [1, 'siblings', 'Siblings 兄弟'], [3, 'children', 'Children 子女'], [7, 'friends', 'Friends 交友'],
+                 [11, 'parents', 'Parents 父母']];
+
+  /*
+   * The twelve life areas from Zi Wei palaces (birth board, or the flow-year palaces): each area reads one palace, or a
+   * main palace with a second at half weight. A palace score is centred on the median of 3,600 palaces (300 random
+   * charts) and scaled so the 70th percentile reads Strong and the 30th Weak, as the Bazi areas do. Legal matters come
+   * from the harsh stars and 化忌 in the Career and Parents (authority, documents) fields.
+   */
+  var ZW_AREA = { career: ['career'], education: ['career', 'parents'], spouse: ['relationships'], marriage: ['relationships', 'wellbeing'],
+    relatives: ['siblings', 'parents'], children: ['children'], colleagues: ['friends', 'parents'], health: ['health'],
+    finance: ['wealth'], wealth: ['property', 'wealth'], travel: ['travel'] };
+  var ZW_KEY_OF = { '命宫': 'self', '兄弟': 'siblings', '夫妻': 'relationships', '子女': 'children', '财帛': 'wealth', '疾厄': 'health',
+    '迁移': 'travel', '交友': 'friends', '官禄': 'career', '田宅': 'property', '福德': 'wellbeing', '父母': 'parents' };
+  var ZW_PLAIN_NAME = { career: 'Career palace (官禄)', parents: 'Parents palace (父母, authority and documents)', relationships: 'Spouse palace (夫妻)',
+    wellbeing: 'Fortune palace (福德)', siblings: 'Siblings palace (兄弟)', children: 'Children palace (子女)', friends: 'Friends palace (交友, colleagues)',
+    health: 'Health palace (疾厄)', wealth: 'Wealth palace (财帛)', property: 'Property palace (田宅)', travel: 'Travel palace (迁移)', self: 'Life palace (命)' };
+  // The notes zwdsPeriod writes, in everyday words.
+  function zwNotePlain(n) {
+    if (/化禄/.test(n)) return 'prosperity and ease (化禄)';
+    if (/化权/.test(n)) return 'power and control (化权)';
+    if (/化科/.test(n)) return 'reputation and help (化科)';
+    if (/化忌/.test(n)) return 'obstruction and worry (化忌)';
+    if (/^煞/.test(n)) return 'harsh stars bring friction (' + n.replace(/^煞 in the palace: /, '') + ')';
+    if (/左右/.test(n)) return 'help from peers';
+    if (/昌曲/.test(n)) return 'credentials, study and writing favoured';
+    if (/魁钺/.test(n)) return 'patrons and senior help';
+    if (/禄马/.test(n)) return 'gain through movement';
+    if (/empty/.test(n)) return 'no major star of its own, so it leans on circumstances';
+    return '';
+  }
+  function zwAreas(pal, centre, natal) {
+    var s = {}, S0 = function (k, v, plain, tech) { (s[k] = s[k] || []).push({ v: v, plain: plain, tech: tech }); };
+    var vOf = function (raw) { return Math.max(-2, Math.min(2, (raw - centre) / 1.6)); };
+    Object.keys(ZW_AREA).forEach(function (k) {
+      ZW_AREA[k].forEach(function (key, i) {
+        var p = pal[key]; if (!p) return;
+        var w = i === 0 ? 1 : 0.5, v = vOf(p.score) * w;
+        var good = (p.notes || []).filter(function (n) { return /化禄|化权|化科|左右|昌曲|魁钺|禄马/.test(n); }).map(zwNotePlain).filter(Boolean);
+        var bad = (p.notes || []).filter(function (n) { return /化忌|^煞|empty/.test(n); }).map(zwNotePlain).filter(Boolean);
+        var tone = v >= 0.6 ? 'is well supported' : v <= -0.6 ? 'is under strain' : 'is mixed';
+        // Cite only what points the same way as the rating; a mixed palace shows one of each.
+        var why = v >= 0.6 ? (good.length ? good : ['its stars are bright and well placed'])
+          : v <= -0.6 ? (bad.length ? bad : ['its stars are dim or poorly placed']) : good.slice(0, 1).concat(bad.slice(0, 1));
+        why = why.slice(0, 2);
+        S0(k, v, 'your ' + ZW_PLAIN_NAME[key] + ' ' + tone + (why.length ? ' — ' + why.join('; ') : ''),
+          ZW_PLAIN_NAME[key] + ' score ' + p.score + (p.stars && p.stars.length ? ' [' + p.stars.join('、') + ']' : '') + (p.notes && p.notes.length ? ': ' + p.notes.slice(0, 4).join('; ') : ''));
+      });
+    });
+    ['career', 'parents'].forEach(function (key) {
+      var p = pal[key]; if (!p) return;
+      (p.notes || []).forEach(function (n) {
+        if (/化忌/.test(n)) S0('legal', -1, 'obstruction around authority and paperwork (化忌 in the ' + ZW_PLAIN_NAME[key] + ')', n);
+        else if (/^煞/.test(n) && /擎羊|陀罗|天刑/.test(n)) S0('legal', -1, 'friction with rules and officials (' + n.replace(/^煞 in the palace: /, '') + ')', n);
+        else if (/化科|魁钺/.test(n)) S0('legal', 0.75, 'help and good standing with authority', n);
+      });
+    });
+    return global.QPBazi.areaResults(s, null, natal);
+  }
+  /** The birth board's twelve areas: each palace scored with the birth year's 四化. */
+  function zwdsAreasNatal(user) {
+    var z = user.zwds, pal = {};
+    z.palaces.forEach(function (p, b) {
+      var sc = S.zwdsPeriod(z, b, user.pillars.year.stem, null);
+      pal[ZW_KEY_OF[p.name]] = { score: sc.score, notes: sc.notes, stars: p.stars };
+    });
+    return zwAreas(pal, 4.1, true);
+  }
+  /** A flow year's twelve areas, from zwdsAnnual's twelve flow palaces. */
+  function zwdsAreasYear(user, a) {
+    var pal = {};
+    a.palaces.forEach(function (p) { pal[p.key] = p; });
+    return zwAreas(pal, 4.6, false);
+  }
   function zwdsAnnual(user, year) {
     var z = user.zwds, natalStem = user.pillars.year.stem, birthYear = user.pillars.solarYear;
     var yp = yearPillar(year), age = year - birthYear + 1;
@@ -649,6 +723,7 @@
   }
 
   global.QPFib = {
+    zwdsAreasNatal: zwdsAreasNatal, zwdsAreasYear: zwdsAreasYear,
     FIB: FIB, PHI: PHI, LEVELS: LEVELS, ZONE_LABEL: ZONE_LABEL,
     zeckendorf: zeckendorf, nearestFib: nearestFib, isFib: isFib,
     retrace: retrace, phiConsensus: phiConsensus,

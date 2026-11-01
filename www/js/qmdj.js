@@ -1509,6 +1509,82 @@
     return out;
   }
 
+  /* ---------------- twelve life areas on a Qimen plate ----------------
+   * Each area reads its classical symbols (用神) on the plate, against the person's own seat (their Day Stem):
+   * career 开门 with 值符 (the boss); education 景门, 丁, 天辅; spouse 乙 (wife) or 庚 (husband); marriage 六合 and how 乙
+   * and 庚 meet; relatives the person's year stem (年干, elders) and month stem (月干, siblings); children the hour stem
+   * (时干); colleagues the month stem with 值符; health 天心 against 天芮; finance 生门 and 戊; wealth 生门, 戊 and 天任;
+   * legal 惊门, 勾陈, 朱雀 and 庚 (the opponent); travel the Sky Horse's palace and 九天. A helpful symbol counts for its
+   * palace's quality and for supporting the seat, against it when it presses on the seat or is void; a hazard symbol
+   * the other way round. Works for the birth chart (Qimen Destiny) and for any year plate.
+   */
+  var AREA_SYMBOLS = {
+    career: [['door', '开门', 'the Open Door (开门), your career'], ['deity', '值符', 'the Chief (值符), your bosses']],
+    education: [['door', '景门', 'the Scenery Door (景门), exams and documents'], ['stem', '丁', 'the Star Wonder (丁), study and insight'], ['star', '天辅', 'the Assistant star (天辅), teachers']],
+    finance: [['door', '生门', 'the Life Door (生门), income'], ['stem', '戊', 'Wu (戊), your capital']],
+    wealth: [['door', '生门', 'the Life Door (生门), profit'], ['stem', '戊', 'Wu (戊), your capital'], ['star', '天任', 'the Ambassador star (天任), property']],
+    health: [['star', '天心', 'the Heart star (天心), healing']],
+    travel: [['deity', '九天', 'Nine Heaven (九天), far travel']]
+  };
+  var AREA_HAZARDS = {
+    health: [['star', '天芮', 'the Grain star (天芮), illness']],
+    legal: [['door', '惊门', 'the Fear Door (惊门), disputes and lawsuits'], ['deity', '勾陈', 'the Hook (勾陈), entanglement'], ['deity', '朱雀', 'the Phoenix (朱雀), quarrels and documents'], ['stem', '庚', 'Geng (庚), the opponent']]
+  };
+  function areasOnPlate(res, user, seat, natal) {
+    var ch = res.chart, forms = res.formations, P = ch.palacesByNumber, fav = (user.deep || {}).favourable || null, np = user.pillars;
+    var s = {}, S0 = function (k, v, plain, tech) { (s[k] = s[k] || []).push({ v: v, plain: plain, tech: tech }); };
+    var where = function (pa) { return pa.dir + ' (palace ' + pa.num + ')'; };
+    function relTo(n) { return n === seat ? 'same' : rel(P[n].element, P[seat].element); }
+    function helpful(k, n, name, w) {
+      if (!n || !P[n]) return;
+      var pa = P[n], q = palaceQuality(ch, forms, n, fav).score / 3, r = relTo(n);
+      var rv = { same: 0.5, produces: 0.75, produced_by: -0.25, controls: -0.75, controlled_by: 0.25 }[r] || 0;
+      var v = (q + rv - (pa.isEmpty ? 1 : 0)) * (w || 1);
+      var how = pa.isEmpty ? 'is void here: promised but hollow, so it needs more effort' : r === 'controls' ? 'presses on you, so the matter costs effort' :
+        r === 'produces' || r === 'same' ? 'supports you' : q >= 0.7 ? 'sits in a strong palace' : q <= -0.7 ? 'sits in a weak palace' : 'is neutral to you';
+      S0(k, v, name.replace(/, (.*)$/, ' — $1 —') + ' ' + how, name.replace(/,.*$/, '') + ' in ' + where(pa) + ' with ' + [pa.gate, pa.starCn, pa.spirit].filter(Boolean).join(', ') +
+        ' — ' + REL_LABEL[r] + ' your seat' + (pa.isEmpty ? ', void' : '') + ', quality ' + Math.round(q * 30) / 10);
+    }
+    function hazard(k, n, name) {
+      if (!n || !P[n]) return;
+      var pa = P[n], r = relTo(n), press = r === 'controls' || n === seat;
+      var v = (press ? -1.5 : -0.25) + (pa.isEmpty ? 1 : 0) + (HOSTILE_DEITY.indexOf(pa.spirit) >= 0 && pa.spirit !== name ? -0.5 : 0);
+      S0(k, v, name.replace(/, (.*)$/, ' — $1 —') + (pa.isEmpty ? ' is void, so the risk is hollow' : press ? ' presses on you, so take care here' : ' is away from you and contained'),
+        name.replace(/,.*$/, '') + ' in ' + where(pa) + (press ? ', pressing on your seat' : '') + (pa.isEmpty ? ', void' : ''));
+    }
+    Object.keys(AREA_SYMBOLS).forEach(function (k) { AREA_SYMBOLS[k].forEach(function (sym, i) { helpful(k, locate(ch, sym[0], sym[1]), sym[2], i === 0 ? 1 : 0.6); }); });
+    Object.keys(AREA_HAZARDS).forEach(function (k) { AREA_HAZARDS[k].forEach(function (sym) { hazard(k, locate(ch, sym[0], sym[1]), sym[2]); }); });
+    // Spouse and marriage: 乙 (wife) or 庚 (husband), 六合 the match, and how 乙 and 庚 meet.
+    var M = user.gender === 'M', sp = locate(ch, 'stem', M ? '乙' : '庚');
+    helpful('spouse', sp, M ? 'Yi (乙), your wife' : 'Geng (庚), your husband');
+    helpful('marriage', locate(ch, 'deity', '六合'), 'Harmony (六合), the match', 0.8);
+    var yi = locate(ch, 'stem', '乙'), geng = locate(ch, 'stem', '庚');
+    if (yi && geng) {
+      var yg = yi === geng ? 'same' : rel(P[yi].element, P[geng].element);
+      if (yg === 'same' || yg === 'produces' || yg === 'produced_by') S0('marriage', 1, 'husband and wife (乙 and 庚) support each other', '乙 in ' + where(P[yi]) + ', 庚 in ' + where(P[geng]) + ': ' + REL_LABEL[yg]);
+      else if (yg === 'controls' || yg === 'controlled_by') S0('marriage', -1, 'husband and wife (乙 and 庚) pull against each other', '乙 in ' + where(P[yi]) + ', 庚 in ' + where(P[geng]) + ': ' + REL_LABEL[yg]);
+    }
+    // Family: the person's own year, month and hour stems located on this plate.
+    helpful('relatives', seatOfStem(ch, np.year.stem, np.year.i), 'your parents\' and elders\' stem (年干 ' + C.STEMS[np.year.stem] + ')');
+    helpful('relatives', seatOfStem(ch, np.month.stem, np.month.i), 'your siblings\' stem (月干 ' + C.STEMS[np.month.stem] + ')', 0.6);
+    helpful('children', seatOfStem(ch, np.hour.stem, np.hour.i), 'your children\'s stem (时干 ' + C.STEMS[np.hour.stem] + ')');
+    helpful('colleagues', seatOfStem(ch, np.month.stem, np.month.i), 'your colleagues\' stem (月干 ' + C.STEMS[np.month.stem] + ')');
+    helpful('colleagues', locate(ch, 'deity', '值符'), 'the Chief (值符), your bosses', 0.8);
+    // Travel: the palace holding the Sky Horse branch of the person's day branch.
+    var horseBr = { 0: 2, 4: 2, 8: 2, 2: 8, 6: 8, 10: 8, 5: 11, 9: 11, 1: 11, 11: 5, 3: 5, 7: 5 }[np.day.branch];
+    var hp = Object.keys(PAL_BR).filter(function (n) { return PAL_BR[n].indexOf(horseBr) >= 0; })[0];
+    if (hp) helpful('travel', +hp, 'the Sky Horse (驿马 ' + C.BRANCHES[horseBr] + '), movement');
+    return global.QPBazi.areaResults(s, null, natal);
+  }
+  /** The birth chart's areas (Qimen Destiny): around the natal Day Stem's seat. */
+  function areasDestiny(res, user) { return areasOnPlate(res, user, natalSeat(res.chart, user).num, true); }
+  /** A year plate's areas: around where the natal Day Stem sits on that year's plate. */
+  function areasYearPlate(user, year) {
+    var A0 = global.QPAstro, mid = A0.jdToLocal(A0.termsForYear(year)[0].jd + 150);
+    var res = chartFor('year', { y: mid.y, m: mid.m, d: Math.floor(mid.d), hour: 12, min: 0 });
+    return areasOnPlate(res, user, natalSeat(res.chart, user).num, false);
+  }
+
   /* ---------------- structure scan: the strongest palaces in every hourly chart ahead ----------------
    * Every double-hour plate for the coming days, each outer palace scored on what the classics count as
    * strength: auspicious formations in it, the door and its strength, the deity, the star, the heaven stem
@@ -1813,6 +1889,7 @@
   global.QPQimen = {
     romancePlate: romancePlate, romanceWindows: romanceWindows, ELEMENT_REMEDY: ELEMENT_REMEDY,
     structureScan: structureScan, STEM_ROLE: STEM_ROLE, STAR_PLAIN: STAR_PLAIN, formationInfo: formationInfo,
+    areasDestiny: areasDestiny, areasYearPlate: areasYearPlate,
     CHART_TYPES: CHART_TYPES, chartFor: chartFor, DOOR_INTENT: DOOR_INTENT,
     formationCatalogue: formationCatalogue, searchFormations: searchFormations,
     CATEGORIES: CATEGORIES, SCENARIOS: SCENARIOS, SEARCH_FIELDS: SEARCH_FIELDS, qimenAnnual: qimenAnnual, threatBridge: threatBridge, THREATS: THREATS, threatMonths: threatMonths, threatMonthText: threatMonthText, threatMonthTextFull: threatMonthTextFull, monthJiazi: monthJiazi,
