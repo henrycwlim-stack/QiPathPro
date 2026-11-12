@@ -49,6 +49,11 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.5.3 — Both emails: 10.5.0 layout folded, full width unfolded
+Version folder 10.5.3 (versionCode 57), copied from 10.5.2. Both daily emails return to the 10.5.0 layout, which reads best on a
+folded phone or a 6.5-inch screen, and their column may now widen to 760px instead of stopping at 640px, so they fill an unfolded
+foldable (about 700px). The structures email's 3×3 chart grows to 480px wide when there is room.
+
 ### 10.5.2 — Daily forecast back to its first layout
 Version folder 10.5.2 (versionCode 56), copied from 10.5.1. On a 6.5-inch phone the fluid layout made the Daily forecast feel narrower,
 so `tools/daily-forecast.js` is back to its 10.5.0 layout (640px column, 14px text, Do and Avoid side by side). The Qimen structures email

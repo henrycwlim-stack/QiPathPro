@@ -172,7 +172,7 @@ parts.push(box('Directions', '方位', list(QM.best.map((x) => '<b style="color:
   p('<span style="color:#666">For a seated manifestation, follow the Qimen structures email instead: there you sit with your back to the palace.</span>')));
 
 const subject = 'Daily forecast — ' + dateLine + ' · ' + day.label + ' (' + day.score + ')';
-const html = '<div style="font-family:Georgia,serif;max-width:640px;margin:auto;color:#222">' +
+const html = '<div style="font-family:Georgia,serif;max-width:760px;margin:auto;color:#222;overflow-wrap:break-word">' +
   '<h2 style="margin:0 0 4px">QiPath Pro · daily forecast</h2><div style="font-size:13px;color:#666">' + esc(dateLine) +
   (user ? ' · read against your BaZi, Qimen and Zi Wei charts' : ' · add QP_BIRTH for the personal readings') + '. Singapore time.</div>' +
   parts.join('') + '<p style="font-size:12px;color:#888;margin-top:20px">Classical timing from QiPath Pro\'s own engine, not a guarantee. ' +
