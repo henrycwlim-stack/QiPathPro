@@ -49,6 +49,11 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.3 — Cloud builds working again
+Version folder 10.4.3 (versionCode 49), copied from 10.4.2. Both workflows (Build APK and Signed Release APK) failed at "Set up Android SDK"
+since at least 10.1.0: `android-actions/setup-android` installs the retired `tools` package by default, which the runner's newer sdkmanager
+no longer offers. They now install only `platform-tools`.
+
 ### 10.4.2 — Signed release from your phone
 Version folder 10.4.2 (versionCode 48), copied from 10.4.1. A new workflow, `.github/workflows/release-apk.yml` ("Signed Release APK"),
 builds a signed release in GitHub's cloud with the same `npm run release` and certificate check, so a release can be made from a phone.

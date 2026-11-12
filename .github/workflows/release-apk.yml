@@ -50,6 +50,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        # The default also installs the retired 'tools' package, which newer sdkmanager versions no longer have.
+        with:
+          packages: 'platform-tools'
 
       - name: Read the version
         run: |
