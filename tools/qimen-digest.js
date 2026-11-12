@@ -87,7 +87,8 @@ if (env.DRY_RUN) {
   fs.writeFileSync(path.join(process.cwd(), 'qimen-digest.html'), html);
   console.log('DRY_RUN: wrote qimen-digest.html — ' + subject + ' — ' + scan.today.length + ' today, ' + scan.top.length + ' ahead');
 } else {
-  for (const k of ['QP_SMTP_USER', 'QP_SMTP_PASS', 'QP_MAIL_TO']) if (!env[k]) { console.error('Missing secret ' + k); process.exit(1); }
+  const missing = ['QP_SMTP_USER', 'QP_SMTP_PASS', 'QP_MAIL_TO'].filter((k) => !env[k]);
+  if (missing.length) { console.error('Missing secret' + (missing.length > 1 ? 's ' : ' ') + missing.join(', ') + '. See README, "Setting up the 06:00 email".'); process.exit(1); }
   const nodemailer = require('nodemailer');
   nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: env.QP_SMTP_USER, pass: env.QP_SMTP_PASS } })
     .sendMail({ from: '"QiPath Pro" <' + env.QP_SMTP_USER + '>', to: env.QP_MAIL_TO, subject, text, html })

@@ -3,12 +3,18 @@ name: Daily Qimen structures email
 # Scans every hourly Qimen chart for the next 60 days with the app's own engine (tools/qimen-digest.js) and emails
 # the strongest structures through Gmail. Needs repository secrets QP_SMTP_USER, QP_SMTP_PASS (a Gmail app password)
 # and QP_MAIL_TO; QP_BIRTH and QP_LINK_BASE are optional — see the README, "Daily Qimen structures".
+# Run it by hand with "preview" ticked to build the email as a downloadable file without sending (no secrets needed).
 
 on:
   schedule:
     # 22:00 UTC is 06:00 the next morning in Singapore.
     - cron: '0 22 * * *'
   workflow_dispatch:
+    inputs:
+      preview:
+        description: 'Preview only: build the email as a file to download, do not send'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,21 +25,55 @@ jobs:
     env:
       # The engine reads dates as local civil time, as it does on the phone.
       TZ: Asia/Singapore
+      # The email's buttons open the app through the GitHub Pages page docs/open/ (email apps drop qipath:// links).
+      QP_LINK_BASE: ${{ secrets.QP_LINK_BASE || format('https://{0}.github.io/{1}/open/', github.repository_owner, github.event.repository.name) }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+
+      - name: Check the email secrets
+        if: ${{ !inputs.preview }}
+        env:
+          QP_SMTP_USER: ${{ secrets.QP_SMTP_USER }}
+          QP_SMTP_PASS: ${{ secrets.QP_SMTP_PASS }}
+          QP_MAIL_TO: ${{ secrets.QP_MAIL_TO }}
+        run: |
+          missing=""
+          [ -n "$QP_SMTP_USER" ] || missing="$missing QP_SMTP_USER"
+          [ -n "$QP_SMTP_PASS" ] || missing="$missing QP_SMTP_PASS"
+          [ -n "$QP_MAIL_TO" ] || missing="$missing QP_MAIL_TO"
+          if [ -n "$missing" ]; then
+            echo "::error::The email cannot be sent until these repository secrets are added:$missing. See README, 'Setting up the 06:00 email'."
+            exit 1
+          fi
 
       - name: Install the mailer
+        if: ${{ !inputs.preview }}
         run: npm install --no-save --no-package-lock nodemailer@6.9.16
 
+      - name: Build the preview
+        if: ${{ inputs.preview }}
+        env:
+          DRY_RUN: '1'
+          QP_BIRTH: ${{ secrets.QP_BIRTH }}
+        run: node tools/qimen-digest.js
+
+      - name: Upload the preview
+        if: ${{ inputs.preview }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: qimen-digest-preview
+          path: qimen-digest.html
+          if-no-files-found: error
+
       - name: Scan and send
+        if: ${{ !inputs.preview }}
         env:
           QP_SMTP_USER: ${{ secrets.QP_SMTP_USER }}
           QP_SMTP_PASS: ${{ secrets.QP_SMTP_PASS }}
           QP_MAIL_TO: ${{ secrets.QP_MAIL_TO }}
           QP_BIRTH: ${{ secrets.QP_BIRTH }}
-          QP_LINK_BASE: ${{ secrets.QP_LINK_BASE }}
         run: node tools/qimen-digest.js

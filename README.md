@@ -49,6 +49,16 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.5 — Daily Qimen email: clear setup and a preview
+Version folder 10.4.5 (versionCode 51), copied from 10.4.4. The Daily Qimen structures email had never sent: all its runs stopped
+because the repository had no email secrets. The engine and email were fine (a local preview built the digest in a second).
+- The workflow now checks the three email secrets first and names every missing one, with a pointer to the setup steps.
+- "Run workflow" has a **preview** option: it builds the email and offers it as a download (`qimen-digest-preview`), without
+  sending and without any secrets.
+- The buttons now link through `https://<owner>.github.io/<repo>/open/` by default, so `QP_LINK_BASE` is only needed for another
+  address. GitHub Pages must be on for that page (Settings › Pages › Deploy from a branch › `main`, folder `/docs`).
+- Node 22, matching the other workflows.
+
 ### 10.4.4 — Cloud builds pass
 Version folder 10.4.4 (versionCode 50), copied from 10.4.3. Both workflows now pass: they use Node 22 (the Capacitor 8 CLI refuses
 older Node) and JDK 21 (`npx cap sync` writes Java 21 compile options into the Android project). Tested on a temporary branch first:
@@ -417,10 +427,11 @@ and sends through Gmail. In the GitHub repository:
    `QP_SMTP_PASS` (the app password), `QP_MAIL_TO` (where the digest goes). Optional: `QP_BIRTH` as
    `1972-08-13 02:15 M` to weight palaces by that person's favourable elements, and `QP_LINK_BASE` (step 3).
 3. **Links into the app.** Email apps will not open `qipath://` links, so the buttons go through
-   `docs/open/index.html`. Turn on GitHub Pages (Settings › Pages › Deploy from branch › `main`, folder `/docs`) and
-   set `QP_LINK_BASE` to `https://<user>.github.io/<repo>/open/`. Without it the buttons carry the bare
-   `qipath://` link, which some mail apps will not open.
-4. **Test it.** Actions › *Daily Qimen structures email* › *Run workflow*. To preview locally without sending:
+   `docs/open/index.html`. Turn on GitHub Pages (Settings › Pages › Deploy from branch › `main`, folder `/docs`).
+   The workflow links to `https://<user>.github.io/<repo>/open/` by default; set `QP_LINK_BASE` only to use
+   another address.
+4. **Test it.** Actions › *Daily Qimen structures email* › *Run workflow*. Tick *preview* to download the email
+   instead of sending it. To preview locally without sending:
    `DRY_RUN=1 node tools/qimen-digest.js` writes `qimen-digest.html`.
 
 ### 9.30 — Chart › Together: two charts read side by side (合婚)
