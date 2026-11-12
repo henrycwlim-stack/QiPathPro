@@ -49,6 +49,23 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.5 — Daily forecast email
+Version folder 10.5.0 (versionCode 54), copied from 10.4.7. A second 06:00 email, "Daily forecast", reads the day against the
+person's own charts with the app's engine (`tools/daily-forecast.js`, workflow `.github/workflows/daily-forecast.yml`). It uses the same
+secrets as the structures email, and needs `QP_BIRTH` for the personal sections (optional `QP_BIRTH_TZ`, default 8).
+- **At a glance:** day, month and year pillars, lunar date, solar term, the almanac score (`QPGuide.daily`) and the strongest hours.
+- **BaZi:** today's stem as one of the Ten Gods to the Day Master, with what that kind of day suits; whether its element is supportive;
+  clashes and combinations with the Day, Year and Month branches; the current ten-year luck pillar.
+- **Qimen:** where the Day Master stands on the day plate (`natalSeat`), with its door, star, deity, void and a palace score
+  (`palaceQuality`), and a plain verdict.
+- **Zi Wei:** the day's Four Transformations (流日四化, from the day stem) on the natal stars, each with its palace and meaning, and the
+  palace the day's branch touches.
+- **Tong Shu:** day officer, duty spirit, mansion, clash, void branches, and 宜 do / 忌 avoid.
+- **Hexagram** of the day; **best three and worst two waking hours** with why (the hour's door and star, clashes, voids, harmonies)
+  and what each suits or should avoid; **directions** from the day plate, best two and one to avoid, for heading or facing during
+  meetings and travel (seated manifestation stays "back to" in the structures email).
+Each section is marked Supportive, Steady or Take care. Run workflow with *preview* ticked builds it as a download without sending.
+
 ### 10.4.7 — "Back to", not "face"
 Version folder 10.4.7 (versionCode 53), copied from 10.4.6. The structure picks are worked with your back to the palace, but the daily
 email said "face South". It now says "back to South, facing North" on every card and in the plain-text part, and the subject reads
