@@ -49,6 +49,22 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.2 — Signed release from your phone
+Version folder 10.4.2 (versionCode 48), copied from 10.4.1. A new workflow, `.github/workflows/release-apk.yml` ("Signed Release APK"),
+builds a signed release in GitHub's cloud with the same `npm run release` and certificate check, so a release can be made from a phone.
+`tools/release.js` now creates the `--out` folder if it does not exist.
+
+**Signed release from your phone**
+1. Once, add four repository secrets in GitHub > Settings > Secrets and variables > Actions > New repository secret:
+   `QIPATH_KEYSTORE_BASE64` (the key file in base64), `QIPATH_KEY_ALIAS`, `QIPATH_STORE_PASSWORD`, `QIPATH_KEY_PASSWORD`.
+   To copy the key file as base64 on Windows, run in PowerShell:
+   `[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\Users\Henry\Documents\Android Apps\QPathPro\QiPathPro\henry")) | Set-Clipboard`
+   then paste it as the value. Secrets cannot be read back once saved; GitHub masks them in logs.
+2. To release: GitHub app > the repository > Actions > Signed Release APK > Run workflow (on `main`).
+3. When it finishes, open the run and download the `QiPathPro-X.Y.Z-signed-release` artifact (a zip containing the APK).
+   Tick "publish" to also attach the APK to a GitHub Release `vX.Y.Z`; this repository is public, so that file is public too.
+   Tick "dry" to test the workflow without the key (unsigned APK).
+
 ### 10.4.1 — Signed release from any copy
 Version folder 10.4.1 (versionCode 47). Any version folder or fresh GitHub clone can now build a signed release with one command.
 

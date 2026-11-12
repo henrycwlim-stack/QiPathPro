@@ -116,5 +116,6 @@ console.log('Signed by the QiPath Pro certificate: ' + sha);
 // 7. Copy it next to the version folders, named like the earlier releases
 const dest = path.join(opt('--out') || path.join(root, '..'), 'QiPathPro version ' + versionName + '_release.apk');
 if (fs.existsSync(dest) && !flag('--force')) fail(dest + ' already exists. Add --force to replace it.');
+fs.mkdirSync(path.dirname(dest), { recursive: true });
 fs.copyFileSync(apk, dest);
 console.log('\nSigned release ready: ' + dest + ' (' + (fs.statSync(dest).size / 1048576).toFixed(1) + ' MB)');
