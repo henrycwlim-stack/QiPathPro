@@ -127,10 +127,10 @@ const why = (h) => {
 };
 const color = { good: '#3f8a5c', care: '#b5452f', neutral: '#8a6d2f' };
 const box = (title, cn, body, v) => '<div style="border:1px solid #e3ddd0;border-radius:8px;padding:12px 14px;margin:10px 0;background:#fffdf8">' +
-  '<div style="font-size:15px"><b>' + title + '</b> <span style="color:#888">' + cn + '</span>' +
+  '<div style="font-size:17px"><b>' + title + '</b> <span style="color:#888">' + cn + '</span>' +
   (v === undefined ? '' : ' &nbsp;<span style="color:' + color[tone(v)] + '">' + verdict[tone(v)] + '</span>') + '</div>' + body + '</div>';
-const p = (s) => '<div style="font-size:14px;margin:6px 0;line-height:1.55">' + s + '</div>';
-const list = (a) => '<ul style="font-size:14px;margin:6px 0;padding-left:18px;line-height:1.55">' + a.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
+const p = (s) => '<div style="font-size:16px;margin:6px 0;line-height:1.55">' + s + '</div>';
+const list = (a) => '<ul style="font-size:16px;margin:6px 0;padding-left:18px;line-height:1.55">' + a.map((x) => '<li>' + x + '</li>').join('') + '</ul>';
 
 const dateLine = WD[t.getDay()] + ' ' + today.d + ' ' + MON[today.m - 1] + ' ' + today.y;
 const parts = [];
@@ -154,9 +154,9 @@ if (ZW) parts.push(box('Zi Wei', '紫微', p('The ' + esc(C.STEMS[dp.day.stem]) 
 parts.push(box('Tong Shu almanac', '通胜', p('Day officer <b>' + esc(day.officer.cn) + ' ' + esc(day.officer.en) + '</b> &middot; duty spirit ' + esc(day.duty.cn) +
   ' (' + (day.duty.yellow ? 'yellow path, favourable' : 'black path, guarded') + ') &middot; mansion ' + esc(day.mansion.cn) + '宿 ' + esc(day.mansion.en) +
   ' &middot; clashes the ' + esc(day.clashAnimal) + ' &middot; void ' + esc(day.voids.join(' '))) +
-  '<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:6px"><tr>' +
-  '<td style="vertical-align:top;padding-right:8px;width:50%"><b style="color:#3f8a5c">宜 Do</b>' + list(day.do.map(esc)) + '</td>' +
-  '<td style="vertical-align:top;width:50%"><b style="color:#b5452f">忌 Avoid</b>' + list(day.avoid.map(esc)) + '</td></tr></table>'));
+  // Stacked rather than side by side, so each list has the full width of a phone.
+  '<div style="margin-top:8px"><b style="color:#3f8a5c">宜 Do</b>' + list(day.do.map(esc)) + '</div>' +
+  '<div style="margin-top:6px"><b style="color:#b5452f">忌 Avoid</b>' + list(day.avoid.map(esc)) + '</div>'));
 
 parts.push(box('Today\'s hexagram', '易经', p('<b>' + esc(day.hexagram.name) + ' ' + esc(day.hexagram.nameEn) + '</b>, line ' + day.hexagram.moving + ' moving, changing to ' +
   esc(day.hexagram.changedName) + ' ' + esc(day.hexagram.changedNameEn) + '.')));
@@ -172,12 +172,20 @@ parts.push(box('Directions', '方位', list(QM.best.map((x) => '<b style="color:
   p('<span style="color:#666">For a seated manifestation, follow the Qimen structures email instead: there you sit with your back to the palace.</span>')));
 
 const subject = 'Daily forecast — ' + dateLine + ' · ' + day.label + ' (' + day.score + ')';
-const html = '<div style="font-family:Georgia,serif;max-width:640px;margin:auto;color:#222">' +
-  '<h2 style="margin:0 0 4px">QiPath Pro · daily forecast</h2><div style="font-size:13px;color:#666">' + esc(dateLine) +
+// A fluid email: full width on a phone, up to 720px on an unfolded foldable or a desktop, with text that wraps instead of
+// pushing the width out (a too-wide email makes Gmail shrink everything). Tables, because many mail apps ignore stylesheets.
+const shell = (inner) => '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<meta name="x-apple-disable-message-reformatting"></head><body style="margin:0;padding:0;background:#f4efe4">' +
+  '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f4efe4"><tr><td align="center" style="padding:12px 8px">' +
+  '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:720px"><tr>' +
+  '<td style="font-family:Georgia,serif;font-size:16px;line-height:1.55;color:#222;word-break:break-word;overflow-wrap:anywhere">' + inner +
+  '</td></tr></table></td></tr></table></body></html>';
+const html = shell('' +
+  '<h2 style="margin:0 0 4px">QiPath Pro · daily forecast</h2><div style="font-size:15px;color:#666">' + esc(dateLine) +
   (user ? ' · read against your BaZi, Qimen and Zi Wei charts' : ' · add QP_BIRTH for the personal readings') + '. Singapore time.</div>' +
-  parts.join('') + '<p style="font-size:12px;color:#888;margin-top:20px">Classical timing from QiPath Pro\'s own engine, not a guarantee. ' +
-  'It is never a reason to delay, avoid or stop medical care.</p></div>';
-const text = subject + '\n\n' + html.replace(/<br>/g, '\n').replace(/<\/(div|li|tr|h2)>/g, '\n').replace(/<[^>]+>/g, '').replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/\n{3,}/g, '\n\n');
+  parts.join('') + '<p style="font-size:14px;color:#888;margin-top:20px">Classical timing from QiPath Pro\'s own engine, not a guarantee. ' +
+  'It is never a reason to delay, avoid or stop medical care.</p>');
+const text = subject + '\n\n' + html.replace(/<head>[\s\S]*?<\/head>/, '').replace(/<br>/g, '\n').replace(/<\/(div|li|tr|h2)>/g, '\n').replace(/<[^>]+>/g, '').replace(/&middot;/g, '·').replace(/&amp;/g, '&').replace(/\n{3,}/g, '\n\n');
 
 if (env.DRY_RUN) {
   fs.writeFileSync(path.join(process.cwd(), 'daily-forecast.html'), html);

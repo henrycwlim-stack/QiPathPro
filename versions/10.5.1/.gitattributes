@@ -1,0 +1,8 @@
+# gradlew must stay LF or it fails on macOS/Linux after a Windows checkout.
+gradlew            text eol=lf
+*.sh               text eol=lf
+gradlew.bat        text eol=crlf
+*.bat              text eol=crlf
+gradle-wrapper.jar binary
+*.png              binary
+*.jar              binary

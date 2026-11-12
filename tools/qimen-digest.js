@@ -48,10 +48,10 @@ const sit = (s) => 'back to ' + s.palace.dir + (Q.OPPOSITE_DIR[s.palace.dir] ? '
 // The hour's chart as a 3×3 table in Lo Shu order (4 9 2 / 3 5 7 / 8 1 6) — tables, because email clients ignore CSS grid.
 function grid(s) {
   const cell = (g) => '<td style="border:1px solid ' + (g.hl ? '#3f8a5c' : '#ddd') + ';background:' + (g.hl ? '#eef7f0' : '#fff') +
-    ';padding:5px;text-align:center;vertical-align:top;font-size:12px;line-height:1.4;width:33%' + (g.isEmpty ? ';color:#999' : '') + '">' +
-    '<div style="color:#888;font-size:11px">' + g.num + ' ' + esc(g.dir) + '</div>' +
+    ';padding:5px;text-align:center;vertical-align:top;font-size:14px;line-height:1.4;width:33%' + (g.isEmpty ? ';color:#999' : '') + '">' +
+    '<div style="color:#888;font-size:12px">' + g.num + ' ' + esc(g.dir) + '</div>' +
     (g.num === 5 ? esc(g.heaven + g.earth) : '<b>' + esc(g.heaven) + '</b>/' + esc(g.earth) + '<br>' + esc(g.star) + '<br>' + esc(g.gate) + '<br>' + esc(g.deity)) + '</td>';
-  let h = '<table style="border-collapse:collapse;width:100%;max-width:360px;margin:8px 0">';
+  let h = '<table role="presentation" width="100%" style="border-collapse:collapse;width:100%;max-width:480px;table-layout:fixed;margin:8px 0">';
   for (let r = 0; r < 3; r++) h += '<tr>' + s.grid.slice(r * 3, r * 3 + 3).map(cell).join('') + '</tr>';
   return h + '</table>';
 }
@@ -59,29 +59,37 @@ function grid(s) {
 function card(s, full) {
   const major = s.formations.filter((f) => f.major);
   return '<div style="border:1px solid #e3ddd0;border-radius:8px;padding:12px 14px;margin:10px 0;background:#fffdf8">' +
-    '<div style="font-size:15px"><b>' + dayName(s) + ' ' + s.date + ' · ' + s.range + '</b> &nbsp;<span style="color:#3f8a5c">' + esc(sit(s)) + '</span></div>' +
-    '<div style="margin:6px 0;font-size:14px">' + esc(s.summary) + '</div>' +
-    '<div style="font-size:13px;color:#555">' + major.map((f) => '<b>' + esc(f.name) + '</b> ' + esc(f.nameEn)).join(' · ') +
+    '<div style="font-size:17px"><b>' + dayName(s) + ' ' + s.date + ' · ' + s.range + '</b> &nbsp;<span style="color:#3f8a5c">' + esc(sit(s)) + '</span></div>' +
+    '<div style="margin:6px 0;font-size:16px">' + esc(s.summary) + '</div>' +
+    '<div style="font-size:15px;color:#555">' + major.map((f) => '<b>' + esc(f.name) + '</b> ' + esc(f.nameEn)).join(' · ') +
       ' · ' + esc(s.gate) + ' · ' + esc(s.deity) + ' · ' + esc(s.heaven + '/' + s.earth) + ' · ' + esc(s.star) + '</div>' +
-    (full ? '<ul style="font-size:13px;color:#333;padding-left:18px;margin:8px 0">' +
+    (full ? '<ul style="font-size:15px;color:#333;padding-left:18px;margin:8px 0">' +
       major.map((f) => '<li><b>' + esc(f.name) + '</b> — ' + esc(f.description) + '</li>').join('') +
       s.goodFor.map((g) => '<li>' + esc(g) + '</li>').join('') + '</ul>' + grid(s) : '') +
     '<a href="' + esc(link(s)) + '" style="display:inline-block;margin-top:6px;padding:7px 12px;background:#c8452f;color:#fff;border-radius:6px;' +
-      'text-decoration:none;font-size:13px">Open the manifestation script</a></div>';
+      'text-decoration:none;font-size:15px">Open the manifestation script</a></div>';
 }
 
 const subject = 'Qimen structures — ' + today.y + '-' + String(today.m).padStart(2, '0') + '-' + String(today.d).padStart(2, '0') +
   (scan.today[0] ? ' · best ' + scan.today[0].range + ', back to ' + scan.today[0].palace.dir : '');
-const html = '<div style="font-family:Georgia,serif;max-width:640px;margin:auto;color:#222">' +
+// A fluid email: full width on a phone, up to 720px on an unfolded foldable or a desktop, with text that wraps instead of
+// pushing the width out (a too-wide email makes Gmail shrink everything). Tables, because many mail apps ignore stylesheets.
+const shell = (inner) => '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+  '<meta name="x-apple-disable-message-reformatting"></head><body style="margin:0;padding:0;background:#f4efe4">' +
+  '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f4efe4"><tr><td align="center" style="padding:12px 8px">' +
+  '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:720px"><tr>' +
+  '<td style="font-family:Georgia,serif;font-size:16px;line-height:1.55;color:#222;word-break:break-word;overflow-wrap:anywhere">' + inner +
+  '</td></tr></table></td></tr></table></body></html>';
+const html = shell('' +
   '<h2 style="margin:0 0 4px">QiPath Pro · daily Qimen structures</h2>' +
-  '<div style="font-size:13px;color:#666">Every hourly chart from today for ' + DAYS + ' days, each palace scored on its auspicious formations ' +
+  '<div style="font-size:15px;color:#666">Every hourly chart from today for ' + DAYS + ' days, each palace scored on its auspicious formations ' +
     '(rare ones count most), door, deity, star and stems' + (who ? ', ' + esc(who) : '') + '. Waking hours, 07:00–00:59, Singapore time.</div>' +
   '<h3 style="margin:18px 0 0">Today</h3>' +
   (scan.today.length ? scan.today.map((s) => card(s, true)).join('') : '<p>No strong structure today.</p>') +
   '<h3 style="margin:18px 0 0">The strongest of the next ' + DAYS + ' days</h3>' +
   scan.top.map((s, i) => card(s, i < 5)).join('') +
-  '<p style="font-size:12px;color:#888;margin-top:20px">Each button opens the structure\'s manifestation script in QiPath Pro on your phone, ' +
-    'with its formations, stems, door, deity and star called out and how to activate each. Classical timing, not a guarantee.</p></div>';
+  '<p style="font-size:14px;color:#888;margin-top:20px">Each button opens the structure\'s manifestation script in QiPath Pro on your phone, ' +
+    'with its formations, stems, door, deity and star called out and how to activate each. Classical timing, not a guarantee.</p>');
 const text = subject + '\n\n' + scan.today.concat(scan.top).map((s) => dayName(s) + ' ' + s.date + ' ' + s.range + ' — ' + sit(s) + ' — ' +
   s.formations.filter((f) => f.major).map((f) => f.name).join(', ') + '\n  ' + s.summary + '\n  ' + link(s)).join('\n\n');
 
