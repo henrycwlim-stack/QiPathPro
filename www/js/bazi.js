@@ -291,11 +291,171 @@
     return g.y + '-' + (g.m < 10 ? '0' : '') + g.m + '-' + (g.d < 10 ? '0' : '') + Math.floor(g.d); }
   function dateJD(jd) { var A = global.QPAstro, g = A.jdToLocal ? A.jdToLocal(jd) : A.jdToGreg(jd); return { y: g.y, m: g.m, d: Math.floor(g.d) }; }
 
+  /** The personal stars a passing year or month branch switches on. */
+  function branchStars(p, b) {
+    var dm = p.day.stem, tri = triadKey(p.day.branch), stars = [];
+    if ((NOBLEMAN[dm] || []).indexOf(b) >= 0) stars.push({ cn: '天乙貴人', en: 'Noble People', note: 'help from people with standing' });
+    if (ACADEMIC[dm] === b) stars.push({ cn: '文昌', en: 'Intelligence Star', note: 'study, exams and writing go well' });
+    if ((TAIJI[dm] || []).indexOf(b) >= 0) stars.push({ cn: '太極貴人', en: 'Taiji Nobleman', note: 'insight and spiritual interests' });
+    if (PEACH[tri] === b) stars.push({ cn: '桃花', en: 'Peach Blossom', note: 'attraction, romance and popularity' });
+    if (HORSE[tri] === b) stars.push({ cn: '驛馬', en: 'Sky Horse', note: 'travel, relocation and change of post' });
+    return stars;
+  }
   /**
    * A personalised forecast for one solar year (立春 to 立春): the year pillar and its ten gods,
    * the luck pillar it runs under, Tai Sui, the Four Harms and combinations against the natal
    * pillars, the stars it activates, domain scores and the twelve solar months.
    */
+  /* ---------------- Nayin 納音: the sound element of each pillar ---------------- */
+  var NAYIN_INFO = {
+    '海中金': ['Gold in the Sea', 'Hidden value. Your ability may take time to be noticed, and it surfaces when the right person or moment draws it out.', 'Do not wait to be discovered; find one way to make your work visible.'],
+    '炉中火': ['Furnace Fire', 'Concentrated, working heat. You transform raw material and do best with a clear task to apply yourself to.', 'A furnace needs fuel and a purpose, so guard against burning out on low-value work.'],
+    '大林木': ['Great Forest Wood', 'Broad and sheltering. You grow large over time, and people gather around you.', 'A forest needs space, so avoid spreading yourself across too many roles.'],
+    '路旁土': ['Roadside Earth', 'Useful and accessible. You serve many people, and your work carries others forward.', 'Roads get walked on, so make sure your help is valued and set limits.'],
+    '剑锋金': ['Sword Edge Metal', 'Sharp, decisive and exacting. You cut through confusion and rise under testing.', 'An edge can wound, so choose when to be sharp and when to keep it sheathed.'],
+    '山头火': ['Mountaintop Fire', 'Seen from far away. You have reach and presence, and can inspire people at a distance.', 'Wildfire spreads fast, so keep enthusiasm under control and finish what you light.'],
+    '涧下水': ['Stream Water', 'Clear, quick and quietly persistent. You find a way around obstacles rather than through them.', 'A small stream can run dry, so build reserves of energy and money.'],
+    '城头土': ['City Wall Earth', 'Protective and solid. You guard people and institutions, and are relied on for stability.', 'Walls can shut people out, so stay open to change and to new people.'],
+    '白蜡金': ['White Wax Metal', 'Soft, refined and still taking shape. You mature with polish, education and good influences.', 'Early pressure can bend you, so choose your mentors and surroundings carefully.'],
+    '杨柳木': ['Willow Wood', 'Graceful and flexible. You bend without breaking, and adapt well to people.', 'Too much bending loses direction, so hold on to a few firm commitments.'],
+    '泉中水': ['Spring Water', 'A clean source that renews itself. You have steady inner resources, and others come to drink from them.', 'A spring is easily muddied, so protect your peace and your reputation.'],
+    '屋上土': ['Rooftop Earth', 'Shelter for those below. You provide for and protect a household or team.', 'A roof carries weight unseen, so ask for support before you are overloaded.'],
+    '霹雳火': ['Thunderbolt Fire', 'Sudden, powerful and hard to ignore. You act in bursts and can change a situation at a stroke.', 'Lightning does not last, so pace yourself and manage your temper.'],
+    '松柏木': ['Pine and Cypress Wood', 'Enduring and upright. You stand firm through hard seasons and grow stronger with age.', 'Evergreens resist bending, so make room for compromise.'],
+    '长流水': ['Long Flowing Water', 'Far-reaching and steady. You go the distance, and your influence builds over a long course.', 'Rivers follow their channel, so choose your direction before momentum chooses for you.'],
+    '砂中金': ['Gold in the Sand', 'Value that must be sifted out. You reach your worth through effort and being tested.', 'Do not sell yourself short early on; patience and refining pay.'],
+    '山下火': ['Fire at the Foot of the Mountain', 'A warm, steady light in a limited space. You comfort and guide those nearby.', 'Your reach grows when you stop staying small, so step into a larger room when you can.'],
+    '平地木': ['Flatland Wood', 'Open and exposed, growing where everyone can see. You make steady progress with the right support and pruning.', 'Without guidance growth wanders, so welcome structure and feedback.'],
+    '壁上土': ['Wall Earth', 'Dependable support that holds things up. You often work behind the scenes and need something firm to attach to.', 'Do not rely on one person or organisation alone; build your own footing.'],
+    '金箔金': ['Gold Leaf Metal', 'Fine and elegant, adding beauty to what it covers. You raise the value of the things you touch.', 'Gold leaf is thin, so look for substance and backing behind the appearance.'],
+    '覆灯火': ['Lamp Fire', 'A small flame that lights the dark. You give insight and steady help, especially when others are lost.', 'A lamp needs shielding from wind, so protect your health and your focus.'],
+    '天河水': ['Heavenly River Water', 'Rain from above that nourishes all it falls on. You are generous and broad-minded, and tend to help widely.', 'Rain is out of your hands, so ground big visions in practical steps.'],
+    '大驿土': ['Great Post Road Earth', 'A highway linking far places. You connect people, and travel and movement suit you.', 'Constant motion wears you down, so keep a home base.'],
+    '钗钏金': ['Hairpin and Bracelet Metal', 'Crafted and refined. You have taste, charm and an eye for detail, and you are valued up close.', 'Ornaments depend on who wears them, so build value that is your own.'],
+    '桑柘木': ['Mulberry Wood', 'Practical and productive, feeding what comes after it. You make things useful, and are good at sustaining others.', 'Being useful can become being used, so ask for fair return.'],
+    '大溪水': ['Great Stream Water', 'Lively and fast-moving, gathering strength as it goes. You are quick to act and carry others along.', 'Fast water can overflow, so plan before you rush.'],
+    '沙中土': ['Sandy Earth', 'Loose, fertile ground shaped by water. You are adaptable, and do well when you settle and build.', 'Sand shifts, so make your plans firm and finish them.'],
+    '天上火': ['Sky Fire', 'The light of the sun, seen by everyone. You have warmth, visibility and natural authority.', 'The sun shines on all, so remember to give attention to those closest to you.'],
+    '石榴木': ['Pomegranate Wood', 'Hardy, late-fruiting and full of seeds. You flourish later and do well in tough conditions.', 'Results may come later than for others, so do not give up early.'],
+    '大海水': ['Great Sea Water', 'Vast, deep and accepting. You take in a great deal and can hold your own among big forces.', 'Depth can become distance, so let people know what you are thinking.']
+  };
+  // Sayings that a controlling element helps instead of harms: this Nayin is refined by what would control it. Unverified: 三命通會 論納音取象 does not state this rule.
+  var NAYIN_REFINED = ['霹雳火', '天上火', '山下火', '天河水', '大海水', '路旁土', '大驿土', '沙中土', '砂中金', '剑锋金', '平地木'];
+  var NAYIN_REL = {
+    same: { v: 1, label: 'Same element', text: 'an ally that strengthens you, though it can also compete' },
+    support: { v: 2, label: 'Supports you', text: 'it feeds you, bringing help and resources' },
+    gives: { v: -0.5, label: 'You feed it', text: 'it draws on you, so you give more than you receive' },
+    manage: { v: 0.5, label: 'You control it', text: 'you can shape it, and it pays off with effort' },
+    pressure: { v: -2, label: 'Controls you', text: 'it presses on you, bringing friction and demands' },
+    refined: { v: 1.5, label: 'Refines you (unverified)', text: 'normally a pressure, but a traditional saying holds that this element improves your Nayin. This exception has not been confirmed in a classical text' }
+  };
+  function nayinElem(name) { return '木火土金水'.indexOf(name.charAt(2)); }
+  function nayinRelation(self, other) {
+    var a = nayinElem(self), b = nayinElem(other);
+    if (a === b) return 'same';
+    if (C.produces(b, a)) return 'support';
+    if (C.produces(a, b)) return 'gives';
+    if (C.controls(a, b)) return 'manage';
+    return NAYIN_REFINED.indexOf(self) >= 0 ? 'refined' : 'pressure';
+  }
+  function nayinItem(name) {
+    var x = NAYIN_INFO[name], e = nayinElem(name);
+    return { cn: name, en: x[0], plain: x[1], care: x[2], elem: e, elemEn: C.ELEM_EN[e] };
+  }
+  var NAYIN_STAGES = [['Year', 'Early years'], ['Month', 'Youth and building a career'], ['Day', 'Prime of life and partnership'], ['Hour', 'Later life and legacy']];
+  var NAYIN_LINK = {
+    same: [1, 'Continuous', 'the same element carries straight through'],
+    feeds: [2, 'Flows forward', 'this stage naturally feeds the next'],
+    returns: [1, 'Draws on the past', 'the next stage supports what came before, so it takes a conscious step forward'],
+    bends: [-1, 'Reshaped', 'this stage shapes and limits what follows'],
+    breaks: [-1, 'A break', 'the next stage overrides what came before, so expect a real turning point']
+  };
+  /**
+   * Nayin assessment. A macro-diagnostic only, kept apart from Day Master strength and the Ten Gods: nothing here reads them and
+   * nothing there reads this. The Year Nayin is the life sound (年命), read for structural harmony across the life stages from Year to
+   * Hour, for constitutional resilience, and for the ten-year macro phases. Yearly and shorter timing stay with the main analysis.
+   */
+  function nayinAssessment(user, today) {
+    var p = user.pillars, life = p.year.nayin, pil = { Year: p.year, Month: p.month, Day: p.day, Hour: p.hour };
+    var withRel = function (label, area, q) {
+      var it = nayinItem(q.nayin), r = nayinRelation(life, q.nayin), R = NAYIN_REL[r];
+      it.pillar = label; it.area = area; it.ganzhi = q.cn; it.rel = r; it.relLabel = R.label; it.relText = R.text; it.value = R.v;
+      return it;
+    };
+    var others = [withRel('Month', 'career and parents', p.month), withRel('Day', 'yourself and your partner', p.day), withRel('Hour', 'children and later life', p.hour)];
+    var total = others.reduce(function (t, x) { return t + x.value; }, 0);
+    var verdict = total >= 2 ? 'Well supported' : total <= -2 ? 'Under pressure' : 'Mixed';
+    var counts = [0, 0, 0, 0, 0];
+    [p.year, p.month, p.day, p.hour].forEach(function (q) { counts[nayinElem(q.nayin)]++; });
+    var missing = counts.map(function (n, i) { return n ? -1 : i; }).filter(function (i) { return i >= 0; }).map(function (i) { return C.ELEM_EN[i]; });
+
+    // Structural harmony: each life stage against the one before it, Year down to Hour.
+    var links = [], flow = 0;
+    for (var i = 0; i < 3; i++) {
+      var A0 = nayinItem(pil[NAYIN_STAGES[i][0]].nayin), B0 = nayinItem(pil[NAYIN_STAGES[i + 1][0]].nayin);
+      var k = A0.elem === B0.elem ? 'same' : C.produces(A0.elem, B0.elem) ? 'feeds' : C.produces(B0.elem, A0.elem) ? 'returns' : C.controls(A0.elem, B0.elem) ? 'bends' : 'breaks';
+      flow += NAYIN_LINK[k][0];
+      links.push({ from: NAYIN_STAGES[i][0], to: NAYIN_STAGES[i + 1][0], fromStage: NAYIN_STAGES[i][1], toStage: NAYIN_STAGES[i + 1][1], fromCn: A0.cn, toCn: B0.cn, kind: k, label: NAYIN_LINK[k][1], text: NAYIN_LINK[k][2], value: NAYIN_LINK[k][0] });
+    }
+    var harmony = flow >= 3 ? 'Smooth' : flow >= 1 ? 'Mostly smooth' : flow > -1 ? 'Uneven' : 'Marked by turning points';
+
+    // Constitutional resilience: how much the structure backs the life sound, and how many elements it can call on.
+    var distinct = counts.filter(function (n) { return n; }).length;
+    var backing = others.filter(function (x) { return x.value >= 1; }).length, pressing = others.filter(function (x) { return x.rel === 'pressure'; }).length;
+    var rs = backing - pressing * 1.5 + (distinct >= 4 ? 1 : distinct >= 3 ? 0.5 : 0) + (flow >= 1 ? 0.5 : flow <= -1 ? -0.5 : 0);
+    var resilience = rs >= 2 ? 'Robust' : rs >= 0.75 ? 'Steady' : 'Delicate';
+    var resText = { Robust: 'Your structure backs itself up. You tend to recover from setbacks on your own reserves.',
+      Steady: 'You have reasonable reserves. You recover well, provided you do not run them down for long.',
+      Delicate: 'Your structure has less in reserve, so setbacks can take longer to recover from. Regular rest and a dependable support network matter more for you.' }[resilience];
+
+    // Macro phases: every ten-year luck pillar against the life sound.
+    var t = today || (function () { var d = new Date(); return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() }; })();
+    var phases = [];
+    try {
+      phases = global.QPFib.bazi(user, { today: t }).luck.map(function (l) {
+        var it = withRel('Age ' + Math.floor(l.from) + ' to ' + Math.floor(l.to), 'this decade', l.pillar);
+        it.current = !!l.current; it.from = l.from; it.to = l.to;
+        return it;
+      });
+    } catch (err) { phases = []; }
+    var ranked = phases.slice().sort(function (x, y) { return y.value - x.value; });
+    var current = phases.filter(function (x) { return x.current; })[0] || null;
+
+    var main = nayinItem(life), feed = (main.elem + 4) % 5, self = nayinItem(p.day.nayin), dialogue = nayinDialogue(main, self);
+    var summary = 'Your life sound is ' + main.en + ' (' + life + '), a ' + main.elemEn + ' Nayin. ' + main.plain + ' Across your other pillars it is ' +
+      (verdict === 'Mixed' ? 'given mixed support' : verdict.toLowerCase()) + ', your life stages are ' + harmony.toLowerCase() + ', and your resilience is ' + resilience.toLowerCase() + '.';
+    var selfText = 'Your self sound is ' + self.en + ' (' + self.cn + '), a ' + self.elemEn + ' Nayin. ' + self.plain;
+    return { life: main, day: nayinItem(p.day.nayin), others: others, verdict: verdict, score: Math.round(total * 10) / 10, counts: counts, missing: missing,
+      links: links, harmony: harmony, resilience: resilience, resilienceText: resText, phases: phases, current: current, bestPhase: ranked[0] || null, hardestPhase: ranked[ranked.length - 1] || null,
+      summary: summary, support: C.ELEM_EN[feed], self: self, selfText: selfText, dialogue: dialogue,
+      advice: 'To feed your life sound, bring in ' + C.ELEM_EN[feed] + ', the element that produces ' + main.elemEn + '. ' + main.care };
+  }
+  /** The Year Nayin is where you came from and the container; the Day Nayin is who you are inside it. */
+  function nayinDialogue(year, day) {
+    if (year.elem === day.elem) return { kind: 'same', label: 'Aligned', value: 1, text: 'Your background and your identity share an element, so you tend to feel at home in where you came from.' };
+    if (C.produces(year.elem, day.elem)) return { kind: 'feeds', label: 'Supported by your roots', value: 2, text: 'Your background feeds who you are, which points to peace and alignment between the two.' };
+    if (C.produces(day.elem, year.elem)) return { kind: 'gives', label: 'Giving back to your roots', value: 1, text: 'You support where you came from. The two are in harmony, though you may feel responsible for family or legacy.' };
+    return { kind: 'friction', label: 'Against the grain', value: -2, text: C.controls(year.elem, day.elem) ?
+      'Your background presses on your identity, which can feel like lifelong inner friction or having to prove yourself.' :
+      'Your identity pushes against your background, so you are likely to carve your own path rather than follow the one laid out.' };
+  }
+  /** Traditional matching between two people: Year Nayin for foundations, Day Nayin for the intimate bond. Never part of the compatibility score. */
+  function nayinMatch(a, b) {
+    var pair = function (label, area, x, y) {
+      var X = nayinItem(x), Y = nayinItem(y), same = X.elem === Y.elem, gen = C.produces(X.elem, Y.elem) || C.produces(Y.elem, X.elem);
+      var tone = same ? 'Same element' : gen ? 'Harmonious' : 'Friction';
+      return { label: label, area: area, a: X, b: Y, tone: tone, value: same ? 1 : gen ? 2 : -1,
+        text: same ? 'You share a frequency, which feels familiar, but you may also compete.' : gen ? 'One naturally feeds the other, so this level of your bond tends to flow.' : 'One controls the other, so this level of your bond needs more patience.' };
+    };
+    return [pair('Year Nayin', 'your foundations and backgrounds', a.pillars.year.nayin, b.pillars.year.nayin), pair('Day Nayin', 'your inner life and intimate bond', a.pillars.day.nayin, b.pillars.day.nayin)];
+  }
+  function nayinText(user) {
+    var n = nayinAssessment(user), line = function (x) { return x.pillar + ' ' + x.ganzhi + ' ' + x.cn + ' (' + x.en + ', ' + x.elemEn + '): ' + x.relLabel; };
+    return 'Nayin (納音) macro-diagnostic. Life sound, the Year Nayin, for background, life structure and long phases: ' + n.life.cn + ' (' + n.life.en + ', ' + n.life.elemEn + '). Self sound, the Day Nayin, for temperament and inner constitution: ' + n.self.cn + ' (' + n.self.en + ', ' + n.self.elemEn + '). Between them: ' + n.dialogue.label + '. Against the life sound: ' + n.others.map(line).join('; ') +
+      '. Structural harmony from Year to Hour: ' + n.harmony + ' (' + n.links.map(function (l) { return l.fromCn + ' to ' + l.toCn + ' ' + l.label; }).join('; ') + '). Constitutional resilience: ' + n.resilience +
+      '. Macro phases: ' + n.phases.map(function (x) { return x.pillar + ' ' + x.cn + ' ' + x.relLabel + (x.current ? ' (now)' : ''); }).join('; ') + '.';
+  }
+
   function annualForecast(user, year) {
     var A = global.QPAstro, F = global.QPFib, p = user.pillars, D = user.deep || analyse(p, user.gender);
     var dm = p.day.stem, natal = [p.year, p.month, p.day, p.hour], labels = ['Year', 'Month', 'Day', 'Hour'];
@@ -339,12 +499,7 @@
     if (STEM_UNION[yp.stem] === dm) unions.push(C.STEMS[yp.stem] + C.STEMS[dm] + ' — the year stem combines with your Day Master');
 
     // Stars switched on by the year branch.
-    var tri = triadKey(p.day.branch), stars = [];
-    if ((NOBLEMAN[dm] || []).indexOf(yp.branch) >= 0) stars.push({ cn: '天乙貴人', en: 'Noble People', note: 'help from people with standing' });
-    if (ACADEMIC[dm] === yp.branch) stars.push({ cn: '文昌', en: 'Intelligence Star', note: 'study, exams and writing go well' });
-    if ((TAIJI[dm] || []).indexOf(yp.branch) >= 0) stars.push({ cn: '太極貴人', en: 'Taiji Nobleman', note: 'insight and spiritual interests' });
-    if (PEACH[tri] === yp.branch) stars.push({ cn: '桃花', en: 'Peach Blossom', note: 'attraction, romance and popularity' });
-    if (HORSE[tri] === yp.branch) stars.push({ cn: '驛馬', en: 'Sky Horse', note: 'travel, relocation and change of post' });
+    var stars = branchStars(p, yp.branch);
 
     // Domains: simple, explicit rules so the AI and the person can see why.
     var g = stemGod.i, gb = hidden[0].god.i;
@@ -1279,6 +1434,18 @@
     '正印': 'a nurturing, protective presence who looks after you'
   };
   // 紅鸞 counts back from 卯 by the year branch; 天喜 sits opposite it.
+  /** The twelve areas for one solar month: the month pillar read the way areasYear reads a year pillar. */
+  function areasMonth(user, mp) {
+    var p = user.pillars, dm = p.day.stem;
+    var a = { pillar: mp, stemGod: C.tenGod(dm, mp.stem), months: [],
+      hidden: C.HIDDEN[mp.branch].map(function (h) { return { stem: C.STEMS[h], god: C.tenGod(dm, h) }; }),
+      harms: fourHarms(p, mp.branch), stars: branchStars(p, mp.branch) };
+    return areasYear(user, a).map(function (x) {
+      x.plain = x.plain.replace(/\byear\b/g, 'month').replace(/\bYear\b/g, 'Month');
+      return x;
+    });
+  }
+
   function romanceStars(yb) { var hl = mod(3 - yb, 12); return { hongLuan: hl, tianXi: mod(hl + 6, 12) }; }
   function peachOf(p) {
     return [PEACH[triadKey(p.year.branch)], PEACH[triadKey(p.day.branch)]].filter(function (v, i, a) { return a.indexOf(v) === i; });
@@ -1761,13 +1928,13 @@
   }
 
   global.QPBazi = {
-    compatibility: compatibility, AREAS: AREAS, AREA_ADVICE: AREA_ADVICE, areaResults: areaResults, areaLevel: areaLevel,
-    areasNatal: areasNatal, areasYear: areasYear, areasRelations: areasRelations, areasTogether: areasTogether,
+    compatibility: compatibility, AREAS: AREAS, AREA_ADVICE: AREA_ADVICE, AREA_ADVICE_NATAL: AREA_ADVICE_NATAL, areaResults: areaResults, areaLevel: areaLevel,
+    areasNatal: areasNatal, areasYear: areasYear, areasMonth: areasMonth, branchStars: branchStars, SIX_UNION: SIX_UNION, STEM_UNION: STEM_UNION, areasRelations: areasRelations, areasTogether: areasTogether,
     analyse: analyse, stageOf: stageOf, findStars: findStars, findRelations: findRelations,
     assessStrength: assessStrength, diagnose: diagnose,
     STAGES: STAGES, STAR_META: STAR_META, DOMAIN_DEF: DOMAIN_DEF, TIAO_HOU: TIAO_HOU,
     SIX_DESTRUCTION: SIX_DESTRUCTION, HARM_KIND: HARM_KIND, fourHarms: fourHarms, timingHarms: timingHarms,
-    annualForecast: annualForecast,
+    annualForecast: annualForecast, nayinAssessment: nayinAssessment, nayinText: nayinText, nayinMatch: nayinMatch,
     NOBLEMAN: NOBLEMAN, ACADEMIC: ACADEMIC, TAIJI: TAIJI, PEACH: PEACH, HORSE: HORSE, triadKey: triadKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);

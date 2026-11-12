@@ -18,7 +18,8 @@
     numbers:   { label: 'Numbers',       cn: '数字', icon: '数' },
     sancai:    { label: 'San Cai mandate', cn: '三才', icon: '才' },
     annual:    { label: 'Annual forecast', cn: '流年', icon: '年' },
-    counter:   { label: 'Threat check', cn: '反制', icon: '盾' }
+    counter:   { label: 'Threat check', cn: '反制', icon: '盾' },
+    combined:  { label: 'Combined reading', cn: '合參', icon: '合' }
   };
 
   function key(profileId) { return PREFIX + profileId; }
@@ -91,6 +92,18 @@
     return null;
   }
 
+  // What actually happened: { result: 'hit' | 'partly' | 'miss', note, at }. Pass null to clear it.
+  function setOutcome(profileId, id, outcome) {
+    var list = all(profileId);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) {
+        if (outcome) list[i].outcome = outcome; else delete list[i].outcome;
+        return persist(profileId, list) ? list[i] : null;
+      }
+    }
+    return null;
+  }
+
   function remove(profileId, id) {
     var list = all(profileId).filter(function (r) { return r.id !== id; });
     persist(profileId, list);
@@ -123,7 +136,7 @@
 
   global.QPRecords = {
     KINDS: KINDS, all: all, save: save, get: get, remove: remove,
-    attachAI: attachAI, updatePayload: updatePayload, byKind: byKind, counts: counts, clearKind: clearKind,
+    attachAI: attachAI, updatePayload: updatePayload, setOutcome: setOutcome, byKind: byKind, counts: counts, clearKind: clearKind,
     exportAll: exportAll
   };
 })(typeof window !== 'undefined' ? window : globalThis);

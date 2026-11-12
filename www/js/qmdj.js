@@ -52,7 +52,7 @@
       asker:['peng'], combos:[{chars:['庚'],withTarget:'xw',tone:'danger',note:'Xuan Wu with Geng — misrepresentation or a rigged field'}],
       good:'Tian Peng generates the asker — fast gains are available to a decisive move.',
       bad:'Xuan Wu counters the asker — hidden variables and a real risk of being misled.' },
-    { id:'budget', cat:'wealth', name:'预算', nameEn:'Budget and capital approval',
+    { id:'budget', cat:'wealth', name:'预算', nameEn:'Budget, loans and capital approval',
       yong:'戊 Wu — the principal',
       desc:'Getting a budget signed off, or releasing capital.',
       targets:[{id:'wu',kind:'stem',char:'戊'}], asker:['wu'],
@@ -60,13 +60,20 @@
               {chars:['戊','庚'],tone:'danger',note:'Wu over Geng — funds frozen, audited or blocked'}],
       good:'Wu is well seated and reaches the asker — the money moves.',
       bad:'Wu sits void or under Geng — the money is committed elsewhere or held.' },
+    { id:'partnership', cat:'wealth', name:'合伙', nameEn:'Business partnership',
+      yong:'Hour Stem (the partner) + 生门 Life Door',
+      desc:'Whether to enter a partnership, and who gains from it.',
+      targets:[{id:'partner',kind:'stem_ref',ref:'hour'},{id:'life',kind:'door',char:'生'}],
+      asker:['partner'],
+      good:'The partner\'s palace supports yours — the partnership looks worth pursuing.',
+      bad:'The partner\'s palace works against yours — look carefully at the terms, or at other options.' },
     { id:'promotion', cat:'career', name:'升迁', nameEn:'Promotion and recognition',
-      yong:'值符 Chief + 开门 Open Door',
+      yong:'开门 Open Door + 生门 Life Door + 值符 Chief',
       desc:'Advancement, visibility, and backing from those above you.',
-      targets:[{id:'chief',kind:'deity',char:'值符'},{id:'open',kind:'door',char:'开'}],
-      asker:['chief'],
-      good:'The Chief generates the asker — authority is behind you and the door is open.',
-      bad:'The Chief counters the asker — the decision sits with someone unconvinced.' },
+      targets:[{id:'open',kind:'door',char:'开'},{id:'life',kind:'door',char:'生'},{id:'chief',kind:'deity',char:'值符'}],
+      asker:['open'],
+      good:'The Open Door is well placed and reaches you — your effort is being noticed.',
+      bad:'The Open Door does not reach you — recognition is not here yet.' },
     { id:'finding_job', cat:'career', name:'求职', nameEn:'Finding work',
       yong:'开门 Open Door + 值符 Chief',
       desc:'Applications, interviews, and securing a role.',
@@ -75,11 +82,11 @@
       good:'The Open Door is well seated and reaches you — approach directly and in person.',
       bad:'The Open Door sits void — the role is not real yet, or is already promised.' },
     { id:'marriage', cat:'relationships', name:'婚姻', nameEn:'Marriage and partnership',
-      yong:'六合 Six Harmony + 乙 Yi',
+      yong:'六合 Six Harmony + 乙 Yi (wife) + 庚 Geng (husband)',
       desc:'Commitment, harmony, and the health of a bond.',
-      targets:[{id:'he',kind:'deity',char:'六合'},{id:'yi',kind:'stem',char:'乙'}],
+      targets:[{id:'he',kind:'deity',char:'六合'},{id:'yi',kind:'stem',char:'乙'},{id:'geng',kind:'stem',char:'庚'}],
       asker:['he'],
-      combos:[{chars:['乙','庚'],tone:'good',note:'Yi with Geng — a binding union (日月合)'},
+      combos:[{chars:['乙','庚'],tone:'good',note:'Yi with Geng — the rightful pairing, with attraction and care between partners'},
               {chars:['乙','辛'],tone:'danger',note:'Yi with Xin — a bond under strain'}],
       good:'Six Harmony generates the asker — the relationship is willing and warm.',
       bad:'Six Harmony sits void or countered — sentiment is absent or being performed.' },
@@ -93,7 +100,7 @@
     { id:'diagnose', cat:'health', name:'疾病', nameEn:'Diagnosing an illness',
       yong:'天芮 Tian Rui — the illness itself',
       desc:'The nature and seat of a condition.',
-      targets:[{id:'rui',kind:'star',char:'天芮'}], asker:['rui'],
+      targets:[{id:'rui',kind:'star',char:'天芮',adverse:true}], asker:['rui'],
       good:'Tian Rui is weak in its palace or void — the condition lacks force and yields.',
       bad:'Tian Rui generates itself in a strong palace — the condition is entrenched; get it examined properly.' },
     { id:'cure', cat:'health', name:'求医', nameEn:'Finding treatment',
@@ -102,7 +109,7 @@
       targets:[{id:'xin',kind:'star',char:'天心'},{id:'yi',kind:'stem',char:'乙'}],
       asker:['xin'],
       good:'Tian Xin generates the asker — competent help is reachable in that direction.',
-      bad:'Tian Xin void — the current course is not the one that resolves it. Seek a second opinion.' },
+      bad:'Tian Xin void — help may be harder to find in this direction. Keep to your current treatment and ask your doctor, or get a second opinion.' },
     { id:'travel', cat:'travel', name:'出行', nameEn:'Travel and long journeys',
       yong:'九天 Nine Heaven + 开门 Open Door',
       desc:'Departure, distance, and safe arrival.',
@@ -158,12 +165,12 @@
       good:'The Death Door is well seated — an ending can be made cleanly and will hold.',
       bad:'The Death Door reaches you badly — the cut will cost more than it returns right now.' },
     { id:'lost_object', cat:'lost', name:'寻物', nameEn:'Finding a lost object',
-      yong:'玄武 Xuan Wu + 天蓬 Tian Peng',
+      yong:'六合 Six Harmony (the item) + Hour Stem',
       desc:'Locating something missing, and whether it returns.',
-      targets:[{id:'xw',kind:'deity',char:'玄武'},{id:'peng',kind:'star',char:'天蓬'}],
-      asker:['xw'],
-      good:'Xuan Wu is well seated and not void — look in that direction; recovery is likely.',
-      bad:'Xuan Wu sits void — the item has left your sphere; it is unlikely to come back.' },
+      targets:[{id:'he',kind:'deity',char:'六合'},{id:'hour',kind:'stem_ref',ref:'hour'}],
+      asker:['he'],
+      good:'The signs for the item are good — look in the direction of Six Harmony; recovery is likely.',
+      bad:'The signs for the item are poor — searching may take a long time and may not succeed.' },
     { id:'lost_person', cat:'lost', name:'寻人', nameEn:'Finding a person',
       yong:'Hour Stem (the person) + 六合 Six Harmony',
       desc:'Where someone is, and whether contact resumes.',
@@ -177,43 +184,97 @@
 
   var OUTER = [1,2,3,4,6,7,8,9];
 
+  // Grappling Hook and Red Phoenix replace White Tiger and Black Tortoise on Yang plates (compendium p.613).
+  var SLOT_ON_YANG = { '白虎': '勾陈', '玄武': '朱雀' };
   function findPalace(chart, kind, char) {
     for (var i = 0; i < OUTER.length; i++) {
       var p = chart.palacesByNumber[OUTER[i]];
       if (!p) continue;
       if (kind === 'door' && p.door && p.door.char === char) return p;
       if (kind === 'star' && p.star && p.star.char === char) return p;
-      if (kind === 'deity' && p.deity && p.deity.char === char) return p;
-      if (kind === 'stem' && ((p.heavenStem && p.heavenStem.char === char) ||
-                              (p.earthStem && p.earthStem.char === char))) return p;
+      if (kind === 'deity' && p.deity && (p.deity.char === char || p.deity.char === SLOT_ON_YANG[char])) return p;
+      // A person or matter is read from the heaven plate; the earth plate is where stems rest, not where they stand now.
+      if (kind === 'stem' && ((p.heavenStem && p.heavenStem.char === char) || p.heavenStem2Cn === char)) return p;
     }
     return null;
   }
 
+  // 甲 never shows on a plate: it hides under the 六儀 that leads its xun.
+  function plateStem(q) { return C.STEMS[q.stem === 0 ? YI_ORDER_D[Math.floor(mod(q.i - (q.i % 10), 60) / 10)] : q.stem]; }
+
   function resolveTarget(chart, p, t) {
     if (t.kind === 'stem_ref') {
-      var ch = C.STEMS[t.ref === 'hour' ? p.hour.stem : p.day.stem];
+      var ch = plateStem(t.ref === 'hour' ? p.hour : p.day);
       return { pal: findPalace(chart, 'stem', ch), char: ch, kind: 'stem' };
     }
     if (t.kind === 'envoy') {
       var e = chart.envoy ? chart.envoy.charAt(0) : null;
       return { pal: e ? findPalace(chart, 'door', e) : null, char: chart.envoy, kind: 'door' };
     }
-    return { pal: findPalace(chart, t.kind, t.char), char: t.char, kind: t.kind };
+    var found = findPalace(chart, t.kind, t.char), shown = found && t.kind === 'deity' && found.deity.char !== t.char ? found.deity.char : null;
+    return { pal: found, char: t.char + (shown ? ' (' + shown + ' on this Yang plate)' : ''), kind: t.kind };
   }
 
   // The asker is the Day Stem's palace — the seat of the person enquiring.
   function askerPalace(chart, p) {
-    return findPalace(chart, 'stem', C.STEMS[p.day.stem]);
+    return findPalace(chart, 'stem', plateStem(p.day));
   }
 
-  function elemOf(kind, pal) {
+  // A stem or deity is compared by its own element. Using the palace's would always read as "same".
+  function elemOf(kind, pal, char) {
     if (!pal) return null;
-    if (kind === 'door') return pal.door ? pal.door.element : null;
-    if (kind === 'star') return pal.star ? pal.star.element : null;
-    if (kind === 'deity') return pal.element;
-    return pal.element;
+    if (kind === 'deity') return pal.deity ? pal.deity.element : null;
+    return ['wood', 'fire', 'earth', 'metal', 'water'][C.STEM_ELEM[C.STEMS.indexOf(char)]] || null;
   }
+
+  /* What a door means for this question. By default 开休生 help and 伤死惊 hurt, with 景杜 neutral, but the book turns several around by topic
+   * (p.297-298, the Fisherman's Song on p.307, and each door's Suitable and Unsuitable lists). [door value, note shown to the user]. */
+  // The Scenery list repeats the Delusion list, and the Fear list the Death list, but Joey Yap's The Doors confirms both in its own words (p.102, p.130).
+  var WEALTH_DOORS = { '杜门': [-2, 'The book lists the Delusion Door as unsuitable for anything to do with money.'], '景门': [-2, 'The book lists the Scenery Door as unsuitable for anything to do with money.'] };
+  var TRAVEL_DOORS = { '杜门': [-2, 'The book lists the Delusion Door as unsuitable for travel.'], '景门': [-2, 'The book lists the Scenery Door as unsuitable for travel.'] };
+  // The Harm Door only helps these matters alongside one of the Three Nobles (The Doors p.72), so [value, note, true] needs a Noble in the palace.
+  var DOOR_TOPIC = {
+    direct_wealth: WEALTH_DOORS, budget: WEALTH_DOORS,
+    indirect_wealth: { '杜门': WEALTH_DOORS['杜门'], '景门': WEALTH_DOORS['景门'], '伤门': [2, 'The Harm Door is usually a poor sign, but with a Noble here it suits gambling and competing.', true] },
+    finding_job: { '景门': [2, 'The Scenery Door suits job interviews.'] },
+    exams: { '景门': [2, 'The Scenery Door suits exams and tests.'] },
+    dispute: { '惊门': [2, 'The Fear Door is usually a poor sign, but it helps you win a lawsuit.'], '休门': [0, 'The Rest Door favours settling out of court over fighting a lawsuit.'], '开门': [2, 'Under the Open Door your side of a lawsuit is well grounded.'], '伤门': [2, 'The Harm Door is usually a poor sign, but with a Noble here it helps you start legal action.', true] },
+    learning: { '杜门': [1, 'The Delusion Door favours quiet, solitary study and research.'] },
+    cure: { '开门': [2, 'Under the Open Door the patient is expected to recover.'], '死门': [-2, 'The book lists the Death Door as unsuitable for seeking treatment.'], '惊门': [-2, 'The book lists the Fear Door as unsuitable for seeking treatment.'] },
+    travel: TRAVEL_DOORS,
+    restructure: { '死门': [1, 'The Death Door is the right symbol for closing things out.'] },
+    // FM2 p.260-261: 开休生杜 keep the person hidden, while 伤景死惊 bring news. It overrides "will finally see the person" on the Compendium's Open Door page, as the dedicated book.
+    lost_person: { '生门': [-2, 'A good door is a poor sign here: the person may be hidden or far away, and finding them takes twice the effort.'], '开门': [-2, 'A good door is a poor sign here: the person may be hidden or far away, and finding them takes twice the effort.'], '休门': [-2, 'A good door is a poor sign here: the person may be hidden or far away, and finding them takes twice the effort.'], '杜门': [-2, 'The Delusion Door points to someone being hidden from plain view.'],
+                   '死门': [2, 'A hard door is a good sign here: news of the person should come soon.'], '惊门': [2, 'A hard door is a good sign here: news of the person should come soon.'], '伤门': [2, 'A hard door is a good sign here: news of the person should come soon.'], '景门': [2, 'The Scenery Door is a good sign here: news of the person should come soon.'] },
+    // FM2 p.235-236: the same turn-around for a lost item.
+    lost_object: { '生门': [-2, 'A good door is a poor sign here: the chance of finding the item is slim.'], '开门': [-2, 'A good door is a poor sign here: the chance of finding the item is slim.'], '休门': [-2, 'A good door is a poor sign here: the chance of finding the item is slim.'], '杜门': [-2, 'The Delusion Door keeps the item hidden, so the chance of finding it is slim.'],
+                   '死门': [2, 'A hard door is a good sign here: there is a high chance of finding the item.'], '惊门': [2, 'A hard door is a good sign here: there is a high chance of finding the item.'], '伤门': [2, 'A hard door is a good sign here: there is a high chance of finding the item.'], '景门': [2, 'The Scenery Door is a good sign here: there is a high chance of finding the item.'] },
+    // The marriage rules in QPSystems.forecastRules read these doors with Six Harmony, so they are not counted twice.
+    marriage: { '开门': [0], '伤门': [0], '杜门': [0], '死门': [0] }
+  };
+  function doorValue(scId, pal) {
+    var o = (DOOR_TOPIC[scId] || {})[pal.gate];
+    if (o && o[2] && ['乙', '丙', '丁'].indexOf(pal.heavenStemCn) < 0) o = null;
+    var gv = o ? o[0] : pal.gateRank === 2 ? 2 : pal.gateRank === 1 ? 0 : -2;
+    return { v: doorForce(gv, pal.gateStrength, pal.gatePalace && pal.gatePalace.key), note: o ? o[1] : null };
+  }
+  // The deities the book reads against a Useful God: Snake p.628, Black Tortoise p.658, Nine Heaven p.671.
+  function usefulDeity(sc, pal) {
+    var d = pal.deity && pal.deity.char;
+    if (sc.id === 'launch' || !d || sc.targets.some(function (t) { return t.char === d; })) return null;
+    if (d === '腾蛇') return { tone: 'danger', score: -1.5, label: 'The Surging Snake 腾蛇 on the Useful God', text: sc.cat === 'health'
+      ? 'This points to worry and fear feeding the condition, or to something that has dragged on for a long time.' : 'This points to sudden change for the worse, or to something false.' };
+    if (d === '玄武') return pal.gateRank === 2 && GOOD_STARS[pal.starCn] > 0
+      ? { tone: 'good', score: 0.5, label: 'The Black Tortoise 玄武 on the Useful God', text: 'A good star and door turn this around. The matter can be solved by being adaptable and tactful.' }
+      : { tone: 'danger', score: -1.5, label: 'The Black Tortoise 玄武 on the Useful God', text: 'This is generally a poor sign, and points to secrecy or something not being genuine.' };
+    if (d === '九天' && (sc.cat === 'initiatives' || sc.cat === 'travel' || sc.cat === 'career')) return { tone: 'good', score: 1, label: 'Nine Heaven 九天 on the Useful God', text: 'This favours active starts and carrying out big plans.' };
+    return null;
+  }
+  // Structures Forecast already reads on its own: the door's state, the Nobles' graves, the door plates, and the warn-only 五不遇时.
+  var READ_ELSEWHERE = ['men_po', 'gong_po', 'men_sheng_gong', 'san_qi_ru_mu', 'men_fan_yin', 'fu_yin_men', 'wu_bu_yu'];
+  // The book's panel each question draws on, in QPSystems.forecastRules. Finding treatment leaves out the illness rules: it reads the doctor and the door, not how serious the illness is.
+  var SC_TOPIC = { marriage: 'marriage', promotion: 'promotion', finding_job: 'job', direct_wealth: 'wealth', indirect_wealth: 'wealth', budget: ['wealth', 'loan'], partnership: 'partnership', negotiate: 'deal', launch: 'launch',
+                   diagnose: 'health', cure: 'cure', travel: 'travel', exams: 'exams', learning: 'learning', dispute: 'dispute', lost_object: 'lost_object' };
 
 
   /* ================= forecasting methods ================= */
@@ -240,36 +301,38 @@
       id: 'door', name: '八门法', label: 'By Doors',
       blurb: 'Reads the eight doors alone: which door governs the matter, where it sits, and ' +
              'how it relates to the door on your own palace.',
-      note: 'Doors describe action and human affairs, so this suits questions about what to do.'
+      note: 'Doors describe action and human affairs, so this suits questions about what to do. The books do not name this as a method: it is this app\'s own lens.'
     },
     {
       id: 'star', name: '九星法', label: 'By Stars',
       blurb: 'Reads the nine stars: their strength in the palace they occupy and their relation ' +
              'to your seat. Stars describe conditions and disposition rather than action.',
-      note: 'Suits questions about how a situation stands rather than what to do about it.'
+      note: 'Suits questions about how a situation stands rather than what to do about it. The books do not name this as a method: it is this app\'s own lens.'
     },
     {
       id: 'deity', name: '八神法', label: 'By Deities',
       blurb: 'Reads the eight deities: the quality of intent surrounding the matter — sanction, ' +
              'concealment, harmony, deception, force.',
-      note: 'Suits questions about other people\'s motives and the character of a situation.'
+      note: 'Suits questions about other people\'s motives and the character of a situation. The books do not name this as a method: it is this app\'s own lens.'
     },
     {
       id: 'nianming', name: '年命法', label: 'By the Asker\'s Birth Year',
-      blurb: 'Locates the asker by the branch of their birth year (年命) rather than by the Day ' +
-             'Stem, then reads that palace and its relation to the matter.',
+      blurb: 'Locates the asker by the stem of their birth year (年命) on the heaven plate rather ' +
+             'than by the Day Stem, then reads that palace and its relation to the matter.',
       note: 'Used when the asker is not the person casting, or to cross-check the Day Stem reading.'
     },
     {
       id: 'zhifu', name: '值符值使法', label: 'Chief and Envoy',
       blurb: 'Reads the chief star (值符) as the governing authority over the whole hour and the ' +
              'envoy gate (值使) as the channel through which it acts.',
-      note: 'A whole-chart frame rather than a targeted one. Good for strategic questions.'
+      note: 'A whole-chart frame rather than a targeted one. Good for strategic questions. The books do not name this as a method: it is this app\'s own lens.'
     }
   ];
 
 
-  /* Each method needs its own symbol for the matter. A scenario carries only the symbols its
+  /* The books read the Day Stem, the Hour Stem, the Useful God and the Life Stem. They do not name Door, Star, Deity or Chief methods, so those are QiPath's own lenses.
+     Each symbol below has a source: the door and deity pages, each star's Suitable list and FM1 p.75. Nine Earth for wealth is Warcraft PDF p.150, Six Harmony for lost things FM2 p.235.
+     Each method needs its own symbol for the matter. A scenario carries only the symbols its
      own frame uses, so when a method asks for a star or a deity and the scenario has none,
      it is taken from the question's category instead. Without this the star and deity methods
      silently fall back to the door and produce an identical reading, which is worse than
@@ -278,11 +341,11 @@
   var CAT_DOOR  = { wealth:'生', career:'开', relationships:'休', health:'生',
                     travel:'开', education:'景', litigation:'惊', initiatives:'开', lost:'杜' };
   var CAT_STAR  = { wealth:'天任', career:'天心', relationships:'天辅', health:'天芮',
-                    travel:'天冲', education:'天辅', litigation:'天柱', initiatives:'天英',
+                    travel:'天心', education:'天辅', litigation:'天柱', initiatives:'天辅',
                     lost:'天蓬' };
-  var CAT_DEITY = { wealth:'值符', career:'值符', relationships:'六合', health:'白虎',
+  var CAT_DEITY = { wealth:'九地', career:'值符', relationships:'六合', health:'白虎',
                     travel:'九天', education:'太阴', litigation:'白虎', initiatives:'九天',
-                    lost:'玄武' };
+                    lost:'六合' };
 
   function symbolFor(kind, sc) {
     var fromTargets = (sc.targets.filter(function (t) { return t.kind === kind; })[0] || {}).char;
@@ -291,13 +354,8 @@
     return m[sc.cat] || null;
   }
 
-  // Branch of the asker's birth year -> its seated palace (年命宫).
-  var BRANCH_PALACE = { 0:1, 1:8, 2:8, 3:3, 4:4, 5:4, 6:9, 7:2, 8:2, 9:7, 10:6, 11:6 };
-
-  function nianMingPalace(chart, birthYearBranch) {
-    var n = BRANCH_PALACE[birthYearBranch];
-    return chart.palacesByNumber[n] || null;
-  }
+  // The Life Stem 年命 is the birth-year stem on the plate: the book uses "Life Stem" and "Year Stem" for the same reading (p.332, p.350).
+  function nianMingPalace(chart, birthYear) { return findPalace(chart, 'stem', plateStem(birthYear)); }
 
   /**
    * Resolve the two poles of the reading — who is asking, and what is being asked about —
@@ -307,17 +365,16 @@
     var self = null, matter = null, selfLabel = '', matterLabel = '';
 
     if (method === 'nianming' && user && user.pillars) {
-      self = nianMingPalace(chart, user.pillars.year.branch);
-      selfLabel = '年命 ' + C.BRANCHES[user.pillars.year.branch] +
-        ' (' + C.ZODIAC[user.pillars.year.branch] + ')';
+      self = nianMingPalace(chart, user.pillars.year);
+      selfLabel = '年命 ' + C.STEMS[user.pillars.year.stem] + (user.pillars.year.stem === 0 ? ' (hidden under ' + plateStem(user.pillars.year) + ')' : '');
     } else {
-      self = findPalace(chart, 'stem', C.STEMS[p.day.stem]);
-      selfLabel = 'Day Stem ' + C.STEMS[p.day.stem];
+      self = findPalace(chart, 'stem', plateStem(p.day));
+      selfLabel = 'Day Stem ' + C.STEMS[p.day.stem] + (p.day.stem === 0 ? ' (hidden under ' + plateStem(p.day) + ')' : '');
     }
 
     if (method === 'stems') {
-      matter = findPalace(chart, 'stem', C.STEMS[p.hour.stem]);
-      matterLabel = 'Hour Stem ' + C.STEMS[p.hour.stem];
+      matter = findPalace(chart, 'stem', plateStem(p.hour));
+      matterLabel = 'Hour Stem ' + C.STEMS[p.hour.stem] + (p.hour.stem === 0 ? ' (hidden under ' + plateStem(p.hour) + ')' : '');
     } else if (method === 'door') {
       var dch = symbolFor('door', sc);
       if (dch) { matter = findPalace(chart, 'door', dch); matterLabel = dch + '门'; }
@@ -381,31 +438,58 @@
     var asker = poles.self || askerPalace(chart, p);
     var findings = [], score = 0;
 
-    var resolved = {};
+    var resolved = {}, doorRead = {};
     sc.targets.forEach(function (t) {
       var r = resolveTarget(chart, p, t);
       resolved[t.id] = r;
+      r.adverse = !!t.adverse;
       if (!r.pal) {
         findings.push({ tone:'neutral', label: r.char + ' seat',
           text: r.char + ' does not appear on the outer plate this hour — it is held in the centre and cannot be read directly.' });
         return;
       }
       var pal = r.pal;
-      var relation = rel(elemOf(r.kind, pal), pal.element);
+      var isMain = (sc.asker || [])[0] === t.id, sign = t.adverse ? -1 : 1, seatScore, seatNote;
+      if (r.kind === 'door') {
+        var own = doorValue(sc.id, pal);
+        seatScore = own.v;
+        seatNote = 'Door strength: ' + (pal.gateStrength ? pal.gateStrength.cn + ' ' + pal.gateStrength.en : '—') + (pal.gatePalace ? ', ' + pal.gatePalace.cn + ' ' + pal.gatePalace.en : '') + '.' + (own.note ? ' ' + own.note : '');
+        doorRead[pal.num] = 1;
+      } else if (r.kind === 'star') {
+        var rank = pal.starStrength ? pal.starStrength.rank : 3;
+        seatScore = sign * (rank >= 4 ? 2 : rank <= 2 ? -2 : 0);
+        seatNote = 'Star strength in this season: ' + (pal.starStrength ? pal.starStrength.cn + ' ' + pal.starStrength.en : '—') + '.';
+      } else {
+        var relation = rel(elemOf(r.kind, pal, t.kind === 'stem_ref' ? r.char : t.char), pal.element);
+        seatScore = relation === 'produced_by' || relation === 'same' ? 2 : relation === 'controlled_by' ? -2 : 0;
+        seatNote = 'Palace relation: ' + REL_LABEL[relation] + '.';
+      }
       var bits = [];
       if (pal.star) bits.push('star ' + pal.star.char);
       if (pal.door) bits.push('door ' + pal.door.char + '门');
       if (pal.deity) bits.push('deity ' + pal.deity.char);
-      findings.push({ tone: (relation === 'produced_by' || relation === 'same') ? 'good'
-                          : relation === 'controlled_by' ? 'danger' : 'neutral',
+      findings.push({ tone: seatScore > 0 ? 'good' : seatScore < 0 ? 'danger' : 'neutral',
         label: r.char + ' seated in palace ' + pal.num + ' ' + pal.name + ' (' + pal.dir + ')',
-        text: bits.join(', ') + '. Palace relation: ' + REL_LABEL[relation] + '.' +
-              (pal.isEmpty ? ' This palace is void (空亡).' : '') });
-      if (relation === 'produced_by' || relation === 'same') score += 2;
-      if (relation === 'controlled_by') score -= 2;
-      if (pal.isEmpty) { score -= 3;
-        findings.push({ tone:'danger', label: r.char + ' falls void (空亡)',
-          text: 'A void seat means the matter lacks substance right now — commitments made here tend not to hold.' }); }
+        text: bits.join(', ') + '. ' + seatNote + (pal.isEmpty ? ' This palace is void (空亡).' : '') });
+      score += seatScore;
+      if (pal.isEmpty) {
+        score += t.adverse ? 2 : -3;
+        findings.push(t.adverse
+          ? { tone:'good', label: r.char + ' falls void (空亡)', text: 'A void seat means this problem lacks force right now.' }
+          : { tone:'danger', label: r.char + ' falls void (空亡)', text: 'A void seat means the matter lacks substance right now — commitments made here tend not to hold.' });
+      }
+      // The compendium gives the doors special priority (p.161), so the door on a symbol counts in full on the main one and by half on the others.
+      if (pal.gate && !doorRead[pal.num]) {
+        doorRead[pal.num] = 1;
+        var dv = doorValue(sc.id, pal), weight = dv.v * (isMain ? 1 : 0.5);
+        if (Math.abs(weight) >= 0.5 || dv.note) {
+          score += weight;
+          findings.push({ tone: weight > 0 ? 'good' : weight < 0 ? 'danger' : 'neutral', label: pal.gate + ' with ' + r.char,
+            text: dv.note || (weight > 0 ? 'A good door here helps this.' : 'A bad door here works against this.') });
+        }
+      }
+      var ud = isMain ? usefulDeity(sc, pal) : null;
+      if (ud) { score += ud.score; findings.push(ud); }
     });
 
     // Relation of the primary useful god toward the asker
@@ -413,10 +497,13 @@
       var r = resolved[id];
       if (!r || !r.pal || !asker) return;
       var relation = rel(r.pal.element, asker.element);
-      var tone = (relation === 'produces' || relation === 'same') ? 'good'
+      var tone = (relation === 'produces' || relation === 'same') ? (r.adverse ? 'neutral' : 'good')
                : relation === 'controls' ? 'danger' : 'neutral';
       findings.push({ tone: tone, label: r.char + ' toward you (' + C.STEMS[p.day.stem] + ')',
         text: REL_LABEL[relation] + '. ' + (
+          r.adverse && (relation === 'produces' || relation === 'same') ? 'This has easy access to you, so it will not clear by itself.' :
+          r.adverse && relation === 'controlled_by' ? 'You have the upper hand over this.' :
+          r.adverse && relation === 'produced_by' ? 'This is drawing on your energy.' :
           relation === 'produces' ? 'The matter flows toward you without being forced.' :
           relation === 'controls' ? 'The matter presses on you — you are not holding the initiative.' :
           relation === 'same' ? 'You and the matter are on equal footing — outcome follows effort.' :
@@ -427,6 +514,9 @@
       if (relation === 'controlled_by') score += 1;
       if (relation === 'produced_by') score -= 1;
     });
+
+    var seats = [asker], yearSeat = user && user.pillars ? nianMingPalace(chart, user.pillars.year) : null;
+    if (yearSeat && yearSeat !== asker) seats.push(yearSeat);
 
     // Explicit pair comparisons (opponent vs self, matter vs self)
     (sc.pairs || []).forEach(function (pr) {
@@ -465,19 +555,67 @@
       }
     });
 
+    // The Envoy shows how well actions land (Warcraft PDF p.67), so the Chief and Envoy frame reads it against the asker too.
+    if (method.id === 'zhifu' && asker && chart.envoy) {
+      var envPal = findPalace(chart, 'door', chart.envoy.charAt(0));
+      if (envPal) {
+        var envRel = rel(envPal.element, asker.element), envTone = envRel === 'produces' || envRel === 'same' ? 'good' : envRel === 'controls' ? 'danger' : 'neutral';
+        findings.push({ tone: envTone, label: '值使 Envoy ' + chart.envoy + ' toward you', text: REL_LABEL[envRel] + '. ' + (envTone === 'good' ? 'Your actions should land well.' : envTone === 'danger' ? 'Your actions may not land as intended.' : 'This is neither a help nor a hindrance.') });
+        score += envTone === 'good' ? 1 : envTone === 'danger' ? -1 : 0;
+      }
+    }
+
     // The chosen method contributes its own finding before the shared checks.
     var mr = methodReading(method.id, poles, chart);
     findings.unshift({ tone: mr.tone, label: method.name + ' — ' + mr.label, text: mr.text });
     if (mr.tone === 'good') score += 3;
     if (mr.tone === 'danger') score -= 3;
 
+    // A Noble this reading depends on (a symbol, the asker or the matter) in its grave. Each Noble counts once.
+    var graved = {}, checkGrave = function (stem, pal, role) {
+      var g = pal && !graved[stem] ? S.nobleGrave(stem, pal.num) : null;
+      if (!g) return;
+      graved[stem] = 1; score -= 1;
+      findings.push({ tone: 'danger', label: g.label, text: role + ' ' + g.text });
+    };
+    Object.keys(resolved).forEach(function (id) { var x = resolved[id]; if (x.kind === 'stem') checkGrave(x.char, x.pal, 'This is a symbol for your question.'); });
+    checkGrave(plateStem(p.day), asker, 'This is your own seat.');
+    checkGrave(plateStem(p.hour), findPalace(chart, 'stem', plateStem(p.hour)), 'This is the matter you asked about.');
+
+    var dh = S.disharmony(p.day.stem, p.hour.stem);
+    if (dh) findings.unshift({ tone: 'danger', label: dh.label, text: dh.text });
     var forms = S.formations(p, dt.m);
+    // The books' panels for this kind of question, capped at ±4 so one topic's rules cannot decide the reading alone.
+    var bookNet = 0;
+    [].concat(SC_TOPIC[sc.id] || []).forEach(function (tp) {
+      S.forecastRules(chart, tp, seats.filter(Boolean), p.hour.branch, { forms: forms, yearStem: plateStem(p.year), hourStem: plateStem(p.hour), envoy: chart.envoy && chart.envoy.length === 1 ? chart.envoy + '门' : chart.envoy })
+        .forEach(function (f) { bookNet += f.score; findings.push({ tone: f.tone, label: f.label, text: f.text }); });
+    });
+    score += Math.max(-4, Math.min(4, bookNet));
     var ausp = forms.filter(function (f) { return f.category === 'auspicious'; });
     var host = forms.filter(function (f) { return f.category === 'hostile'; });
-    score += Math.min(3, ausp.length * 0.4) - Math.min(3, host.length * 0.5);
+    // Every plate has about 8 good and 10 bad structures somewhere, so a whole-plate count cancels out. Only the palaces this reading stands on count.
+    var keyPal = { 0: 1 };
+    seats.concat(poles.matter ? [poles.matter] : []).forEach(function (x) { if (x) keyPal[x.num] = 1; });
+    Object.keys(resolved).forEach(function (id) { if (resolved[id].pal) keyPal[resolved[id].pal.num] = 1; });
+    var keyed = forms.filter(function (f) { return READ_ELSEWHERE.indexOf(f.id) < 0 && (f.palaces || []).some(function (n) { return keyPal[n]; }); });
+    var keyGood = keyed.filter(function (f) { return f.category === 'auspicious'; }), keyBad = keyed.filter(function (f) { return f.category === 'hostile'; });
+    var keyNet = keyGood.length - keyBad.length, formName = function (f) { return f.name + ' ' + f.nameEn; };
+    score += Math.max(-3, Math.min(3, keyNet * 0.25));
+    if (keyGood.length || keyBad.length) findings.push({ tone: keyNet > 0 ? 'good' : keyNet < 0 ? 'danger' : 'neutral', label: 'Structures on the palaces in this reading',
+      text: (keyGood.length ? 'Helping: ' + keyGood.slice(0, 4).map(formName).join(', ') + '. ' : '') + (keyBad.length ? 'Against: ' + keyBad.slice(0, 4).map(formName).join(', ') + '.' : '') });
+    // Doors Fu Yin and Fan Yin hold across the whole plate (p.303-304), so they are read once here.
+    var doorFanYin = forms.some(function (f) { return f.id === 'men_fan_yin'; });
+    if (doorFanYin) { score -= 2;
+      findings.push({ tone: 'danger', label: 'The doors are in Fan Yin 门反吟', text: 'Every door stands opposite its home palace. The book reads this as inauspicious and unusable, even when a Noble is present, so this reading is Unfavourable whatever else is on the plate.' }); }
+    if (forms.some(function (f) { return f.id === 'fu_yin_men'; })) { score -= 1.5;
+      findings.push({ tone: 'danger', label: 'The doors are in Fu Yin 门伏吟', text: 'Every door sits in its home palace, so things are stagnant and hard to move.' }); }
 
     var primary = resolved[(sc.asker || [])[0]];
     var direction = primary && primary.pal ? primary.pal.dir : (chart.best[0] ? chart.best[0].dir : '—');
+
+    // "Unusable even though there are Noble configurations" (p.304): good signs elsewhere cannot lift this plate. It runs last so nothing adds to it afterwards.
+    if (doorFanYin) score = Math.min(score, -4);
 
     var verdict = score >= 5 ? 'Favourable' : score >= 1 ? 'Workable' :
                   score >= -3 ? 'Guarded' : 'Unfavourable';
@@ -486,11 +624,16 @@
                : score >= -3 ? 'The chart does not support pushing. ' + sc.bad
                : sc.bad;
 
+    // The scenario's bad text names a cause this reading may not have, so this gives the real one. Health readings never tell anyone to wait.
+    if (doorFanYin) advice = sc.cat === 'health'
+      ? 'The doors are in Fan Yin, so this hour reads as unfavourable. That is about the hour only and says nothing about your health.'
+      : 'The doors are in Fan Yin, so the book treats this hour as unusable, whatever else is on the plate. Use another hour.';
+
     return {
       question: question || '', scenario: sc, pillars: p, chart: chart,
       method: method, poles: poles, methodReading: mr,
       asker: asker, resolved: resolved, findings: findings,
-      score: Math.round(score), verdict: verdict, advice: advice,
+      score: Math.round(score), verdict: verdict, advice: advice, disharmony: dh, care: sc.cat === 'health' ? S.HEALTH_CARE : null,
       direction: direction, formations: forms,
       auspicious: ausp, hostile: host,
       hourRange: p.hourRange
@@ -530,8 +673,6 @@
       for (var b = 0; b < 12; b++) {
         var hh = b === 0 ? 23 : (b * 2 - 1);
         var p = C.fourPillars(gy, gm, gd, hh, 30);
-        // A late-Zi hour belongs to the following civil day; skip to avoid duplicates.
-        if (b === 0 && p.dayJDN !== jdn) continue;
         var chart = S.qimen(p);
 
         var forms = null, formHit = null;
@@ -632,7 +773,31 @@
               'give to something that moves water or serves those without it'] }
   };
 
-  function manifestPlan(dt, palaceNum, formation, askDoor) {
+  // One item per line, as the person wrote it. Closing punctuation is dropped so a sentence can carry it.
+  function manifestLines(s) {
+    return String(s || '').split(/\r?\n/).map(function (x) { return x.trim().replace(/[.;,:。；，：]+$/, '').trim(); })
+      .filter(Boolean).slice(0, 8);
+  }
+  var HEALTH_ASK = /\b(health|healing|heal|healed|ill|illness|sick|sickness|cancer|tumou?r|cure|cured|surgery|operation|disease|recovery|recover|treatment|pain|doctor|medical|medicine|diagnosis|pregnan\w*|fertility)\b/i;
+
+  var GOAL_PHRASE = { intuition: 'clear intuition', courage: 'courage', power: 'power and leadership', wealth: 'wealth', income: 'growing income',
+    sell: 'a good sale', collect: 'collecting what is owed to me', release: 'release from what is finished', protection: 'protection',
+    recognition: 'recognition', knowledge: 'knowledge', relationships: 'good relationships', health: 'good health', truce: 'a truce',
+    truth: 'the truth to surface', lostObject: 'finding what I have lost', lostPerson: 'finding the person I am looking for',
+    noble: 'help from noble people', opportunity: 'opportunity', agreement: 'a fair agreement' };
+  function stageStep(stage, phrase) {
+    if (stage.key === 'prime') return { t: 'Rehearse the success', d: 'Close your eyes and run through the moment when ' + phrase +
+      ' has already come about: where you are, who is with you, what you see and say. Go through it several times until it feels familiar rather than hoped for. When a doubt comes up, name it and let it pass.' };
+    if (stage.key === 'attune') return { t: 'Settle and notice', d: 'Breathe slowly until your body is calm. Then go over the openings already around you for ' + phrase +
+      ': people, offers, small signs. Choose the one you will follow up.' };
+    return { t: 'Take the step', d: 'Inside the window, do one concrete thing toward ' + phrase +
+      ': send the message, make the call, make the offer, ask, or begin. The script prepares the step; the step is the activation.' };
+  }
+
+  function manifestPlan(dt, palaceNum, formation, askDoor, details) {
+    var own = { aspects: manifestLines(details && details.aspects), returns: manifestLines(details && details.returns) };
+    var goal = details && details.goal ? goalOf(details.goal) : null, stage = details && details.stage ? stageOf(details.stage) : null;
+    var phrase = goal ? GOAL_PHRASE[goal.key] || goal.label.toLowerCase() : '';
     var p = C.fourPillars(dt.y, dt.m, dt.d, dt.hour, dt.min);
     var chart = S.qimen(p);
     var pal = chart.palacesByNumber[palaceNum] || chart.best[0] || chart.palacesByNumber[1];
@@ -660,26 +825,27 @@
       { t:'Clear the ground', d:'Before the window opens, put the space in order and switch off ' +
         'interruptions. Wash your hands and face. The practice asks for an uncluttered mind more than ' +
         'a decorated room, so spend the preparation on settling rather than on props.' },
-      { t:'Find the direction', d:'Face ' + pal.dir + ', the seat of palace ' + pal.num + ' ' + pal.name +
-        ' this hour. Use a compass rather than a guess. Sit or stand so that you are looking into that ' +
-        'direction with nothing blocking you.' },
+      { t:'Find the direction', d:'Find ' + pal.dir + ', the seat of palace ' + pal.num + ' ' + pal.name +
+        ' this hour. Use a compass rather than a guess. Sit with your back to that direction, so that its ' +
+        'energy supports you from behind and projects forward into what you are engaging with.' },
       { t:'Name the matter plainly', d:'Say once, in ordinary words, what the matter actually is — ' +
         'not the outcome you want, the situation as it stands. Naming it honestly is what keeps the ' +
-        'practice from drifting into wishing.' },
+        'practice from drifting into wishing.' }
+    ].concat(goal && stage ? [stageStep(stage, phrase)] : []).concat([
       { t:'Enter the window', d:'Begin inside ' + p.hourRange + ', ideally in its middle rather than ' +
         'at the edges. The ' + p.hour.cn + ' hour holds ' + (star || 'this configuration') +
         ' over the ' + doorCh + '门 door; that pairing is the thing you are working with.' },
       { t:'Speak the script', d:'Read the script below aloud, slowly, once. Then read it a second ' +
         'time quietly. Speaking aloud matters — it commits the intention to something outside your head.' },
-      { t:'Sit in the ask', d:'Stay facing the direction for a few minutes without asking for anything ' +
+      { t:'Sit in the ask', d:'Stay seated with ' + pal.dir + ' at your back for a few minutes without asking for anything ' +
         'more. Let the request be finished. Adding to it in this period tends to dilute it.' },
-      { t:'Seal and close', d:'Say the closing line, bow once toward ' + pal.dir + ', and stand. ' +
+      { t:'Seal and close', d:'Say the closing line, bow once where you sit, and stand. ' +
         'Do not repeat the practice in the same window. Write down the date, hour and what you asked ' +
         'for, and leave it alone.' },
       { t:'Return the favour', d:'Complete the exchange within three days using the reciprocity below. ' +
         'This is the part most people skip, and it is the part that makes the practice a relationship ' +
-        'rather than a transaction.' }
-    ];
+        'rather than a transaction.' + (own.returns.length ? ' Keep what you named in your own words as well, in the way and time you promised.' : '') }
+    ]);
 
     // The auspicious formations in this palace, and each strength in it called out with how to activate it.
     var palForms = [];
@@ -714,8 +880,9 @@
     function upper1(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
     var script =
-      'I face ' + pal.dir + ', to the ' + pal.name + ' palace, in the ' + p.hour.cn + ' hour of the ' +
+      'I sit with my back to ' + pal.dir + ', the ' + pal.name + ' palace, in the ' + p.hour.cn + ' hour of the ' +
       p.day.cn + ' day.\n' +
+      (goal && stage ? 'This is my ' + stage.label.toLowerCase() + ' for ' + phrase + '.\n' : '') +
       (major.length ? 'This hour holds ' + major.map(function (f) { return f.name + ', ' + f.nameEn; }).join('; and ') +
         ' — and I come to work with ' + (major.length > 1 ? 'them' : 'it') + '.\n' : '') +
       (heaven ? 'Heaven stem ' + heaven + (hsRole && hsRole.good ? ', the ' + hsRole.role.split(' ')[0] + ' ' + hsRole.role.split(' ')[1] + ',' : '') +
@@ -724,6 +891,7 @@
       'The deity ' + deity + ' keeps this gate, and I come asking for ' + quality + '.\n\n' +
       'I have come to ask that you ' + intent.verb + ' what is in front of me.\n' +
       'Here is what I am asking for, said plainly: I ask for ' + intent.ask + '.\n' +
+      own.aspects.map(function (a) { return 'I name it exactly: ' + a + '.\n'; }).join('') +
       'I ask for it in a form I would be willing to explain to anyone.\n' +
       'I do not ask for it at the cost of another person, and I do not ask to be given what I have ' +
       'not prepared for.\n\n' +
@@ -732,6 +900,7 @@
       'If this is right and its time has come, let it move — clearly, and soon enough that I can act on it.\n' +
       'If it is not right, let it fall away cleanly, and let me see why without bitterness.\n\n' +
       'And because nothing is taken without being repaid, I name what I will give in return:\n' +
+      own.returns.map(function (r) { return 'I commit to this: ' + r + '.\n'; }).join('') +
       'I will ' + ret.acts[0] + ', within three days, and I will not speak of it to gain credit.\n' +
       'What flows to me will flow through me. I will not be the place it stops.\n\n' +
       'The ' + doorCh + '门 door is open. I have said what I came to say. It is enough.\n' +
@@ -746,20 +915,171 @@
       (star ? 'The star ' + star + ' colours the request; it works best on matters already in motion.' : ''),
       (pal.isEmpty ? 'This palace is void (空亡) this hour. Ask for release or clarity here, not for ' +
         'acquisition — things gained from a void seat tend not to stay.'
-       : 'The palace is not void, so a request for something to arrive and remain is appropriate.')
+       : 'The palace is not void, so a request for something to arrive and remain is appropriate.'),
+      (HEALTH_ASK.test(own.aspects.join(' ')) || (goal && goal.key === 'health') ? S.HEALTH_CARE.text : '')
     ].filter(Boolean);
 
     return {
-      window: window_, palace: pal, formation: formation || null,
+      window: window_, palace: pal, formation: formation || null, disharmony: S.disharmony(p.day.stem, p.hour.stem),
+      goal: goal ? { key: goal.key, label: goal.label, cn: goal.cn, phrase: phrase } : null,
+      stage: stage ? { key: stage.key, label: stage.label, cn: stage.cn } : null,
       intent: intent, deity: deity, quality: quality,
       askDoor: doorCh, seatDoor: seatDoor, borrowed: borrowed,
       manifestFor: manifestFor, steps: steps, script: script, activations: activations, formations: palForms,
-      exchange: { element: ret.name, acts: ret.acts,
+      aspects: own.aspects, returns: own.returns,
+      exchange: { element: ret.name, acts: ret.acts, own: own.returns,
         note: 'Match the return to the element of the palace you drew from. Give it away from the ' +
               'matter you asked about — reciprocity that quietly benefits your own request is not ' +
               'an exchange. Do it within three days, and do it without an audience.' },
       tone: intent.tone
     };
+  }
+
+
+  /* ---------------- manifestation goals, stages and the window search ----------------
+   * Three stages from the Thrive 2027 sessions: prime (win it in the mind first), attune (align in a calm state with what the
+   * hour already holds) and activate (the physical step). Joey times them by Seven Stars levels, whose rule is not known, so
+   * QiPath ranks hours by the classical meaning of the symbols that serve each goal instead. Each goal lists the doors, stars,
+   * deities and heaven stems that serve it (primary doors weigh most), and anything that works against it.
+   */
+  var MANIFEST_STAGES = [
+    { key: 'prime', label: 'Priming', cn: '预备', what: 'Rehearse the success in your mind until it feels familiar, and clear the self-doubt before you act.',
+      w: { door: 0.8, star: 1.3, deity: 1.5, stem: 1, quality: 0.8, voidPen: 1 } },
+    { key: 'attune', label: 'Attunement', cn: '调频', what: 'Settle into a calm state and align with the opportunities this hour already holds.',
+      w: { door: 1, star: 1, deity: 1.2, stem: 1, quality: 1, voidPen: 1.2 } },
+    { key: 'activate', label: 'Activation', cn: '启动', what: 'Take the physical step inside the window: the call, the offer, the first move.',
+      w: { door: 1.6, star: 1, deity: 1, stem: 1, quality: 1.3, voidPen: 1.6 } }
+  ];
+  var MANIFEST_GOALS = [
+    { key: 'intuition', label: 'Intuition', cn: '直觉', door: ['休', '杜'], door2: ['景'], star: ['天心', '天辅', '天英'], deity: ['太阴', '九地', '腾蛇'], stem: ['丁', '乙'], ask: '休' },
+    { key: 'courage', label: 'Courage', cn: '勇气', door: ['伤', '开'], door2: ['生'], star: ['天冲', '天英', '天柱'], deity: ['白虎', '九天', '值符'], stem: ['丙', '庚'], ask: '伤' },
+    { key: 'power', label: 'Power and leadership', cn: '权威', door: ['开'], door2: ['景', '生'], star: ['天心', '天英', '天禽'], deity: ['值符', '九天'], stem: ['戊', '丙'], ask: '开' },
+    { key: 'wealth', label: 'Wealth', cn: '财富', door: ['生'], door2: ['开', '休'], star: ['天任', '天辅', '天心'], deity: ['六合', '值符', '太阴'], stem: ['戊', '乙'], ask: '生' },
+    { key: 'income', label: 'Income growth', cn: '增收', door: ['生'], door2: ['开'], star: ['天任', '天辅'], deity: ['六合', '九天'], stem: ['戊', '乙', '丙'], ask: '生' },
+    { key: 'sell', label: 'Sell', cn: '销售', door: ['生', '开'], door2: ['景'], star: ['天辅', '天任', '天冲'], deity: ['六合', '朱雀', '值符'], stem: ['戊', '丙'], ask: '开' },
+    { key: 'collect', label: 'Collection of what is owed', cn: '收账', door: ['伤', '开'], door2: ['惊'], star: ['天冲', '天柱'], deity: ['白虎', '值符', '九天'], stem: ['庚', '戊'], ask: '伤' },
+    { key: 'release', label: 'Release from what is finished', cn: '放下', door: ['死'], door2: ['休', '杜'], star: ['天柱', '天芮'], deity: ['九地', '太阴', '白虎'], stem: ['癸', '辛'], ask: '死', voidOk: true },
+    { key: 'protection', label: 'Protection', cn: '护身', door: ['杜', '休'], door2: ['生'], star: ['天辅', '天任', '天心'], deity: ['太阴', '九地', '值符'], stem: ['乙', '丙', '丁'], ask: '杜' },
+    { key: 'recognition', label: 'Recognition', cn: '名声', door: ['景'], door2: ['开'], star: ['天英', '天辅'], deity: ['九天', '值符'], stem: ['丙', '丁'], ask: '景' },
+    { key: 'knowledge', label: 'Knowledge', cn: '学识', door: ['景', '休'], door2: ['开', '杜'], star: ['天辅', '天心'], deity: ['太阴', '值符'], stem: ['丁', '乙'], ask: '景' },
+    { key: 'relationships', label: 'Relationships', cn: '感情', door: ['休', '生'], door2: ['开', '景'], star: ['天辅', '天任', '天心'], deity: ['六合', '太阴'], stem: ['乙', '丁'], ask: '休' },
+    { key: 'health', label: 'Health', cn: '健康', door: ['生'], door2: ['休', '开'], star: ['天心', '天任'], deity: ['值符', '太阴', '六合'], stem: ['乙', '丙'], ask: '生', avoid: { door: ['死'], star: ['天芮'] } },
+    { key: 'truce', label: 'Truce', cn: '和解', door: ['休'], door2: ['生', '杜'], star: ['天辅', '天心', '天任'], deity: ['六合', '太阴'], stem: ['乙', '己'], ask: '休', avoid: { deity: ['白虎'] } },
+    { key: 'truth', label: 'Surface of the truth', cn: '真相', door: ['惊', '景'], door2: ['开'], star: ['天英', '天心'], deity: ['朱雀', '九天', '值符'], stem: ['丙', '丁'], ask: '惊' },
+    { key: 'lostObject', label: 'Find a lost object', cn: '寻物', door: ['景', '杜'], door2: ['休', '开'], star: ['天蓬', '天英'], deity: ['玄武', '九地', '太阴'], stem: ['丁', '癸'], ask: '景' },
+    { key: 'lostPerson', label: 'Find a lost person', cn: '寻人', door: ['休', '开'], door2: ['景', '生'], star: ['天蓬', '天心'], deity: ['六合', '玄武', '九天'], stem: ['乙', '丁'], ask: '开' },
+    { key: 'noble', label: 'Noble help', cn: '贵人', door: ['开', '生'], door2: ['休', '景'], star: ['天心', '天辅', '天任'], deity: ['值符', '九天', '太阴'], stem: ['乙', '丙', '丁'], ask: '开' },
+    { key: 'opportunity', label: 'Opportunity', cn: '机会', door: ['开', '生'], door2: ['景'], star: ['天冲', '天辅', '天英'], deity: ['九天', '值符', '六合'], stem: ['丙', '戊'], ask: '开' },
+    { key: 'agreement', label: 'Agreements and contracts', cn: '契约', door: ['开', '生'], door2: ['景', '休'], star: ['天辅', '天任'], deity: ['六合', '朱雀'], stem: ['乙', '庚'], ask: '开' }
+  ];
+  var CALM_DEITY = { '太阴': 1, '九地': 1, '值符': 1, '六合': 1 };
+  var OPPOSITE_DIR = { North: 'South', South: 'North', East: 'West', West: 'East', Northeast: 'Southwest', Southwest: 'Northeast', Southeast: 'Northwest', Northwest: 'Southeast' };
+  function goalOf(k) { return MANIFEST_GOALS.filter(function (g) { return g.key === k; })[0] || MANIFEST_GOALS[0]; }
+  function stageOf(k) { return MANIFEST_STAGES.filter(function (s) { return s.key === k; })[0] || MANIFEST_STAGES[0]; }
+
+  // How well one palace of one hour serves a goal at a stage. Returns a 0-100 fit and the reasons, goal matches first.
+  function manifestScore(chart, forms, n, goal, stage, fav) {
+    var pa = chart.palacesByNumber[n], w = stage.w, s = 0, why = [], warn = [];
+    if (!pa || n === 5) return null;
+    var door = (pa.gate || '').charAt(0), stems = [pa.heavenStemCn, pa.heavenStem2Cn].filter(Boolean), av = goal.avoid || {};
+    if (goal.door.indexOf(door) >= 0) { s += 3 * w.door; why.push(pa.gate + ' suits ' + goal.label.toLowerCase()); }
+    else if (goal.door2.indexOf(door) >= 0) { s += 1.5 * w.door; why.push(pa.gate + ' supports it'); }
+    if ((av.door || []).indexOf(door) >= 0) { s -= 3 * w.door; warn.push(pa.gate + ' works against it'); }
+    if (goal.star.indexOf(pa.starCn) >= 0 || goal.star.indexOf(pa.star2Cn) >= 0) { s += 1.5 * w.star; why.push(pa.starCn + ' star'); }
+    if ((av.star || []).indexOf(pa.starCn) >= 0) { s -= 2 * w.star; warn.push(pa.starCn + ' works against it'); }
+    if (goal.deity.indexOf(pa.spirit) >= 0) { s += 1.5 * w.deity; why.push(pa.spirit + ' deity'); }
+    if ((av.deity || []).indexOf(pa.spirit) >= 0) { s -= 2 * w.deity; warn.push(pa.spirit + ' works against it'); }
+    var st = stems.filter(function (x) { return goal.stem.indexOf(x) >= 0; });
+    if (st.length) { s += 1 * w.stem; why.push('heaven stem ' + st.join('')); }
+    var q = palaceQuality(chart, forms, n, fav);
+    s += q.score * 0.5 * w.quality;
+    if (pa.isEmpty) {
+      if (goal.voidOk) { s += 3; why.push('void palace, which helps a release'); }
+      else { s -= 1.5 * w.voidPen; warn.push('void palace (空亡): what arrives may not stay'); }
+    }
+    if (stage.key === 'prime' && CALM_DEITY[pa.spirit]) { s += 0.5; why.push('a calm deity for rehearsal'); }
+    if (stage.key === 'attune') {
+      var rel = pa.gatePalace && pa.gatePalace.key;
+      if (rel === 'harmony' || rel === 'justice' || rel === 'same') { s += 1; why.push('door in harmony with its palace'); }
+      if (pa.isChief) { s += 0.5; why.push('Chief star here'); }
+      if (pa.isEnvoy) { s += 0.5; why.push('Envoy door here'); }
+    }
+    if (stage.key === 'activate') {
+      var r = pa.gateStrength ? pa.gateStrength.rank : 3;
+      if (r >= 4) { s += 1; why.push('door in season (' + pa.gateStrength.cn + ')'); }
+      else if (r <= 1) { s -= 1; warn.push('door out of season (' + pa.gateStrength.cn + ')'); }
+      if (pa.gatePalace && pa.gatePalace.key === 'door_compels') { s -= 1; warn.push('门迫: the door is held back'); }
+      if (pa.spirit === '九天' || pa.spirit === '值符') { s += 0.5; why.push('a deity of reach and authority for action'); }
+    }
+    var good = (forms || []).filter(function (f) { return f.category === 'auspicious' && (f.palaces || []).indexOf(n) >= 0; });
+    var bad = (forms || []).filter(function (f) { return f.category === 'hostile' && (f.palaces || []).indexOf(n) >= 0; });
+    if (good.length) why.push(good.slice(0, 2).map(function (f) { return f.name; }).join('、') + (good.length > 2 ? ' and ' + (good.length - 2) + ' more' : ''));
+    if (bad.length) warn.push(bad.slice(0, 2).map(function (f) { return f.name; }).join('、') + (bad.length > 2 ? ' and ' + (bad.length - 2) + ' more' : ''));
+    // Calibrated on 7,680 palace-hours: the median palace scores about 2.2 (fit 50), the top tenth starts near 6.3 (fit 75),
+    // and the best hour of a 60-day search is usually 9 to 15 (fit 83 to 98).
+    var fit = Math.max(0, Math.min(100, Math.round(s <= 6.3 ? 50 + (s - 2.2) * 6 : 74.6 + (s - 6.3) * 2.6)));
+    return { num: n, palace: pa, score: Math.round(s * 10) / 10, fit: fit,
+      grade: fit >= 85 ? 'Excellent' : fit >= 70 ? 'Good' : fit >= 50 ? 'Fair' : 'Weak',
+      back: pa.dir, face: OPPOSITE_DIR[pa.dir] || '', why: why, warn: warn };
+  }
+  // Every outer palace of one hour, best first.
+  function manifestRank(dt, goalKey, stageKey, fav) {
+    var p = C.fourPillars(dt.y, dt.m, dt.d, dt.hour, dt.min === undefined ? 30 : dt.min), chart = S.qimen(p), forms = S.formations(p, dt.m);
+    var goal = goalOf(goalKey), stage = stageOf(stageKey);
+    return { pillars: p, chart: chart, disharmony: S.disharmony(p.day.stem, p.hour.stem),
+      list: OUTER.map(function (n) { return manifestScore(chart, forms, n, goal, stage, fav); }).filter(Boolean).sort(function (a, b) { return b.score - a.score; }) };
+  }
+  // The best hours across a date range, one best palace per hour. Five Disharmony hours are left out, as in every
+  // tool that suggests a time; opts.daytime leaves out 23:00-04:59.
+  function searchManifest(start, days, goalKey, stageKey, fav, opts) {
+    var goal = goalOf(goalKey), stage = stageOf(stageKey), out = [], jd0 = A.gregToJD(start.y, start.m, start.d);
+    for (var d = 0; d < days; d++) {
+      var g = A.jdToGreg(jd0 + d), gy = g.y, gm = g.m, gd = Math.floor(g.d);
+      for (var b = 0; b < 12; b++) {
+        if (opts && opts.daytime && (b === 0 || b === 1 || b === 2)) continue;
+        var hh = b === 0 ? 23 : b * 2 - 1, p = C.fourPillars(gy, gm, gd, hh, 30);
+        if (S.disharmony(p.day.stem, p.hour.stem)) continue;
+        var chart = S.qimen(p), forms = S.formations(p, gm), best = null, second = null;
+        OUTER.forEach(function (n) {
+          var r = manifestScore(chart, forms, n, goal, stage, fav);
+          if (!r) return;
+          if (!best || r.score > best.score) { second = best; best = r; } else if (!second || r.score > second.score) second = r;
+        });
+        if (best) out.push({ y: gy, m: gm, d: gd, hour: hh, branch: b, range: C.HOUR_RANGE[b], dayPillar: p.day.cn, hourPillar: p.hour.cn,
+          dun: chart.dun, ju: chart.ju, best: best, second: second });
+      }
+    }
+    out.sort(function (a, b) { return b.best.score - a.best.score; });
+    return { goal: goal, stage: stage, searched: days, list: out.slice(0, 12) };
+  }
+
+  /*
+   * The script as it should be read aloud. A speech model would say 景门 and 惊门 as the same
+   * sounding Chinese words, so doors take their English names; stems, branches, stars and deities
+   * take pinyin. What the person typed is left exactly as written.
+   */
+  var SPEAK_DOOR = { '休':'Rest', '生':'Life', '伤':'Harm', '杜':'Delusion', '景':'Scenery', '死':'Death', '惊':'Fear', '开':'Open' };
+  var SPEAK_WORD = { '值符':'Zhi Fu', '腾蛇':'Teng She', '螣蛇':'Teng She', '太阴':'Tai Yin', '六合':'Liu He', '白虎':'Bai Hu', '玄武':'Xuan Wu',
+    '九地':'Jiu Di', '九天':'Jiu Tian', '朱雀':'Zhu Que', '勾陈':'Gou Chen',
+    '天蓬':'Tian Peng', '天芮':'Tian Rui', '天冲':'Tian Chong', '天辅':'Tian Fu', '天禽':'Tian Qin', '天心':'Tian Xin', '天柱':'Tian Zhu', '天任':'Tian Ren', '天英':'Tian Ying' };
+  var SPEAK_CHAR = { '甲':'Jia', '乙':'Yi', '丙':'Bing', '丁':'Ding', '戊':'Wu', '己':'Ji', '庚':'Geng', '辛':'Xin', '壬':'Ren', '癸':'Gui',
+    '子':'Zi', '丑':'Chou', '寅':'Yin', '卯':'Mao', '辰':'Chen', '巳':'Si', '午':'Wu', '未':'Wei', '申':'Shen', '酉':'You', '戌':'Xu', '亥':'Hai',
+    '坎':'Kan', '坤':'Kun', '震':'Zhen', '巽':'Xun', '乾':'Qian', '兑':'Dui', '艮':'Gen', '离':'Li', '中':'Zhong' };
+  function spokenScript(plan) {
+    var text = plan.script, kept = [];
+    (plan.aspects || []).concat(plan.returns || []).forEach(function (line) {
+      if (text.indexOf(line) < 0) return;
+      text = text.split(line).join('\uE000' + kept.length + '\uE001');
+      kept.push(line);
+    });
+    (plan.formations || []).forEach(function (f) { text = text.split(f.name + ', ' + f.nameEn).join(f.nameEn); });
+    text = text.replace(/([休生伤杜景死惊开])门 door/g, function (m, d) { return SPEAK_DOOR[d] + ' Door'; })
+      .replace(/([休生伤杜景死惊开])门/g, function (m, d) { return SPEAK_DOOR[d] + ' Door'; })
+      .replace(/ ?[（(][\u3400-\u9fff]+[)）]/g, '');
+    Object.keys(SPEAK_WORD).forEach(function (w) { text = text.split(w).join(SPEAK_WORD[w]); });
+    text = text.replace(/[甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥坎坤震巽乾兑艮离中]/g, function (c) { return ' ' + SPEAK_CHAR[c] + ' '; })
+      .replace(/[ \t]+/g, ' ').replace(/ ([,.;:])/g, '$1').replace(/^ | $/gm, '');
+    return text.replace(/\uE000(\d+)\uE001/g, function (m, i) { return kept[+i]; });
   }
 
 
@@ -783,8 +1103,10 @@
    * Build a plate for the requested scope. Hour charts use the hour pillar with the 拆补 ju.
    * Broader scopes put the governing pillar in the hour position (the chief follows its stem,
    * the envoy counts its branch from the xun head) and fix their own dun and ju:
-   *   year  — always 阴遁; 60-year eras from 1864: upper 1, middle 4, lower 7.
-   *   month — always 阴遁; by the branch of the 符头 year (latest 甲/己 year): 寅申巳亥 1,
+   *   year  — always 阴遁. 'yearly' rule (default): 阴1 in 1864 甲子, one ju lower each year. 'era' rule:
+   *           60-year eras from 1864: upper 1, middle 4, lower 7.
+   *   month — always 阴遁; by the branch of the 符头 year (latest 甲/己 year). 'yearly' rule: 子午卯酉 1,
+   *           寅申巳亥 4, 辰戌丑未 7. 'era' rule: 寅申巳亥 1,
    *           子午卯酉 7, 辰戌丑未 4 (the majority rule; some texts swap these).
    *   day   — by solar term: 冬至–立春 阳1, 雨水–清明 阳7, 谷雨–芒种 阳4,
    *           夏至–立秋 阴9, 处暑–寒露 阴3, 霜降–大雪 阴6.
@@ -801,13 +1123,16 @@
   function scopeOverride(type, p) {
     if (type === 'year') {
       var era = Math.floor(mod(p.solarYear - 1864, 180) / 60);
+      if (S.qimenOptions().longRule !== 'era') return { yin: true, ju: mod(-(p.solarYear - 1864), 9) + 1, yuan: era, voidIdx: p.year.i,
+        basis: 'one ju lower each year from 阴1 in 1864' };
       return { yin: true, ju: [1, 4, 7][era], yuan: era, voidIdx: p.year.i,
                basis: ['Upper','Middle','Lower'][era] + ' 60-year era (' + ['上','中','下'][era] + '元)' };
     }
     if (type === 'month') {
       var fb = mod(p.year.branch - (p.year.stem % 5), 12);
-      var ju = [2,8,5,11].indexOf(fb) >= 0 ? 1 : [0,6,3,9].indexOf(fb) >= 0 ? 7 : 4;
-      return { yin: true, ju: ju, yuan: ju === 1 ? 0 : ju === 7 ? 1 : 2, voidIdx: p.month.i,
+      var oldRule = S.qimenOptions().longRule === 'era';
+      var ju = [2,8,5,11].indexOf(fb) >= 0 ? (oldRule ? 1 : 4) : [0,6,3,9].indexOf(fb) >= 0 ? (oldRule ? 7 : 1) : (oldRule ? 4 : 7);
+      return { yin: true, ju: ju, yuan: oldRule ? (ju === 1 ? 0 : ju === 7 ? 1 : 2) : (ju === 1 ? 0 : ju === 4 ? 1 : 2), voidIdx: p.month.i,
                basis: '符头 ' + C.STEMS[p.year.stem - (p.year.stem % 5)] + C.BRANCHES[fb] + ' year' };
     }
     var d = DAY_JU[p.term.name] || [0, 1];
@@ -815,13 +1140,13 @@
   }
 
   function chartFor(type, dt, birth) {
-    var when = dt;
+    var when = dt, isBirth = type === 'destiny';
     if (type === 'destiny') {
       if (!birth) throw new Error('A destiny chart needs a birth moment.');
       when = { y: birth.y, m: birth.m, d: birth.d, hour: birth.hour, min: birth.min };
       type = 'hour';
     }
-    var p = C.fourPillars(when.y, when.m, when.d, when.hour, when.min);
+    var p = isBirth ? C.birthPillars(birth) : C.fourPillars(when.y, when.m, when.d, when.hour, when.min);
     var basis = p;
 
     if (type !== 'hour') {
@@ -853,16 +1178,31 @@
    * each of the twelve month plates. */
   var GOOD_STARS = { '天辅': 1, '天心': 1, '天任': 1, '天禽': 1, '天冲': 0.5, '天英': 0, '天蓬': -1, '天芮': -1, '天柱': -1 };
   var DEITY_VAL = { auspicious: 1, neutral: 0, deceptive: -0.5, hostile: -1 };
+  function doorForce(gv, season, rel) {
+    if (!gv) return 0;
+    var r = season ? season.rank : 3, timely = r >= 4;
+    var v = gv * (rel === 'door_compels' ? 0.25 : rel === 'palace_compels' ? 0.6 : 1) * (timely ? 1.25 : r === 3 ? 1 : 0.75);
+    if (gv > 0 && (rel === 'harmony' || rel === 'justice')) v += 0.4;
+    if (gv < 0 && rel === 'justice' && timely) v -= 0.4;
+    return v;
+  }
   function palaceQuality(chart, forms, n, fav) {
     var pa = chart.palacesByNumber[n], s = 0, why = [];
     if (!pa) return { score: 0, why: [] };
-    if (pa.gate) { var gv = pa.gateRank === 2 ? 2 : pa.gateRank === 1 ? 0 : -2; s += gv; why.push(pa.gate + (gv > 0 ? ' (auspicious door)' : gv < 0 ? ' (inauspicious door)' : '')); }
-    if (pa.gateStrength) s += (pa.gateStrength.rank - 3) * 0.4;
-    if (pa.starCn) { s += GOOD_STARS[pa.starCn] || 0; why.push(pa.starCn); }
+    if (pa.gate) {
+      var gv = pa.gateRank === 2 ? 2 : pa.gateRank === 1 ? 0 : -2, st = pa.gateStrength, rel = pa.gatePalace && pa.gatePalace.key;
+      // Compelling mutes a door whichever way it leans, and the season scales it. A 和 or 义 door gains, and a bad door fed in its season is worse.
+      s += doorForce(gv, st, rel);
+      why.push(pa.gate + (gv > 0 ? ' (auspicious door)' : gv < 0 ? ' (inauspicious door)' : '') + (st ? ' ' + st.cn : '') +
+        (rel === 'door_compels' || rel === 'palace_compels' ? ' ' + pa.gatePalace.cn : ''));
+    }
+    if (pa.starCn) { s += GOOD_STARS[pa.starCn] || 0; why.push(pa.starCn + (pa.starStrength ? ' ' + pa.starStrength.cn : '')); }
+    if (pa.starStrength) s += (pa.starStrength.rank - 3) * 0.3;
     if (pa.spirit) { s += DEITY_VAL[pa.spiritNature] || 0; why.push(pa.spirit); }
     if (pa.isEmpty) { s -= 1.5; why.push('void (空亡)'); }
     // Every structure in the palace counts, the net capped at ±3 so a crowded palace cannot swamp the rest.
-    var fs = (forms || []).filter(function (f) { return (f.palaces || []).indexOf(n) >= 0; }), net = 0, good = 0, bad = 0;
+    // 门迫, 宫迫 and 门宫和义 are already in the door's own weight above.
+    var fs = (forms || []).filter(function (f) { return (f.palaces || []).indexOf(n) >= 0 && f.id !== 'men_po' && f.id !== 'gong_po' && f.id !== 'men_sheng_gong'; }), net = 0, good = 0, bad = 0;
     fs.forEach(function (f) {
       if (f.category === 'auspicious') { net++; good++; } else if (f.category === 'hostile') { net--; bad++; } });
     s += Math.max(-3, Math.min(3, net));
@@ -1054,7 +1394,8 @@
       var company = agents.filter(function (x) { return x !== lead.ch && x !== 'void 空亡'; }).length;
       var hostileForms = (forms || []).filter(function (f) { return (f.palaces || []).indexOf(lead.num) >= 0 && f.category === 'hostile'; }).length;
       index = (st ? (st.rank - 3) * 0.6 : 0) + Math.min(1.6, company * 0.8) + (pressing ? 1.5 : 0) +
-        Math.min(1, hostileForms * 0.25) - (pa.isEmpty ? 1.5 : 0);
+        Math.min(1, hostileForms * 0.25) - (pa.isEmpty ? 1.5 : 0) -
+        (lead.kind !== 'door' || !pa.gatePalace ? 0 : pa.gatePalace.key === 'door_compels' ? 0.9 : pa.gatePalace.key === 'palace_compels' ? 0.5 : 0);
     } else {
       index = -q.score + (pressing ? 1.5 : 0) + Math.min(2, agents.length * 0.7);
     }
@@ -1239,10 +1580,10 @@
         s += 0.3 * palaceQuality(pc, r.formations, seat, (user.deep || {}).favourable || []).score;
         // Step 4 (hour): 主克客 at 开门 or the chief star.
         var hf = [], open = locate(pc, 'door', '开门'), chief = locate(pc, 'chief', '');
-        if (open && pc.palacesByNumber[open].gateStrength && pc.palacesByNumber[open].gateStrength.key === 'dead') { s -= 2; hf.push('开门 controlled by its palace (主克客)'); }
-        if (chief && pc.palacesByNumber[chief].starStrength && pc.palacesByNumber[chief].starStrength.key === 'dead') { s -= 2; hf.push('chief star controlled by its palace (主克客)'); }
-        if (!best || s > best.score) best = { pillar: hp.cn, score: Math.round(s * 10) / 10, why: why, flags: hf,
-          range: hb === 0 ? '23:00 the evening before – 00:59' : r.pillars.hourRange };
+        if (open && pc.palacesByNumber[open].gatePalace && pc.palacesByNumber[open].gatePalace.key === 'palace_compels') { s -= 2; hf.push('开门 controlled by its palace (主克客)'); }
+        if (chief && pc.palacesByNumber[chief].starPalace && pc.palacesByNumber[chief].starPalace.key === 'dead') { s -= 2; hf.push('chief star controlled by its palace (主克客)'); }
+        if (!S.disharmony(r.pillars.day.stem, hp.stem) && (!best || s > best.score)) best = { pillar: hp.cn, score: Math.round(s * 10) / 10, why: why, flags: hf,
+          range: r.pillars.hourRange };
       }
       var acts = d.targets.filter(function (b) {
         return d.type === 'Stagnation' ? (b + 6) % 12 === dp.branch : d.type === 'Emptiness' ? b === dp.branch
@@ -1317,7 +1658,7 @@
       var windows = [];
       if (verdict !== 'Clear') {
         windows = scan.map(function (x) {
-          var n = locate(x.res.chart, t.symbols[0][0], t.symbols[0][1]); if (!n) return null;
+          var n = locate(x.res.chart, t.symbols[0][0], t.symbols[0][1]); if (!n || S.disharmony(x.res.pillars.day.stem, x.res.pillars.hour.stem)) return null;
           var pa2 = x.res.chart.palacesByNumber[n], ap = x.res.chart.palacesByNumber[x.asker];
           var aq = palaceQuality(x.res.chart, x.res.formations, x.asker, fav).score, sc;
           if (t.hazard) {
@@ -1355,6 +1696,72 @@
       macroSource: { bazi: mac.bazi ? mac.bazi.verdict : null, zwds: mac.zwds ? mac.zwds.verdict : null,
                      qimen: mac.qimen ? mac.qimen.verdict + ', year seat ' + mac.qimen.seat.dir : null }
     };
+  }
+
+  /* ---------------- mobility directions ----------------
+   * The nine palace nobles (九宮貴神) fly round the Lo Shu from a centre number: forward for a Yang natal plate,
+   * backward for a Yin one (6 of 6 lists in the Thrive 2023 to 2027 reports). The personal centre those reports
+   * use could not be derived, so the default is the year star and the person can choose another.
+   */
+  var NINE_NOBLES = [null,
+    { n: 1, cn: '太乙', en: 'Celestial Advisor', tone: 1,  theme: 'career moves and useful contacts' },
+    { n: 2, cn: '攝提', en: 'Extractor',         tone: -1, theme: 'tiring trips, so go prepared and look after your health' },
+    { n: 3, cn: '軒轅', en: 'Regulus',           tone: 0,  theme: 'competition and arguments, so keep your temper' },
+    { n: 4, cn: '招搖', en: 'Swagger',           tone: 1,  theme: 'study, writing and being noticed' },
+    { n: 5, cn: '天符', en: 'Heavenly Seal',     tone: -1, theme: 'delays and obstacles, so leave extra margin' },
+    { n: 6, cn: '青龍', en: 'Green Dragon',      tone: 1,  theme: 'authority, mentors and backing' },
+    { n: 7, cn: '咸池', en: 'Salty Pool',        tone: 0,  theme: 'social pull and persuasion, with care over money' },
+    { n: 8, cn: '太陰', en: 'Great Moon',        tone: 1,  theme: 'steady gains and quiet support' },
+    { n: 9, cn: '天乙', en: 'Heavenly Noble',    tone: 1,  theme: 'recognition and help from people of standing' }
+  ];
+
+  function mobility(user, y, centre) {
+    var natal = chartFor('destiny', null, user.birth), res = chartFor('year', { y: y, m: 7, d: 1, hour: 12, min: 0 }, user.birth), ch = res.chart;
+    var fav = (user.deep || {}).favourable || null, auto = S.annualStar(res.pillars.solarYear), c = centre || auto, forward = natal.chart.dun === '阳遁';
+    var rows = [1, 2, 3, 4, 6, 7, 8, 9].map(function (n) {
+      var pa = ch.palacesByNumber[n], q = palaceQuality(ch, res.formations, n, fav);
+      return { num: n, name: pa.name, dir: pa.dir, noble: NINE_NOBLES[mod(c - 1 + (forward ? 1 : -1) * (n - 5), 9) + 1],
+               door: pa.gate, star: pa.starCn, deity: pa.spirit, isEmpty: pa.isEmpty, score: Math.round(q.score * 10) / 10 };
+    }).sort(function (a, b) { return b.score - a.score; });
+    return { year: y, pillar: res.pillars.year.cn, plate: ch.dun + ch.ju, forward: forward, autoCentre: auto, centre: NINE_NOBLES[c], rows: rows };
+  }
+
+  /* ---------------- life palaces on the destiny chart ----------------
+   * Each life area sits wherever its marker falls on the natal plate, so a palace can hold several
+   * areas or none. Destiny is the Day Stem's palace; the others follow one door, deity or star.
+   * Matches the labelled natal charts in four Thrive 2027 reports, 32 of 32 placements. Karmic is the home palace
+   * of the natal Envoy door: inferred from the Contribution aspect in those reports (4 of 4), which print no label for it.
+   */
+  var LIFE_PALACES = [
+    { key:'destiny',       en:'Destiny',       cn:'命宮', basis:'Day Stem' },
+    { key:'wealth',        en:'Wealth',        cn:'財富', basis:'生门 Life Door',     door:'生' },
+    { key:'property',      en:'Property',      cn:'產業', basis:'死门 Death Door',    door:'死' },
+    { key:'relationships', en:'Relationships', cn:'感情', basis:'六合 Harmony',       deity:'六合' },
+    { key:'knowledge',     en:'Knowledge',     cn:'智慧', basis:'杜门 Delusion Door', door:'杜' },
+    { key:'health',        en:'Health',        cn:'健康', basis:'天芮 Grain',         star:'天芮' },
+    { key:'family',        en:'Family',        cn:'家庭', basis:'休门 Rest Door',     door:'休' },
+    { key:'career',        en:'Career',        cn:'官祿', basis:'开门 Open Door',     door:'开' },
+    { key:'karmic',        en:'Karmic',        cn:'因果', basis:'值使 Envoy door home' }
+  ];
+
+  function lifePalaces(chart, dp) {
+    var byPalace = {}, list = [];
+    LIFE_PALACES.forEach(function (a) {
+      var seat = null;
+      if (a.key === 'destiny') seat = chart.palacesByNumber[dp.destiny.palace];
+      else if (a.key === 'karmic') seat = chart.palacesByNumber[chart.envoyPalace === 5 ? 2 : chart.envoyPalace];
+      else [1, 2, 3, 4, 6, 7, 8, 9].forEach(function (n) {
+        var pa = chart.palacesByNumber[n];
+        if (seat || !pa) return;
+        if ((a.door && pa.door && pa.door.char === a.door) || (a.deity && pa.deity && pa.deity.char === a.deity) ||
+            (a.star && pa.star && pa.star.char === a.star)) seat = pa;
+      });
+      if (!seat) return;
+      var item = { key: a.key, en: a.en, cn: a.cn, basis: a.basis, palace: seat.num, name: seat.name, dir: seat.dir };
+      list.push(item);
+      (byPalace[seat.num] = byPalace[seat.num] || []).push(item);
+    });
+    return { list: list, byPalace: byPalace };
   }
 
   /* ---------------- destiny profile (命盤) ----------------
@@ -1424,7 +1831,7 @@
         hiddenUnder: hidden ? stemCn : null, earthStem: seat.earthStemCn,
         door: seat.gate, doorEn: seat.gateEn, star: seat.starCn, starEn: seat.starEn,
         guardian: seat.spirit, isEmpty: seat.isEmpty, lodged: lodged,
-        doorStrength: seat.gateStrength, starStrength: seat.starStrength
+        doorStrength: seat.gateStrength, doorPalace: seat.gatePalace, starStrength: seat.starStrength
       } : null,
       lifeStar: { num: star9, cn: sn[0], en: sn[0] + ' ' + sn[1] + ' (' + sn[2] + ')', element: sn[2] },
       lifeGua: { num: em.gua, cn: em.guaCn, group: em.group, best: em.best, good: em.good, avoid: em.avoid },
@@ -1449,8 +1856,9 @@
   function formationCatalogue() {
     var D = global.QPData;
     if (!D || !D.FORMATIONS) return [];
-    return D.FORMATIONS.map(function (f) {
-      return { id: f.id, name: f.name, nameEn: f.nameEn, category: f.category,
+    // Background signals are not structures, so they are not offered for searching.
+    return D.FORMATIONS.filter(function (f) { return f.source !== 'signal'; }).map(function (f) {
+      return { id: f.id, name: f.name, nameEn: f.nameEn, category: f.category, source: f.source || null,
                description: f.description };
     }).sort(function (a, b) {
       var order = { auspicious: 0, special: 1, hostile: 2 };
@@ -1483,7 +1891,6 @@
         if (opts.waking && b >= 1 && b <= 3) continue;
         var hh = b === 0 ? 23 : (b * 2 - 1);
         var p = C.fourPillars(gy, gm, gd, hh, 30);
-        if (b === 0 && p.dayJDN !== jdn) continue;
         var forms = S.formations(p, gm);
         var hits = forms.filter(function (f) { return want[f.id]; });
         if (!hits.length) continue;
@@ -1540,8 +1947,8 @@
       var pa = P[n], q = palaceQuality(ch, forms, n, fav).score / 3, r = relTo(n);
       var rv = { same: 0.5, produces: 0.75, produced_by: -0.25, controls: -0.75, controlled_by: 0.25 }[r] || 0;
       var v = (q + rv - (pa.isEmpty ? 1 : 0)) * (w || 1);
-      var how = pa.isEmpty ? 'is void here: promised but hollow, so it needs more effort' : r === 'controls' ? 'presses on you, so the matter costs effort' :
-        r === 'produces' || r === 'same' ? 'supports you' : q >= 0.7 ? 'sits in a strong palace' : q <= -0.7 ? 'sits in a weak palace' : 'is neutral to you';
+      var how = pa.isEmpty ? 'is void here: promised but hollow, so it needs more effort' : r === 'controls' ? (q >= 0.7 ? 'presses on you but sits in a strong palace, so effort pays off' : 'presses on you, so the matter costs effort') :
+        r === 'produces' || r === 'same' ? (q <= -0.7 ? 'supports you, but from a weak palace' : 'supports you') : q >= 0.7 ? 'sits in a strong palace' : q <= -0.7 ? 'sits in a weak palace' : 'is neutral to you';
       S0(k, v, name.replace(/, (.*)$/, ' — $1 —') + ' ' + how, name.replace(/,.*$/, '') + ' in ' + where(pa) + ' with ' + [pa.gate, pa.starCn, pa.spirit].filter(Boolean).join(', ') +
         ' — ' + REL_LABEL[r] + ' your seat' + (pa.isEmpty ? ', void' : '') + ', quality ' + Math.round(q * 30) / 10);
     }
@@ -1616,38 +2023,50 @@
   // 置闰 with the hour void). The common ones describe an ordinary good palace and only support a structure; the rare
   // ones make it. Re-measured in 9.31 after the 伏吟/反吟 and deity detectors were fixed.
   var FORMATION_FREQ = {
-    xing_men_xiang_sheng: 31.6, ji_men_dao: 29.6, san_he: 25, ji_men_he_ji_xing: 19.7, deity_harmony: 19,
-    zhi_shi_xiang_sheng: 16.6, men_sheng_gong: 16.5, san_qi_you_liu_yi: 13, san_qi_sheng_dian: 7, fei_dun_cheng: 6.6,
-    jiu_tian_tong_ling: 4.7, ding_qi_sheng: 2.9, jiao_tai: 2.9, bing_qi_sheng: 2.7, yu_nv_shou: 2.6,
-    qing_long_hui: 2.5, qi_yi_xiang_he: 2.2, huan_xi: 1.5, zhi_fu_xiang_sheng: 1.4, yi_qi_sheng: 1.4, bing_jia: 1.1,
-    ding_jia: 1.1, fei_niao_die: 1.1, gui_yi: 1.1, wu_bing: 1.1, wu_ding: 1.1, yi_gui: 1.1, ren_yi: 1, yi_jia: 1,
-    yi_ren: 1, san_qi_de_shi: 0.7, fei_niao_ru_long: 0.4, yun_dun: 0.2, di_dun: 0.2, tian_dun: 0.2, ren_dun: 0.1,
-    feng_dun: 0.1, long_dun: 0, gui_dun: 0, tian_xian_shi: 0, shen_dun: 0, san_qi_gui_lu: 0, hu_dun: 0
+    wu_bu_ji: 51, san_sheng: 34.5, fan_yin: 22.2, fu_yin_men: 22.2, san_qi_shou_zhi: 21.8, men_sheng_gong: 13.9, 
+    san_qi_ji_men: 13.8, men_fan_yin: 11.2, fan_yin_2: 11.1, men_ru_mu: 11.1, san_qi_ru_mu: 9.4, 
+    liu_yi_ji_xing: 9.3, men_po: 8.3, gong_po: 8.3, kong_wang: 7.9, qi_yi_xiang_he: 7.4, fei_dun_cheng: 6.5, 
+    yang_dong: 6.3, yin_jing: 6.3, san_qi_zhi_ling: 5.5, bei_ge: 5.1, xiang_zuo: 4.7, quan_yi: 4.5, 
+    jiu_tian_tong_ling: 4.5, qi_ge: 4.3, jiu_di_xiong: 3.8, yi_de_shi: 3.1, bing_de_shi: 3.1, ding_de_shi: 3.1, 
+    yi_wang: 3.1, bing_wang: 3.1, ding_wang: 3.1, tian_yi_fei_gong: 2.9, jiao_tai: 2.8, zhan_ge: 2.8, 
+    tian_yi_fu_gong: 2.8, zhi_fu_kong: 2.8, zhi_fu_xiong: 2.8, liu_he_xiong: 2.8, qing_long_hui: 2.7, 
+    fei_niao_die: 2.6, you_san: 2.4, shi_ge: 2.3, tian_wang_si_zhang: 2.3, di_wang_zhe_bi: 2.3, liu_yi_ru_mu: 2.1, 
+    zhen_zha: 2, tian_dun: 1.9, wu_jia_gui: 1.9, xiu_zha: 1.8, chong_zha: 1.7, wu_jia_di: 1.7, teng_she: 1.7, 
+    yu_nv_shou: 1.6, yi_qi_sheng: 1.6, bing_qi_sheng: 1.6, wu_jia_shen: 1.6, fu_duan_ge: 1.6, yue_ge: 1.6, 
+    ri_ge: 1.6, qi_mu: 1.6, ding_qi_sheng: 1.5, san_qi_li_he: 1.5, fei_duan_ge: 1.5, da_ge: 1.5, huan_xi: 1.5, 
+    tian_yu_chang: 1.4, xing_sui_yue: 1.4, xin_yi: 1.4, wu_jia_xin_ge: 1.4, qing_long_tao: 1.4, 
+    ying_ru_tai_bai: 1.4, tai_bai_ru_ying: 1.4, xing_ge: 1.4, shang_ge: 1.4, sui_ge: 1.4, zhi_fu_xiang_sheng: 1.4, 
+    jiu_tian_xiong: 1.4, tai_yin_xiong: 1.4, que_han_hua: 1.3, ding_gui: 1.3, wu_bu_yu: 1.3, bai_hu: 1.3, 
+    ren_bing: 1.2, bing_ren: 1.2, ji_ding: 1.1, ji_bing: 1.1, ren_ding: 1.1, geng_xin: 1.1, wu_ren: 1.1, 
+    wu_yi: 1.1, yi_gui: 1.1, yi_ren: 1.1, yi_ji: 1.1, ding_xin: 1.1, geng_ji_geng: 1.1, xin_ren: 1.1, ren_xin: 1.1, 
+    ren_yi: 1.1, ren_geng: 1.1, gui_yi: 1.1, gui_bing: 1.1, hu_dun: 1, tian_xian_shi: 1, she_yao_jiao: 1, 
+    xin_gui: 1, wu_xin: 1, wu_ji: 1, wu_ding: 1, gui_geng: 1, gui_ren: 1, long_dun: 0.9, gui_dun: 0.9, 
+    xuan_wu: 0.9, yun_dun: 0.7, feng_dun: 0.6, wu_jia_tian: 0.6, shen_dun: 0.4, fei_niao_ru_long: 0.4, di_dun: 0.2, 
+    ren_dun: 0.1, wu_jia_ren: 0.1, shi_mu: 0.1, shi_gan_ru_mu: 0.1, san_qi_gui_lu: 0
   };
   // How often each formation appears anywhere on an hourly plate (% of hours), for the Formations screen.
   var FORMATION_HOURLY = {
-    ji_men_dao: 100, san_he: 100, stem_kong: 100, men_kong: 100, ji_xing_lin: 100, star_kong: 100,
-    xiong_xing_lin: 90.2, ji_men_he_ji_xing: 90, deity_clash: 88.2, deity_harmony: 80.3, fei_xing_ge: 77.7,
-    men_po: 66.8, men_xing_xiang: 66.7, xing_zhi: 66.7, ge_dou: 66.6, san_qi_you_liu_yi: 65.7,
-    xing_men_xiang_sheng: 63.6, men_sheng_gong: 55.3, zhi_shi_xiang_sheng: 55.2, zhi_shi_yin: 55.2,
-    liu_yi_ru_mu: 53.5, san_qi_sheng_dian: 46.7, kong_wang: 46.7, fei_dun_cheng: 45.8, jiu_tian_tong_ling: 37.6,
-    zhi_fu_yin: 33.3, men_ru_mu: 33.1, san_qi_ru_mu: 30.6, jiu_di_xiong: 28.3, ding_qi_sheng: 23, liu_he_xiong: 22.5,
-    fan_yin: 22.3, xing_fu_yin: 22.3, zhi_fu_kong: 22.2, fu_yin_men: 22.2, zhi_fu_xiong: 22.1, bing_qi_sheng: 21.5,
-    yu_nv_shou: 20.5, yin_yang_dao: 20.4, di_wang_zhe_bi: 20.1, qing_long_hui: 20, fei_duan_ge: 20,
-    tian_wang_si_zhang: 19.7, bai_hu: 19.7, qi_yi_xiang_he: 17.4, jiao_tai: 16.7, teng_she: 16.3, xuan_wu: 12.7,
-    huan_xi: 12.3, ji_ji_xing: 11.6, men_fan_yin: 11.5, zhi_fu_xiang_sheng: 11.3, tai_yin_xiong: 11.3,
-    yi_qi_sheng: 11.2, jiu_tian_xiong: 11.2, geng_ji_xing: 11.1, shi_mu: 11.1, xin_ji_xing: 11.1, wu_ji_xing: 11,
-    fan_yin_2: 10.9, gui_ji_xing: 10.9, ren_ji_xing: 10.9, xing_fan_yin: 10.9, tian_xian_shi: 10, xin_ren: 9.3,
-    wu_ren: 9.3, yi_gui: 9.1, geng_xin: 9.1, xing_ge: 9.1, xin_yi: 9.1, ding_jia: 9, yi_ji: 9, wu_bing: 8.9,
-    gui_geng: 8.9, ren_geng: 8.9, geng_ji_geng: 8.9, qing_long_tao: 8.9, shang_ge: 8.9, xin_ding: 8.9, wu_ding: 8.8,
-    wu_ji: 8.8, wu_xin: 8.8, bing_ren: 8.8, gui_ren: 8.8, tian_yi_fu_gong: 8.8, ren_bing: 8.8, ren_ding: 8.8,
-    zei_ge: 8.8, tai_bai_ru_ying: 8.8, ren_xin: 8.7, bei_ge: 8.7, ying_ru_tai_bai: 8.7, ding_xin: 8.6, ding_gui: 8.6,
-    ji_ding: 8.6, gui_yi: 8.5, bing_jia: 8.4, fei_niao_die: 8.4, wu_jia_xin_ge: 8.4, ding_ren: 8.4, ji_bing: 8.4,
-    xiao_ge: 8.4, wu_yi: 8.4, tian_yi_di_wang: 8.3, da_ge: 8.3, 'gan_he-xing': 8.3, yi_geng: 8.3, yi_jia: 8.2,
-    yi_ren: 8.2, xin_gui: 8.1, gui_bing: 8, she_yao_jiao: 8, ren_yi: 7.8, bing_xin: 7.7, san_qi_de_shi: 5.7,
-    wu_jia_di: 5.2, wu_jia_tian: 4.6, wu_jia_ren: 4.4, wu_jia_shen: 3.7, fei_niao_ru_long: 3.2, wu_jia_gui: 3,
-    san_zha: 1.7, di_dun: 1.6, yun_dun: 1.3, tian_dun: 1.3, feng_dun: 0.9, ren_dun: 0.8, long_dun: 0.3, gui_dun: 0.3,
-    shen_dun: 0.1, hu_dun: 0.1, san_qi_gui_lu: 0, long_yin: 0, wu_xing_que: 0, fu_duan_ge: 0
+    san_sheng: 100, wu_bu_ji: 100, san_qi_shou_zhi: 91.4, san_qi_ji_men: 80.9, men_sheng_gong: 66.6, 
+    san_qi_ru_mu: 60.4, liu_yi_ji_xing: 53.4, yang_dong: 50, yin_jing: 50, kong_wang: 46.3, men_po: 44.4, 
+    gong_po: 44.4, fei_dun_cheng: 43.9, qi_yi_xiang_he: 42.3, san_qi_zhi_ling: 40.5, bei_ge: 40.5, xiang_zuo: 38, 
+    jiu_tian_tong_ling: 36.1, quan_yi: 36, qi_ge: 34.7, men_ru_mu: 33.3, jiu_di_xiong: 30.1, bing_wang: 25.2, 
+    ding_de_shi: 25.1, yi_wang: 24.9, yi_de_shi: 24.6, ding_wang: 24.6, bing_de_shi: 24.5, tian_yi_fei_gong: 23.1, 
+    tian_yi_fu_gong: 22.3, liu_he_xiong: 22.3, jiao_tai: 22.2, zhan_ge: 22.2, fan_yin: 22.2, fu_yin_men: 22.2, 
+    zhi_fu_xiong: 22.2, zhi_fu_kong: 22, qing_long_hui: 21.3, fei_niao_die: 20.8, you_san: 19.6, shi_ge: 18.4, 
+    tian_wang_si_zhang: 18.4, di_wang_zhe_bi: 18.1, zhen_zha: 16, liu_yi_ru_mu: 15.7, tian_dun: 15, 
+    wu_jia_gui: 14.9, xiu_zha: 14.4, teng_she: 13.9, chong_zha: 13.8, wu_jia_di: 13.8, yu_nv_shou: 12.9, 
+    fu_duan_ge: 12.9, yue_ge: 12.9, ri_ge: 12.9, qi_mu: 12.9, yi_qi_sheng: 12.6, wu_jia_shen: 12.6, 
+    bing_qi_sheng: 12.5, ding_qi_sheng: 12.4, fei_duan_ge: 12.4, da_ge: 12.4, huan_xi: 12.2, san_qi_li_he: 12.1, 
+    xing_ge: 11.6, wu_jia_xin_ge: 11.5, xin_yi: 11.3, sui_ge: 11.3, zhi_fu_xiang_sheng: 11.2, men_fan_yin: 11.2, 
+    tian_yu_chang: 11.1, xing_sui_yue: 11.1, qing_long_tao: 11.1, ying_ru_tai_bai: 11.1, fan_yin_2: 11.1, 
+    jiu_tian_xiong: 11.1, tai_bai_ru_ying: 11, shang_ge: 11, tai_yin_xiong: 11, bai_hu: 10.8, que_han_hua: 10.6, 
+    ding_gui: 10.5, wu_bu_yu: 10, bing_ren: 9.5, ren_bing: 9.2, wu_ren: 9.1, xin_ren: 9, ren_geng: 9, gui_bing: 9, 
+    ji_bing: 8.9, ren_ding: 8.8, yi_ren: 8.8, ren_xin: 8.7, ren_yi: 8.7, wu_yi: 8.6, yi_gui: 8.6, 
+    geng_ji_geng: 8.6, geng_xin: 8.5, gui_yi: 8.5, ji_ding: 8.4, yi_ji: 8.4, ding_xin: 8.4, gui_geng: 8.4, 
+    gui_ren: 8.4, tian_xian_shi: 8.3, she_yao_jiao: 8.3, xin_gui: 8.3, wu_ji: 8.3, wu_ding: 8.3, wu_xin: 8.2, 
+    hu_dun: 7.9, xuan_wu: 7.5, long_dun: 7.3, gui_dun: 7.1, yun_dun: 5.7, feng_dun: 5.2, wu_jia_tian: 4.7, 
+    fei_niao_ru_long: 3.1, shen_dun: 2.9, di_dun: 1.8, ren_dun: 1.1, wu_jia_ren: 1, shi_mu: 1, shi_gan_ru_mu: 1, 
+    san_qi_gui_lu: 0
   };
   /**
    * What the Formations screen says about one formation: how often it occurs, roughly how many waking hours a month
@@ -1664,7 +2083,7 @@
           : 'once every ' + Math.round(1 / perMonth) + ' months in waking hours'),
       favours: (f.description.split(' — ')[1] || f.description).replace(/\.$/, ''),
       seasonal: D && D.formationSeasonalStrength ? D.formationSeasonalStrength(f, month || (new Date().getMonth() + 1)) : '',
-      use: f.category === 'auspicious' ? 'Plan the matter it favours for that hour, face the palace it sits in, and open the manifestation script to work with it by name.'
+      use: f.category === 'auspicious' ? 'Plan the matter it favours for that hour, sit with your back to the palace it sits in, and open the manifestation script to work with it by name.'
         : f.category === 'hostile' ? 'Avoid starting important matters in that hour, or work from a different palace.'
         : 'Read it with the rest of the chart; it colours the hour rather than deciding it.'
     };
@@ -1711,7 +2130,7 @@
     var door = (b.pa.gate || '').charAt(0), hs = STEM_ROLE[b.pa.heavenStemCn];
     var bits = [DOOR_INTENT[door] ? DOOR_INTENT[door].ask.split(' — ')[0] : null, hs && hs.good ? hs.good.split(',')[0] : null,
                 DEITY_QUALITY[b.pa.spirit] || null].filter(Boolean);
-    return 'Good for ' + bits.join('; ') + '. Face ' + b.pa.dir + '.';
+    return 'Good for ' + bits.join('; ') + '. For a seated activation, sit with your back to the ' + b.pa.dir + '.';
   }
 
   /** Scan `days` days from `from` ({y,m,d}); fav = the person's favourable elements (optional). */
@@ -1721,9 +2140,9 @@
       var d0 = new Date(from.y, from.m - 1, from.d + i), dt = { y: d0.getFullYear(), m: d0.getMonth() + 1, d: d0.getDate() };
       for (var k = 0; k < 12; k++) {
         var when = { y: dt.y, m: dt.m, d: dt.d, hour: k * 2, min: 30 }, res = chartFor('hour', when), b = structureAt(res, fav);
-        if (!b) continue;
+        if (!b || S.disharmony(res.pillars.day.stem, res.pillars.hour.stem)) continue;
         var pa = b.pa;
-        all.push({ date: dt.y + '-' + pad(dt.m) + '-' + pad(dt.d), dt: when, range: C.HOUR_RANGE[k], branch: k,
+        all.push({ date: dt.y + '-' + pad(dt.m) + '-' + pad(dt.d), dt: when, range: res.pillars.hourRange, branch: k,
           hourPillar: res.pillars.hour.cn, dayPillar: res.pillars.day.cn, score: b.score,
           palace: { num: b.num, name: pa.name, dir: pa.dir, element: pa.element },
           gate: pa.gate, star: pa.starCn, deity: pa.spirit, heaven: pa.heavenStemCn, earth: pa.earthStemCn,
@@ -1746,7 +2165,7 @@
    * The two people are their natal Day Stems (natalSeat). The relationship symbols, as the classics use them:
    * 六合 the union and go-between; 乙 the woman and 庚 the man (乙庚合); 丁 the Jade Maiden (玉女) — tenderness and
    * romance; 丙 ardour and desire; 景门 passion shown openly; 休门 rest, ease and intimacy. Disruptors: 玄武 secrecy and
-   * temptation, 腾蛇 suspicion and anxiety, 白虎 quarrels and fatigue, 惊门 fright and arguments, and a void (空亡)
+   * temptation, 腾蛇 suspicion and anxiety, 白虎 quarrels and fatigue, 惊门 fear and arguments, and a void (空亡)
    * palace, which leaves a feeling hollow. Each finding is phrased for a reader with no Qimen training. */
   var EL5 = ['wood', 'fire', 'earth', 'metal', 'water'];
   // What brings an element into a room or a relationship, and the words that carry it. Index = element.
@@ -1863,18 +2282,18 @@
       if (love.indexOf(db) >= 0) { dayScore += 1.5; dayNote.push('a romance or Peach Blossom day'); }
       // Double-hour k (子 丑 寅 …) is sampled half an hour into it: 00:30, 02:30, 04:30 …
       for (var k = 0; k < 12; k++) {
-        var r = romanceRead(chartFor('hour', { y: dt.y, m: dt.m, d: dt.d, hour: k * 2, min: 30 }), a, b);
+        var rc = chartFor('hour', { y: dt.y, m: dt.m, d: dt.d, hour: k * 2, min: 30 }), r = romanceRead(rc, a, b);
         var hb = k, hNote = [], hScore = 0;
         if ((hb + 6) % 12 === dayA || (hb + 6) % 12 === dayB) { hScore -= 1; hNote.push('the hour clashes a day branch'); }
         if (love.indexOf(hb) >= 0) { hScore += 0.5; hNote.push('a romance hour'); }
         var total = r.attraction + r.desire + r.intimacy + dayScore + hScore;
-        slots.push({ date: dt.y + '-' + pad(dt.m) + '-' + pad(dt.d), dayPillar: dp.cn, range: C.HOUR_RANGE[k], branch: k,
+        slots.push({ date: dt.y + '-' + pad(dt.m) + '-' + pad(dt.d), dayPillar: dp.cn, range: rc.pillars.hourRange, branch: k,
           attraction: r.attraction, desire: r.desire, intimacy: r.intimacy, total: Math.round(total * 10) / 10,
-          notes: dayNote.concat(hNote), warnings: r.warnings, activate: r.activate.dir });
+          notes: dayNote.concat(hNote), warnings: r.warnings, activate: r.activate.dir, disharmony: !!S.disharmony(rc.pillars.day.stem, rc.pillars.hour.stem) });
       }
     }
     // Times are offered for planned time together, so only waking hours count: 辰 07:00 through 子 00:59.
-    slots = slots.filter(function (s) { return s.branch >= 4 || s.branch === 0; });
+    slots = slots.filter(function (s) { return (s.branch >= 4 || s.branch === 0) && !s.disharmony; });
     var sorted = slots.slice().sort(function (x, y) { return y.total - x.total; });
     function pick(list, n) {
       var seen = {}, out = [];
@@ -1889,12 +2308,13 @@
   global.QPQimen = {
     romancePlate: romancePlate, romanceWindows: romanceWindows, ELEMENT_REMEDY: ELEMENT_REMEDY,
     structureScan: structureScan, STEM_ROLE: STEM_ROLE, STAR_PLAIN: STAR_PLAIN, formationInfo: formationInfo,
-    areasDestiny: areasDestiny, areasYearPlate: areasYearPlate,
+    mobility: mobility, NINE_NOBLES: NINE_NOBLES, lifePalaces: lifePalaces, areasDestiny: areasDestiny, areasYearPlate: areasYearPlate, areasOnPlate: areasOnPlate, natalSeat: natalSeat, palaceQuality: palaceQuality,
     CHART_TYPES: CHART_TYPES, chartFor: chartFor, DOOR_INTENT: DOOR_INTENT,
     formationCatalogue: formationCatalogue, searchFormations: searchFormations,
     CATEGORIES: CATEGORIES, SCENARIOS: SCENARIOS, SEARCH_FIELDS: SEARCH_FIELDS, qimenAnnual: qimenAnnual, threatBridge: threatBridge, THREATS: THREATS, threatMonths: threatMonths, threatMonthText: threatMonthText, threatMonthTextFull: threatMonthTextFull, monthJiazi: monthJiazi,
     METHODS: METHODS, nianMingPalace: nianMingPalace, symbolFor: symbolFor,
-    forecast: forecast, searchWindows: searchWindows, manifestPlan: manifestPlan, destinyProfile: destinyProfile,
+    forecast: forecast, searchWindows: searchWindows, manifestPlan: manifestPlan,
+    MANIFEST_GOALS: MANIFEST_GOALS, MANIFEST_STAGES: MANIFEST_STAGES, manifestRank: manifestRank, searchManifest: searchManifest, OPPOSITE_DIR: OPPOSITE_DIR, spokenScript: spokenScript, destinyProfile: destinyProfile,
     findPalace: findPalace, askerPalace: askerPalace, rel: rel, REL_LABEL: REL_LABEL
   };
 })(typeof window !== 'undefined' ? window : globalThis);

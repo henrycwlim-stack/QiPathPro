@@ -49,6 +49,199 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.1 — Manifest goals, stages and best-hour search
+Version folder 10.1.0 (versionCode 43), copied from 10.0.0. From this version on, every code change goes into a new, incrementally numbered folder.
+Strategy › Manifest now starts with a stage (Priming, Attunement or Activation) and one of 20 goals, from Intuition and Courage to Find a lost person,
+Noble help and Agreements (`MANIFEST_GOALS` and `MANIFEST_STAGES` in `www/js/qmdj.js`). "Find the best hours" scores every hour and outer palace in a
+3 to 31 day range (`searchManifest`) and lists the twelve best, each with the palace to sit with your back to, the direction to face, a 0 to 100 fit and
+the reasons and cautions. Each palace is scored on how well its door, star, deity and heaven stem serve the goal, plus the palace quality used elsewhere,
+with stage weights: Priming favours star and deity, Attunement door-palace harmony, Chief, Envoy and good structures, Activation a strong, timely door.
+Five Disharmony hours are left out and night hours can be. The fit scale is calibrated on 7,680 palace-hours (median palace 50, top tenth about 75).
+Any date and hour can still be chosen: the screen shows that hour chart, ranks its eight palaces for the goal (`manifestRank`), and a tap on the chart
+or a row picks the palace. The script, steps, saved record and AI expansion carry the stage and goal. Joey Yap times these practices by Seven Stars
+levels, which cannot be calculated yet, so the ranking is QiPath's own.
+
+### 10.0 — New Qimen chart design
+Every Qimen plate now uses a square board with a hexagram rim, a direction frame showing void and Horse Star markers, and palaces
+laid out as heaven stem, star and deity above earth stem, door and number. The Destiny and Cast Qimen screens add a date banner and
+pillar table, and hour charts add Asker and Focus Point panels.
+
+### 10.0 — Rim hexagrams and flown numbers on the Qimen plate
+Every Qimen plate now shows each palace's rim hexagram, formed from the Star's home trigram over the Door's home trigram,
+with its Xuan Kong trigram number and period. The large number in each palace is the Ju placed in the centre and flown forward
+in Luo Shu order. Both rules were worked out from Thrive chart samples, not from a published source. Rim pillars and the Seven Stars
+levels are not included because their rules are still unknown.
+
+### 10.0 — Combined reading
+
+Destiny › Combined reads one birth chart across BaZi, Zi Wei, Qimen Destiny, Qi Zheng Si Yu and He Luo Li Shu for 34 life areas, each with a plain-English meaning, the evidence from each system, how firm it is and concrete steps (`www/js/combined.js`, wording in `combined-text.js`), with an optional AI reading. The result and its AI analysis can be saved to Journal › Saved Readings. Each system scores an area only where it has its own symbol, or says which nearest area it read instead, and the level is a plain average. That weighing is the app's own. He Luo speaks only on Self, Luck, Later life and Purpose. Together stays a separate screen.
+
+### 10.0 — Qi Zheng Si Yu and He Luo Li Shu
+
+Destiny now has two more natal systems. Qi Zheng Si Yu (`www/js/qizheng.js`) places the seven bodies from the Swiss Ephemeris tables and the four remainders on twelve palaces. Its palaces follow the solar terms, the Life palace uses the traditional hour count to 卯, 羅睺 and 計都 are the mean nodes as Chinese astrologers assign them, 月孛 is the mean lunar apogee, and 紫氣 follows a conventional 28-year circuit. It works for births from 1900 to 2100.
+
+He Luo Li Shu (`www/js/heluo.js`) turns the pillars into early and later heaven hexagrams, finds the 元堂 line and lists the life periods. Sources disagree on small points, and neither system has been checked against a printed chart from a practitioner.
+
+### 10.0 — Karmic Palace
+
+Chart › Qimen Destiny now also labels the Karmic palace (因果) wherever the natal Envoy door (值使) has its home. The Thrive reports print no Karmic label, so this is inferred from their Contribution aspect, which fits this rule for all four people checked. It is saved with new charts.
+
+### 10.0 — Zodiac, Mobility and Outcomes
+
+Seasons › Zodiac gives all twelve signs for any year: Grand Duke position, the year stem's growth stage, relation to the year branch and common stem and branch stars (`www/js/zodiac.js`). The included markers match the 2027 sign slides on 12 of 12 signs; only one year of slides was available, and the slides' other stars are not included. The outlook word is this app's own weighing.
+
+Space › Mobility places the nine palace nobles (九宮貴神) on the eight directions, forward for a Yang natal plate and backward for a Yin one, which matches 48 of 48 directions in six Thrive lists once the centre is given. The personal centre those reports use could not be derived, so the default is the year star and the person can choose another for each year. Theme notes are this app's own.
+
+Journal › Outcomes lets you mark a saved reading as happened, partly or did not happen, with a note, and totals the results by kind. Numbers keep their own ledger in Numbers Lab.
+
+### 10.0 — Seven categories
+
+The bottom bar is now Destiny, Seasons, Strategy, Space, Reports, Numbers Lab and Journal, with each feature under its category (`NAV` in `www/js/app.js`). Now, Learn and Profile moved to the top bar. Zi Wei periods and the Qimen year and month plates moved out of the natal charts into Seasons. Saved readings moved from Profile to Journal, and Journal lists narrations on the device.
+
+### 10.0 — New version folder
+
+Copied from 9.32.0 with its uncommitted work (versionCode 42, versionName 10.0.0).
+
+### 9.32 — Life palaces on the destiny chart
+
+Chart › Qimen Destiny now labels Destiny, Wealth, Property, Relationships, Knowledge, Health, Family and Career on the natal plate, in the palace detail and in the saved record. Destiny is the Day Stem's palace. Wealth is 生门, Property 死门, Knowledge 杜门, Family 休门, Career 开门, Relationships 六合 and Health 天芮. The rule was read from the labelled natal charts in three Thrive 2027 reports and matches 24 of 24 placements.
+
+### 9.32 — Manifest details and narration
+
+The Manifest form takes what you specifically want to manifest and what you will give in return, one per line. Both are written into the script, the AI expansion and the saved record, and a change to them starts a fresh AI reading. An ask that mentions health also shows the medical care note.
+
+The narration block creates two kinds of audio with Google's speech models and keeps them on the device: a Sage 64 to 1 countdown with a guided opening (made once, reused for every script) and a reading of the current script. The 64 to 1 countdown is this app's own arrangement, not a book rule. Doors are read by their English names, so 景门 and 惊门 cannot sound alike. Speech needs a Google Gemini key; someone using Claude for readings can add one in the narration block.
+
+### 9.32 — New version folder
+
+Copied from 9.31.0 with its uncommitted work. The entries below marked 9.31 from here down to Warcraft and the plate fixes were made after the 9.31.0 release APK, so they first ship in 9.32.0.
+
+### 9.31 — Compendium 2nd Edition
+
+Compared with the first edition, the app now follows the 2nd Edition (October 2015) where they differ on a rule or name: 飞鸟跌穴 also covers 丙 over 戊, 日旺 is 乙 in 巽 or 坎, 星旺 is 丁 in 巽 or 离, 人假 drops the row that repeated 地假, the Three Nobles Receive Envoy drop their stem pair rows, 飞宫 and 伏宫 also cover 戊 as the charts mark them, 玉女守门 needs 丁 on the earth plate, and stem pair names follow its stem chapters. The rating table is unchanged.
+
+### 9.31 — Strategic Execution
+
+`www/js/execution.js` and the Consult tab pick the seat or direction for one of five activities, following Joey Yap's Qi Men Dun Jia Strategic Executions, with its pit stop method for a destination in a weak direction. Ratings come from the Compendium's stem table. The book's written forecasts are not reproduced, and the ranking and notes are QiPath's own.
+
+### 9.31 — Reading methods and symbol lists
+
+The books use the Day Stem, Hour Stem, Useful God and Life Stem. Door, Star, Deity and Chief readings are not named as methods there, so the app now says they are its own lenses. The category lists follow the books: wealth reads Nine Earth, lost things Six Harmony, travel the Heart star and initiatives the Assistant star. Partnership is a new question, Budget also takes the book's loan rules, Travel has its land, sea and air readings, and the Chief and Envoy frame reads the Envoy.
+
+### 9.31 — The day changes at midnight
+
+`fourPillars` no longer moves the day at 23:00, following the Compendium (p.181-182), the Ten Thousand Year Calendar and the Compendium 2nd Edition's 11pm chart. 23:00–23:59 is the Late Rat hour: today's day, with the next day's Zi stem. This also changes the Day Master for births from 23:00 to 23:59. Hour pickers list the two Rat hours separately. The Warcraft book's charts use today's own Zi stem at that hour; `lateZi: false` gives that reading.
+
+### 9.31 — Zhi Run repeats from the Ten Thousand Year Calendar
+
+`LEAP_BLOCKS` in `systems.js` holds the 37 repeated 芒种 and 大雪 blocks from 1947 to 2049 in Joey Yap's calendar. The old nine-day rule matched 85.4% of the calendar's 7,286 yuan entries from 1945 to 2051, because the calendar sometimes repeats at seven or eight days. The table matches all but one. Dates outside those years still use the rule.
+
+### 9.31 — Warcraft
+
+`www/js/warcraft.js` and the Consult tab read an hour plate through Sun Tzu's 13 chapters, following Joey Yap's Qi Men Dun Jia Sun Tzu Warcraft: the 7 Criteria, Host and Guest, resources, deception, the Nine Dun, hazards and the battleground map. The book gives the method but no scoring, so the leans and the verdict are QiPath's own.
+
+### 9.31 — Useful Gods from Forecasting Methods
+
+Forecast now follows Joey Yap's two Forecasting Methods books where they have a matching section: lost objects read Six Harmony, marriage reads 乙 and 庚, promotion and job offers read the Open Door against the asker, and wealth reads 戊 against the Life Door. Lost people and objects turn the doors around. `QPSystems.forecastRules` takes a context with the structures, year stem and hour stem. Restructuring, logistics and budget have no matching section and stay as QiPath's own choices.
+
+### 9.31 — Stem rules and over-frequent structures
+
+Eight stem rules that were not in the compendium, or repeated another rule, are gone, and so are QiPath's own signals that hold on 70% or more of plates. 六仪入墓 now uses each stem's grave from the twelve-phase table and needs that branch in the date. 门入墓 now covers all eight doors. Forecast counts only the structures on the palaces it reads, because a whole-plate count cancels out, and reads door 伏吟 and 反吟 once for the plate. A door 反吟 plate always reads Unfavourable. The plate badge counts only rated structures.
+
+### 9.31 — Forecasting rules from the compendium
+
+`QPSystems.forecastRules(chart, topic, seats, hourBranch)` holds the Forecast panels from the door, star and deity pages, for marriage, career, wealth, deals, health, travel, exams and disputes. Forecast now reads the door on each symbol, with a stronger weight on the main one, and `DOOR_TOPIC` holds the doors the book turns around by topic. A star is read by its seasonal strength, and stems and deities by their own element. The 年命 method now finds the birth-year stem on the heaven plate. On Yang plates Grappling Hook and Red Phoenix stand in for White Tiger and Black Tortoise. The point values are QiPath's own. Health readings in Forecast and Oracle carry `QPSystems.HEALTH_CARE`, and the Oracle does not suggest waiting for a better moment on health. The AI prompts for Forecast get the same instruction.
+
+### 9.31 — Stem pairs from the 十干剋應 tables
+
+`www/js/structures.js` now holds the compendium's 100-pair tables (p.279-280), read through `QPData.stemCombo(heaven, earth)` and shown on each palace card. The 26 older pair rules take their name and rating from the tables, with source `stem_table`. Moderate pairs count as `special`. The other pairs are lookup only, so a palace does not always carry a structure.
+
+### 9.31 — Nobles in their graves
+
+`QPSystems.nobleGrave(stem, palace)` holds the 三奇入墓 table. The structure appears somewhere on most plates, so Forecast and Oracle only warn about a Noble the reading depends on: a symbol for the question, the asker's Day Stem or the matter's Hour Stem. Each Noble costs 1 point in Forecast and 0.5 in Oracle, once per reading; these are QiPath's own weights.
+
+### 9.31 — Five Disharmony Hour warnings
+
+`QPSystems.disharmony(dayStem, hourStem)` holds the 五不遇时 rule. The book gives it only minor weight in forecasting and places it mainly in date selection, so Forecast, Oracle and Tactical posture warn without changing their scores. The tools that suggest a time leave these hours out: ritual windows, super-windows, the structure scan, risk windows, the Jiazi hour pick, romance times and the Oracle's "better moment". The formation search still lists them.
+
+### 9.31 — Door strength
+
+`QPSystems.doorSeason` gives each door its eight-state season from the compendium's table, so `gateStrength` is now seasonal. `gatePalace` holds 门迫, 宫迫, 和, 义 or 比和. In `palaceQuality`, compelling now mutes a door in either direction, so a compelled bad door does less harm, as the book says. 门迫格, 宫迫格 and 门宫和义 no longer also count in the structure net. The factors in `doorForce` are QiPath's own weighting.
+
+### 9.31 — Star strength, Host and Guest
+
+`QPSystems.starSeason` rates the nine stars by solar month from the compendium's 九星四時旺相休囚 table, so `starStrength` no longer depends on the palace. The old star and palace relation is now `starPalace`. Each palace also has `hostGuest` (heaven plate star as Guest, the palace's native star as Host), and `hostGuestRead(chart, useHour)` gives the plate's read from the chief star and the Yin or Yang hour. Tactical posture now leads with this, and the mansions are shown as background. `palaceQuality` adds the star's season at a weight of 0.3 per rank, which is QiPath's own weighting.
+
+### 9.31 — Structures rebuilt from the compendium (`www/js/structures.js`)
+
+Section H's tables are now data rows (heaven stem, earth stem, door, deity, palace), and all 20 structures marked on the 22 Oct 2024 and 4 Feb 2025 reference charts are detected. Lodged stems count, and each pillar's 甲 reads as its 六儀. Older checks with no table in the compendium are kept as `signal` entries in the `special` category, so they no longer count as auspicious or hostile. `QPData.NOT_DETECTED` lists entries that have no usable rule. After changing rules, run `node tools/measure-formations.js` to refresh the rarity tables.
+
+### 9.31 — Door names
+
+景门 is always the Scenery Door and 惊门 the Fear Door, in the data and in AI readings. Both romanise as "Jing", so that spelling is not used for either door.
+
+### 9.31 — Forecast palace search and structure names
+
+`findPalace` reads stems from the heaven plate only, and 甲 resolves to the 六儀 that hides it, so the Day and Hour Stem seats are correct. 辛加乙 is now 白虎猖狂 (the older deity-and-door check is 白虎凶门, and the snake-and-Fire-star check is 腾蛇火星), 丁加癸 is 朱雀投江 and 癸加丁 is 腾蛇妖娇, as in the compendium.
+
+### 9.31 — Direction in activations
+
+Seated manifestation places the auspicious palace behind you (`manifestPlan`, `structureGoodFor`). The 7-star mat walk moves towards the palace. Task advice such as San Cai and the Now tab still gives a direction to face.
+
+### 9.31 — Planets on the plate, and 7 Stars (`www/js/tianwen.js`, `QPTianwen`)
+
+`overlay` maps true longitude to a branch (the classical twelve palaces: 子 is 300° to 330°, 戌 is 0° to 30°) and on to a Lo Shu palace, then rates each planet against the plate. `superWindows` scans for super-structures. Consult › 7 Stars has seven stages with an `audit` and a multi-year `horizon`, and `ritualWindows` finds clean hours for a 7-step walk, including an inward-looking Sage Path goal, with an AI-written, editable intention script (`QPAI.writeWalkScript`): 反吟 is always rejected, fast goals reject 伏吟, and consolidation accepts a stem and star 伏吟 with a warning when the palace holds a Noble or 戊 (Doors 伏吟 stays rejected). All of this follows the user's method notes and does not change other scores.
+
+### 9.31 — The 28 constellations (`www/js/xiu.js`, `QPXiu`)
+
+Day mansion from the 28-day cycle, hour mansion from 七元禽星, the classical 古度 widths laid on the luo pan with 虛 at due north, and the current sky from each mansion's 距星. Used in Qimen charts, Plan a task (the mansion's 宜/忌 lists, and hour mansions for timing), Feng Shui facing (`facing`, `sky`), birth profiles (`profile`), tactical posture (`posture`) and a Dipper route across the plate (`sevenStars`). The harmony, posture and profile readings are QiPath's own synthesis.
+
+### 9.31 — Solar terms from the Swiss Ephemeris, true solar time, birth time zone, planets
+
+- **Solar terms:** `tools/build-ephemeris.py` generates `www/js/ephem-terms.js` from the Swiss Ephemeris (via `pyswisseph`, Moshier mode). `QPAstro.termsForYear` reads it for 1890 to 2110; the older formula covers dates beyond that. `tools/verify-terms.py` checks the table against other sources.
+- **True solar time:** Profile › Qimen charts, off by default. `QPCore.setTrueSolar(lon)` moves the day and hour pillars to local apparent solar time; year, month and term follow the actual moment.
+- **Birth time zone:** `birth.zone` holds a named zone, read through `Intl` with its history, and `birth.lon` optionally applies true solar time to the birth chart. `QPCore.birthPillars(b, mins)` builds birth pillars.
+- **Planets:** `www/js/ephem-planets.js` (1900 to 2100, loaded when needed) and `QPEphem.positions(jd)` show true longitudes on the Qimen chart. They are display only.
+- **Licence:** the Swiss Ephemeris is AGPL or commercial. The app ships generated tables, not its code; check the licence before distributing.
+
+### 9.31 — QiMen Oracle (Consult › Oracle)
+
+`QPOracle.cast(user, topic, when)` answers one question on health, career, business or relationships: what is happening, why, and what to do, plus a better moment in the next 24 hours if there is one.
+It reads `QPSystems.flyingQimen(p)`, the Flying Palace plate (飛宮): nine doors and nine deities moved through all nine palaces in Lo Shu order, forwards in Yang dun and backwards in Yin dun. No AI key is needed.
+
+### 9.31 — Nayin assessment (Chart › Bazi)
+
+`QPBazi.nayinAssessment(user, today)`: a macro-diagnostic kept apart from Day Master strength and the Ten Gods, which neither read it nor feed it. It covers structural harmony from Year to Hour, constitutional resilience and ten-year phases. The "Refines you" exceptions are labelled unverified, because 三命通會 論納音取象 does not state the rule, but they still count in the support and resilience results. The Year Nayin is the life sound (年命) for background, structure and phases; the Day Nayin is the self sound for temperament. `nayinMatch` compares both between two people on the Together screen, outside the compatibility score. The other pillars and every luck pillar are read against it by
+the five-element cycle, with the traditional exceptions where control refines rather than harms. Also in the AI reading and the planner's birth chart page.
+
+### 9.31 — Luck pillar start age fixed
+
+`luckPillars` counted days to the nearest solar term of any kind. It now counts to the 節 that opens a solar month, as the rule requires, which
+moves every start age. Checked against reference charts for two birth dates (start ages 8 and 0).
+
+### 9.31 — Monthly report (Consult › Monthly)
+
+One solar month in `www/js/monthly.js` (`QPMonthly`): an overview, seven themes each with a level from -100 to +100, advice chosen by the
+ten god the month brings, a score for every day with the best and hardest days, plus money and reset days. It shares the planner's plates and PDF pages.
+
+### 9.31 — Annual planner (Consult › Planner)
+
+Twelve solar months from a chosen start, on screen and as an A4 PDF. `www/js/planner.js` (`QPPlanner`):
+
+- `build(user, start)`: birth chart, Qimen birth plate, year plates, and for each month the plate, your position, directions,
+  how the month pillar meets the birth chart, twelve life areas and the best days.
+- A month's score is 0–100 with 50 neutral: each life area averages `QPBazi.areasMonth` (month pillar) and
+  `QPQimen.areasOnPlate` (month plate), and the month averages the twelve areas. The scale is QiPath's own.
+- `toPdf(plan)`: pages are drawn on a canvas and stored as JPEGs in a small hand-written PDF, so Chinese text needs no
+  embedded font. The app saves through `@capacitor/filesystem` (cache) and `@capacitor/share`; a browser downloads the file.
+
+### 9.31 — Year and month plate rule (Profile › Qimen charts)
+
+Default `longRule: 'yearly'`: the year plate is 阴1 in 1864 and one ju lower each year; month plates by 符头 year are
+子午卯酉 1, 寅申巳亥 4, 辰戌丑未 7. `'era'` keeps the earlier rule (year 1/4/7 by 60-year era; month 1/7/4). Checked against
+reference year plates for 2023, 2025 and 2027 and reference month plates from Nov 2022 to Oct 2023 (寅申巳亥) and Dec 2024 to
+Oct 2027 (辰戌丑未). No reference has covered 子午卯酉 months; 阴1 completes the 1, 4, 7 sequence.
+
 ### 9.31 — Twelve life areas in plain English, across Bazi, Zi Wei and Qimen Destiny
 
 Career, Education, Relationship with spouse, Relatives, Children, Colleagues and bosses, Marriage, Health, Finance
@@ -707,7 +900,7 @@ the centre stem inside palace 5, and did not show 天禽 next to 天芮.
 - deities starting from the chief star's palace: clockwise in Yang Dun with 勾陈/朱雀, anticlockwise in Yin Dun with 白虎/玄武
 - heaven stems following their stars
 - the earth plate 戊己庚辛壬癸丁丙乙 laid from the ju palace, forwards in Yang Dun and backwards in Yin Dun
-- the day changing at 23:00 (single Zi hour)
+- the day changing at 23:00 (single Zi hour), since changed to midnight with a Late Rat hour
 - Five Rats and Five Tigers
 - the Guest/Host strength rule
 
@@ -1842,7 +2035,7 @@ civil day wherever you are.
 
 Conventions used, since traditions differ:
 
-- The day pillar changes at 23:00 (晚子時 rolls to the next day).
+- The day pillar changes at midnight. 23:00–23:59 is the Late Rat hour: still today's day, with the next day's Zi stem.
 - Qimen uses the 拆補 yuan method with a rotating (轉盤) plate.
 - Zi Wei uses lunar month and day, so an accurate birth hour matters for the chart.
 - Luck pillars use the three-days-to-one-year rule.

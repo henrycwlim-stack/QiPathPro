@@ -29,9 +29,32 @@
   var current = 'now';
 
   /* ---------------- profile chart ---------------- */
+  /* ---------------- time zone at birth ---------------- */
+  // A named zone brings its own history (Singapore was UTC+7:30 until 1982). Blank means this device's current offset.
+  var BIRTH_ZONES = [['', 'This device\'s time zone (default)'], ['Asia/Singapore', 'Singapore'], ['Asia/Kuala_Lumpur', 'Malaysia (Peninsular)'], ['Asia/Kuching', 'Malaysia (Sabah, Sarawak)'],
+    ['Asia/Hong_Kong', 'Hong Kong'], ['Asia/Shanghai', 'China'], ['Asia/Taipei', 'Taiwan'], ['Asia/Jakarta', 'Indonesia (Jakarta)'], ['Asia/Bangkok', 'Thailand'], ['Asia/Manila', 'Philippines'],
+    ['Asia/Ho_Chi_Minh', 'Vietnam'], ['Asia/Tokyo', 'Japan'], ['Asia/Seoul', 'South Korea'], ['Asia/Kolkata', 'India'], ['Australia/Perth', 'Australia (Perth)'], ['Australia/Sydney', 'Australia (Sydney)'],
+    ['Europe/London', 'United Kingdom'], ['America/New_York', 'US Eastern'], ['America/Los_Angeles', 'US Pacific'], ['America/Vancouver', 'Canada (Vancouver)']];
+  function zoneOptions(sel) {
+    return BIRTH_ZONES.map(function (z) { return '<option value="' + z[0] + '"' + (z[0] === (sel || '') ? ' selected' : '') + '>' + z[1] + '</option>'; }).join('');
+  }
+  /** The UTC offset in hours of a named zone at a civil time, with that zone's history. Undefined if it cannot be read. */
+  function zoneOffset(zone, b) {
+    if (!zone) return undefined;
+    try {
+      var fmt = new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' });
+      var civil = Date.UTC(b.y, b.m - 1, b.d, b.hour, b.min), off = 0;
+      for (var i = 0; i < 3; i++) {
+        var o = {}; fmt.formatToParts(new Date(civil - off * 36e5)).forEach(function (x) { o[x.type] = +x.value; });
+        off = (Date.UTC(o.year, o.month - 1, o.day, o.hour, o.minute, o.second) - (civil - off * 36e5)) / 36e5;
+      }
+      return Math.round(off * 3600) / 3600;
+    } catch (e) { return undefined; }
+  }
   function enrich(p) {
-    var b = p.birth;
-    var pillars = C.fourPillars(b.y, b.m, b.d, b.hour, b.min);
+    var b = {}; Object.keys(p.birth).forEach(function (k) { b[k] = p.birth[k]; });
+    b.tz = zoneOffset(b.zone, b);
+    var pillars = C.birthPillars(b);
     var bazi = S.analyseBazi(pillars);
     var lunar = A.toLunar(b.y, b.m, b.d);
     var luck = S.luckPillars(pillars, p.gender, b);
@@ -103,7 +126,7 @@
     if (dp[0] < 1900 || dp[0] > 2100) { err.textContent = 'Enter a birth year between 1900 and 2100.'; return; }
     var salt = Math.random().toString(36).slice(2);
     var p = { id: 'p' + Date.now(), name: name, gender: $('nGender').value,
-              birth: { y: dp[0], m: dp[1], d: dp[2], hour: tp[0], min: tp[1] },
+              birth: { y: dp[0], m: dp[1], d: dp[2], hour: tp[0], min: tp[1], zone: $('nZone').value || undefined },
               salt: salt, pin: hashPin(pin, salt) };
     var list = loadProfiles(); list.push(p); saveProfiles(list);
     pendingId = p.id;
@@ -133,9 +156,10 @@
   var QM_OPTS_KEY = 'qipath.qm.opts';
   function loadQmOpts() {
     var o = null; try { o = JSON.parse(localStorage.getItem(QM_OPTS_KEY) || 'null'); } catch (e) { o = null; }
-    return { method: o && o.method === 'chaibu' ? 'chaibu' : 'zhirun', voidBy: o && o.voidBy === 'day' ? 'day' : 'hour' };
+    return { method: o && o.method === 'chaibu' ? 'chaibu' : 'zhirun', voidBy: o && o.voidBy === 'day' ? 'day' : 'hour', longRule: o && o.longRule === 'era' ? 'era' : 'yearly',
+      trueSolar: !!(o && o.trueSolar), lon: o && typeof o.lon === 'number' ? o.lon : 103.85 };
   }
-  function applyQmOpts(o) { if (S && S.setQimenOptions) S.setQimenOptions(o); }
+  function applyQmOpts(o) { if (S && S.setQimenOptions) S.setQimenOptions(o); C.setTrueSolar(o.trueSolar ? o.lon : null); }
   applyQmOpts(loadQmOpts());
   function qmMethodLabel(ch) {
     return ch.method === 'zhirun' ? ' <small>置闰 Zhi Run' + (ch.zhiRun && ch.zhiRun.leap ? ', 闰 repeat' : '') + '</small>'
@@ -203,21 +227,22 @@
     var a = String(v || '').split('-').map(Number);
     return (a.length === 3 && a[0]) ? { y: a[0], m: a[1], d: a[2] } : now();
   }
-  function branchToHour(b) { return b === 0 ? 23 : (b * 2 - 1); }
+  // The picker's value 12 is the Early Rat hour after midnight; 0 is the Late Rat hour before the next midnight.
+  function branchToHour(b) { return b === 12 ? 0 : b === 0 ? 23 : (b * 2 - 1); }
   function hourToBranch(h) { return Math.floor((((h + 1) % 24) + 24) % 24 / 2); }
 
   function hourOptions(sel) {
-    var out = '';
-    for (var b = 0; b < 12; b++) {
+    var out = '<option value="12"' + (sel === 12 ? ' selected' : '') + '>' + C.BRANCHES[0] + ' 00:00–00:59</option>';
+    for (var b = 1; b < 12; b++) {
       out += '<option value="' + b + '"' + (b === sel ? ' selected' : '') + '>' +
              C.BRANCHES[b] + ' ' + C.HOUR_RANGE[b] + '</option>';
     }
-    return out;
+    return out + '<option value="0"' + (sel === 0 ? ' selected' : '') + '>' + C.BRANCHES[0] + ' ' + C.HOUR_RANGE[0] + '</option>';
   }
 
   // Date + double-hour picker, defaulted to the current day and hour.
   function whenPicker(idDate, idHour, dt, label) {
-    var b = hourToBranch(dt.hour === undefined ? now().hour : dt.hour);
+    var hr = dt.hour === undefined ? now().hour : dt.hour, b = hr === 0 ? 12 : hourToBranch(hr);
     return '<div class="picker">' +
       '<div><label for="' + idDate + '">' + (label || 'Date') + '</label>' +
       '<input id="' + idDate + '" type="date" value="' + isoOf(dt) + '"></div>' +
@@ -261,7 +286,7 @@
       $(id + '-msg').innerHTML = saved
         ? '<div class="saved-tick">Saved to your records' +
           (saved.ai ? ', with the AI reading' : '') +
-          '. Find it under Profile &rsaquo; Saved records.</div>'
+          '. Find it under Journal &rsaquo; Saved Readings.</div>'
         : '<div class="err">Could not save — this browser is blocking storage.</div>';
       if (saved) { b.textContent = 'Saved'; lastSavedId = saved.id; }
     };
@@ -289,21 +314,37 @@
     return '<span class="str r' + st.rank + '" title="' + st.note + '">' + st.cn + ' ' + st.en + '</span>';
   }
 
+  // The compendium's rating for each stem pair in a palace.
+  function stemComboHtml(pa) {
+    var D = window.QPData, list = [D.stemCombo(pa.heavenStemCn, pa.earthStemCn)];
+    if (pa.heavenStem2Cn) list.push(D.stemCombo(pa.heavenStem2Cn, pa.earthStemCn));
+    if (pa.earthStem2Cn) list.push(D.stemCombo(pa.heavenStemCn, pa.earthStem2Cn));
+    return list.filter(Boolean).map(function (c) {
+      return '<div><b>' + c.heaven + '加' + c.earth + '</b> ' + c.cn + ' <small>' + esc(c.en) + '</small> <span class="' + c.rating + '-t">' + c.ratingCn + ' ' + c.ratingEn + '</span></div>';
+    }).join('');
+  }
+
   // Full detail card for one palace.
-  function palaceCard(pa, mansion, highlight) {
+  function palaceCard(pa, mansion, highlight, life) {
     if (!pa) return '';
+    var areas = life && life[pa.num], rim = window.QPSystems.qimenRimHex(pa);
     return '<div class="pcard ' + (pa.ring || '') + (highlight ? ' hit' : '') + '">' +
       '<h4>Palace ' + pa.num + ' ' + pa.name + ' &middot; ' + pa.dir +
       '<span>' + pa.elementCn + ' &middot; ' + (pa.ring === 'inner' ? 'inner' : 'outer') + ' palace</span></h4>' +
       '<div class="pgrid">' +
+      (areas ? '<div><b>Life area</b> ' + areas.map(function (a) { return a.en + ' ' + a.cn; }).join(' &middot; ') + '</div>' : '') +
       '<div><b>Heaven stem</b> ' + (pa.heavenStemCn || '—') + ' ' + strengthTag(pa.heavenStemStrength) +
         (pa.heavenStem2Cn ? ' <small>+ ' + pa.heavenStem2Cn + ' (centre stem, rides with 天芮)</small>' : '') + '</div>' +
       '<div><b>Earth stem</b> ' + (pa.earthStemCn || '—') + ' ' + strengthTag(pa.earthStemStrength) +
         (pa.earthStem2Cn ? ' <small>+ ' + pa.earthStem2Cn + ' (centre stem, lodged in 坤)</small>' : '') + '</div>' +
+      stemComboHtml(pa) +
       '<div><b>Star</b> ' + (pa.starCn || '—') + ' ' + strengthTag(pa.starStrength) +
         (pa.star2Cn ? ' <small>+ ' + pa.star2Cn + ' (centre star, rides with 天芮)</small>' : '') + '</div>' +
-      '<div><b>Door</b> ' + (pa.gate || '—') + ' ' + strengthTag(pa.gateStrength) + '</div>' +
+      (pa.hostGuest ? '<div><b>Host and Guest</b> ' + pa.hostGuest.cn + ' ' + pa.hostGuest.en + ' <small>' + pa.hostGuest.earth + ' ' + pa.hostGuest.earthStage.cn + ' at home. ' + esc(pa.hostGuest.note) + '</small></div>' : '') +
+      '<div><b>Door</b> ' + (pa.gate || '—') + ' ' + strengthTag(pa.gateStrength) +
+        (pa.gate && pa.gatePalace ? ' <small>' + pa.gatePalace.cn + ' ' + pa.gatePalace.en + ': ' + esc(pa.gatePalace.note) + '</small>' : '') + '</div>' +
       '<div><b>Deity</b> ' + (pa.spirit || '—') + ' ' + strengthTag(pa.spiritStrength) + '</div>' +
+      (rim ? '<div><b>Rim hexagram</b> ' + rim.name + ' ' + esc(rim.nameEn) + ' <small>' + rim.number + ' of 64. ' + pa.starCn + ' ' + rim.upper + ' ' + rim.upperEn + ' over ' + pa.gate + ' ' + rim.lower + ' ' + rim.lowerEn + '. Numbers ' + rim.top + ' and ' + rim.period + '.</small></div>' : '') +
       '<div><b>House branch</b> ' + (pa.branches.join(' ') || '—') + '</div>' +
       '<div><b>Void 空亡</b> ' + (pa.isEmpty ? '<span style="color:var(--cinnabar)">yes</span>' : 'no') + '</div>' +
       '<div><b>Envoy 值使</b> ' + (pa.isEnvoy ? '<span style="color:var(--brass)">yes</span>' : 'no') + '</div>' +
@@ -312,35 +353,163 @@
       '</div></div>';
   }
 
-  // The nine-palace plate, laid out in Luoshu order.
-  function plateHtml(chart, formations, highlight, onClickAttr) {
-    var order = [[4,9,2],[3,5,7],[8,1,6]];
-    var byPalace = {};
+  // The Qimen plate: pillar header, hexagram rim, direction frame and nine palaces.
+  var QB_TRAD = { '济':'濟','谦':'謙','随':'隨','过':'過','壮':'壯','损':'損','蛊':'蠱','丰':'豐','观':'觀','遁':'遯','离':'離','兑':'兌','剥':'剝','归':'歸','涣':'渙','复':'復','贲':'賁','颐':'頤','无':'無','讼':'訟','师':'師','临':'臨','晋':'晉','节':'節','渐':'漸','畜':'畜','辅':'輔','伤':'傷','惊':'驚','开':'開','门':'','阴':'陰' };
+  function qbT(s) { return String(s || '').split('').map(function (c) { return QB_TRAD[c] === undefined ? c : QB_TRAD[c]; }).join(''); }
+  var QB_DEITY = { '值符':['符','Chief',1], '腾蛇':['蛇','Snake',0], '太阴':['陰','Moon',1], '六合':['合','Harmony',1], '白虎':['虎','Tiger',0], '玄武':['玄','Tortoise',0], '九地':['地','Earth',1], '九天':['天','Heaven',1], '勾陈':['陳','Hook',1], '朱雀':['雀','Phoenix',0] };
+  var QB_STEM_PY = ['Jia','Yi','Bing','Ding','Wu','Ji','Geng','Xin','Ren','Gui'], QB_ELEM = ['Wood','Fire','Earth','Metal','Water'];
+  var QB_BR_PY = ['Zi','Chou','Yin','Mao','Chen','Si','Wu','Wei','Shen','You','Xu','Hai'], QB_BR_AN = ['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
+  var QB_BR_EL = ['Yang Water','Yin Earth','Yang Wood','Yin Wood','Yang Earth','Yin Fire','Yang Fire','Yin Earth','Yang Metal','Yin Metal','Yang Earth','Yin Water'];
+  var QB_DIR = { 4:['SE','巽','4木'], 9:['S','離','9火'], 2:['SW','坤','2土'], 3:['E','震','3木'], 7:['W','兌','7金'], 8:['NE','艮','8土'], 1:['N','坎','1水'], 6:['NW','乾','6金'] };
+  var QB_MONTH = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+
+  function qbStemPy(ch) { return QB_STEM_PY[C.STEMS.indexOf(ch)] || ''; }
+  function qbStemRed(ch) { return '乙丙丁戊'.indexOf(ch) >= 0 && ch !== ''; }
+  function qbFig(r) {
+    return '<span class="qhex">' + [5, 4, 3, 2, 1, 0].map(function (i) { return '<i' + (r.lines[i] ? '' : ' class="y"') + '></i>'; }).join('') + '</span>';
+  }
+  // Soft hyphens for the long hexagram words, so the narrow side rims break them at a syllable
+  // even where the browser has no hyphenation dictionary.
+  var QB_HY = 'Crea-tive Recep-tive Diffi-culty Begin-ning Youth-ful Con-flict To-gether Tread-ing Stand-still Fellow-ship Posses-sion Enthu-siasm Follow-ing Ap-proach Contem-plation Split-ting Inno-cence Nourish-ment Prepon-derance Cling-ing Influ-ence Dura-tion Prog-ress Darken-ing Oppo-sition Obstruc-tion Deliver-ance De-crease In-crease Break-through Gather-ing Oppres-sion Revolu-tion Caul-dron Arous-ing Develop-ment Marry-ing Abun-dance Wander-er Disper-sion Limita-tion Comple-tion'.split(' ');
+  function qbHy(s) {
+    return esc(s).split(' ').map(function (w) {
+      for (var i = 0; i < QB_HY.length; i++) if (QB_HY[i].replace('-', '') === w) return QB_HY[i].replace('-', '­');
+      return w;
+    }).join(' ');
+  }
+  function qbRim(chart, n, cls) {
+    var r = S.qimenRimHex(chart.palacesByNumber[n]);
+    if (!r) return '<div class="qrim ' + cls + '"></div>';
+    return '<div class="qrim ' + cls + '"><span class="qfig"><b>' + r.top + '</b>' + qbFig(r) + '<b>' + r.period + '</b></span>' +
+      '<span class="qnm">' + qbT(r.name) + '<small lang="en">' + qbHy(r.nameEn) + '</small></span></div>';
+  }
+  function qbTags(chart, res) {
+    var out = {};
+    if (!res) return out;
+    function seat(stem) {
+      var ch = C.STEMS[stem], hit = null;
+      [1, 2, 3, 4, 6, 7, 8, 9].forEach(function (n) {
+        var p = chart.palacesByNumber[n];
+        if (ch === '甲' ? p.isChief : (p.heavenStemCn === ch || p.heavenStem2Cn === ch)) hit = hit || n;
+      });
+      return hit;
+    }
+    function put(pil, t) { var n = seat(pil.stem); if (n) out[n] = (out[n] || '') + t; }
+    if (res.type === 'hour' || res.type === 'day') put(res.pillars.day, '<i class="qtg d">日</i>');
+    if (res.type === 'hour') put(res.pillars.hour, '<i class="qtg h">時</i>');
+    return out;
+  }
+
+  function plateHtml(chart, formations, highlight, onClickAttr, life, ctx) {
+    var byPalace = {}, res = ctx && ctx.res, tags = qbTags(chart, res);
+    var horse = res && res.basis ? S.horsePalace(res.basis.hourBranch) : 0;
     (formations || []).forEach(function (f) {
       (f.palaces || []).forEach(function (n) { (byPalace[n] = byPalace[n] || []).push(f); });
     });
-    return '<div class="plate">' + order.map(function (row) {
-      return row.map(function (n) {
-        var pa = chart.palacesByNumber[n];
-        if (!pa) return '<div class="pc"></div>';
-        var cls = n === 5 ? 'centre' : (pa.ring === 'inner' ? 'inner' : '');
-        if (n !== 5) cls += pa.gateRank === 2 ? ' good' : pa.gateRank === 0 ? ' bad' : '';
-        if (highlight && highlight.indexOf(n) >= 0) cls += ' hit';
-        var fs = byPalace[n] || [];
-        return '<div class="pc ' + cls + '"' + (onClickAttr ? ' data-pal="' + n + '"' : '') + '>' +
-          '<div class="hd">' + n + ' ' + pa.name + ' &middot; ' + pa.dir + '</div>' +
-          '<div class="stems">' + (pa.heavenStemCn || '·') + (pa.heavenStem2Cn || '') + '<br>' +
-            (pa.earthStemCn || '·') + (pa.earthStem2Cn || '') + '</div>' +
-          '<div class="sd">' + (pa.starCn || '') + (pa.star2Cn ? ' ' + pa.star2Cn : '') + '</div>' +
-          '<div class="dt">' + (pa.gate || '') + ' ' + (pa.spirit || '') + '</div>' +
-          '<div>' + (pa.branches.join('') || '') + '</div>' +
-          (pa.isEmpty ? '<span class="flag void">空</span>' : '') +
-          (pa.isEnvoy ? '<span class="flag envoy">使</span>' : '') +
-          (pa.isChief ? '<span class="flag chief">符</span>' : '') +
-          (fs.length ? '<span class="flag">格' + fs.length + '</span>' : '') +
-          '</div>';
-      }).join('');
-    }).join('') + '</div>';
+    function marks(n) {
+      var p = chart.palacesByNumber[n];
+      return (p.isEmpty ? '<i class="qmk" title="Void (DE)">空</i>' : '') + (horse === n ? '<i class="qmk" title="Horse Star (HS)">馬</i>' : '');
+    }
+    function lab(n) { var d = QB_DIR[n]; return '<b>' + d[0] + '</b><span>' + d[1] + '</span><small>' + d[2] + '</small>'; }
+    function cell(n) {
+      var pa = chart.palacesByNumber[n];
+      if (n === 5) {
+        return '<div class="qc qmid"' + (onClickAttr ? ' data-pal="5"' : '') + '><span class="qi"><b>' + (pa.heavenStemCn || pa.earthStemCn || '') + '</b></span>' +
+          '<div class="qju"><b>' + chart.ju + '</b><small>' + (chart.dun === '阴遁' ? 'Yin' : 'Yang') + ' Ju</small></div>' +
+          '<span class="qi"><b>' + (pa.earthStemCn || '') + '</b></span></div>';
+      }
+      var d = QB_DEITY[pa.spirit] || [pa.spirit || '', '', 0], star = (pa.starCn || '').slice(1);
+      var fs = (byPalace[n] || []).filter(function (f) { return f.category === 'auspicious' || f.category === 'hostile'; });
+      var cls = 'qc' + ([1, 8, 3, 4].indexOf(n) >= 0 ? ' sh' : '') + (highlight && highlight.indexOf(n) >= 0 ? ' hit' : '');
+      var red = function (x) { return x ? ' r' : ''; }, starRed = '英辅心任'.indexOf(star) >= 0, doorRed = pa.gateRank === 2 || pa.gate === '景门';
+      // Glyphs on the first line; the star's English centred on the next; the deity's right-aligned below it,
+      // so the labels never share a line in a narrow palace.
+      return '<div class="' + cls + '"' + (onClickAttr ? ' data-pal="' + n + '"' : '') + '>' +
+        '<div class="qr qtop">' +
+          '<span class="qg g1' + red(qbStemRed(pa.heavenStemCn)) + '">' + (pa.heavenStemCn || '') + '</span>' +
+          '<span class="qg g2' + red(starRed) + '">' + qbT(star) + (pa.star2Cn ? '<em>禽</em>' : '') + '</span>' +
+          '<span class="qg g3' + red(d[2]) + '">' + d[0] + '</span>' +
+          '<small class="qen s' + red(starRed) + '">' + esc(pa.starEn || '') + (pa.star2Cn ? ' + Bird' : '') + '</small>' +
+          '<span class="qsub">' + (pa.heavenStem2Cn ? '<em>' + pa.heavenStem2Cn + '</em>' : '') + (tags[n] || '') + (pa.isChief ? '<i class="qtg j">甲</i>' : '') + '</span>' +
+          '<small class="qen d' + red(d[2]) + '">' + d[1] + '</small>' +
+        '</div>' +
+        (fs.length ? '<div class="qfs">' + fs.slice(0, 5).map(function (f) {
+          return '<span class="' + (f.category === 'auspicious' ? 'r' : '') + '" title="' + esc(f.nameEn || '') + '">' + qbT(f.name) + '</span>'; }).join('') + '</div>' : '') +
+        (life && life[n] ? '<div class="qlf">' + life[n].map(function (a) {
+          return '<span' + (a.key === 'destiny' ? ' class="me"' : '') + '>' + a.en + '</span>'; }).join('') + '</div>' : '') +
+        '<div class="qr qbot">' +
+          '<span class="qg g1' + red(qbStemRed(pa.earthStemCn)) + '">' + (pa.earthStemCn || '') + '</span>' +
+          '<span class="qg g2' + red(doorRed) + '">' + (pa.isEnvoy ? '<i class="qtg e">使</i>' : '') + qbT(pa.gate) + '</span>' +
+          '<span class="qno">' + S.qimenFlownNumber(chart.ju, n) + '</span>' +
+          '<span class="qsub">' + (pa.earthStem2Cn ? '<em>' + pa.earthStem2Cn + '</em>' : '') + '</span>' +
+          '<small class="qen s' + red(doorRed) + '">' + esc(pa.gateEn || '') + '</small>' +
+        '</div>' +
+        '</div>';
+    }
+    var theme = ctx && ctx.natal ? ' natal' : res && res.type === 'day' ? ' day' : '';
+    return '<div class="qwrap" lang="en"><div class="qb' + theme + '">' +
+      qbRim(chart, 9, 't') +
+      '<div class="qside">' + qbRim(chart, 4, 'c') + qbRim(chart, 3, 'm') + qbRim(chart, 8, 'c') + '</div>' +
+      '<div class="qf">' +
+        '<div class="qst"><div>' + lab(4) + marks(4) + '</div><div class="ct">' + marks(9) + lab(9) + '</div><div class="rt">' + marks(2) + lab(2) + '</div></div>' +
+        '<div class="qmidrow"><div class="qsd">' + lab(3) + marks(3) + '</div><div class="qg">' + [4, 9, 2, 3, 5, 7, 8, 1, 6].map(cell).join('') + '</div><div class="qsd">' + lab(7) + marks(7) + '</div></div>' +
+        '<div class="qst"><div>' + lab(8) + marks(8) + '</div><div class="ct">' + marks(1) + lab(1) + '</div><div class="rt">' + marks(6) + lab(6) + '</div></div>' +
+      '</div>' +
+      '<div class="qside">' + qbRim(chart, 2, 'c') + qbRim(chart, 7, 'm') + qbRim(chart, 6, 'c') + '</div>' +
+      qbRim(chart, 1, 'b') +
+      '</div></div>' +
+      '<div class="hint plate-key">Red marks the favourable symbols and black the harder ones. Rim hexagram: the Star over the Door. Large number: the Ju in the centre, flown through the palaces. 空 on the frame marks a void palace, 馬 the Horse Star.</div>';
+  }
+
+  function qbClock(t) {
+    var m = /^(\d+):(\d+)$/.exec(t); if (!m) return t;
+    var h = +m[1], mi = m[2];
+    return (h % 12 || 12) + (mi === '00' ? '' : ':' + mi) + (h < 12 ? ' AM' : ' PM');
+  }
+  // Date banner and pillars above the plate.
+  function qbHead(res, natal) {
+    var w = res.when, p = res.pillars, type = res.type, when = '';
+    var date = ('0' + w.d).slice(-2) + ' ' + QB_MONTH[w.m - 1] + ' ' + w.y;
+    if (natal) when = date + ' | ' + qbClock(('0' + w.hour).slice(-2) + ':' + ('0' + w.min).slice(-2));
+    else if (type === 'hour') when = date + ' | ' + p.hourRange.split('–').map(qbClock).join(' - ');
+    else if (type === 'day') when = date;
+    else if (type === 'month') when = QB_MONTH[w.m - 1] + ' ' + w.y + ' | ' + p.month.cn + ' MONTH';
+    else when = p.solarYear + ' | ' + p.year.cn + ' YEAR';
+    var cols = type === 'hour' ? [['時','HOUR',p.hour,'Children / Investments'],['日','DAY',p.day,'Self'],['月','MONTH',p.month,'Career / Parents'],['年','YEAR',p.year,'Friends / Grandparents']]
+      : type === 'day' ? [['日','DAY',p.day,'']] : type === 'month' ? [['月','MONTH',p.month,'']] : [['年','YEAR',p.year,'']];
+    var showGod = type === 'hour';
+    return '<div class="qwrap"><div class="qhd' + (type === 'day' && !natal ? ' day' : '') + '"><div class="qban">' + when + '</div>' +
+      '<div class="qpil" style="grid-template-columns:repeat(' + cols.length + ',minmax(0,' + (cols.length > 1 ? '1fr' : '12em') + ')) 2em;justify-content:center">' +
+      cols.map(function (c) { return '<div class="qph"><b>' + c[0] + '</b> ' + c[1] + '</div>'; }).join('') + '<div class="qph qcap"></div>' +
+      cols.map(function (c) {
+        var god = showGod && c[2] !== p.day ? C.tenGod(p.day.stem, c[2].stem) : null;
+        return '<div class="qpc">' + (god ? '<span class="qgod">' + god.cn + '<small>' + esc(god.en) + '</small></span>' : '') +
+          '<small>' + c[3] + '</small><b>' + C.STEMS[c[2].stem] + '</b><small>' + QB_STEM_PY[c[2].stem].toUpperCase() + '<br>' + QB_ELEM[Math.floor(c[2].stem / 2)].toUpperCase() + '</small></div>'; }).join('') +
+      '<div class="qcap v">天干<small>STEM</small></div>' +
+      cols.map(function (c) {
+        return '<div class="qpc"><b>' + C.BRANCHES[c[2].branch] + '</b><small>' + QB_BR_PY[c[2].branch].toUpperCase() + '<br>' + QB_BR_AN[c[2].branch].toUpperCase() + '<br>' + QB_BR_EL[c[2].branch].toUpperCase() + '</small></div>'; }).join('') +
+      '<div class="qcap v">地支<small>BRANCH</small></div>' +
+      '</div></div></div>';
+  }
+  // Asker (day stem) and Focus Point (hour stem) panels for an hour chart.
+  function qbFocus(res) {
+    var ch = res.chart, p = res.pillars;
+    function seat(stem) {
+      var c = C.STEMS[stem], hit = null;
+      [1, 2, 3, 4, 6, 7, 8, 9].forEach(function (n) { var x = ch.palacesByNumber[n]; if (c === '甲' ? x.isChief : (x.heavenStemCn === c || x.heavenStem2Cn === c)) hit = hit || x; });
+      return hit;
+    }
+    function panel(title, stem) {
+      var pa = seat(stem), d = pa && (QB_DEITY[pa.spirit] || []), r = pa && S.qimenRimHex(pa);
+      if (!pa) return '';
+      return '<div class="qfp"><h5>' + title + '</h5><div class="qfst"><b>' + C.STEMS[stem] + '</b><small>' + QB_STEM_PY[stem].toUpperCase() + ' ' + QB_ELEM[Math.floor(stem / 2)].toUpperCase() + '</small></div>' +
+        [['Direction', QB_DIR[pa.num][1] + ' ' + pa.dir], ['Deity', (d[0] || '') + ' ' + (d[1] || '')], ['Star', qbT((pa.starCn || '').slice(1)) + ' ' + (pa.starEn || '')],
+         ['Door', qbT(pa.gate) + ' ' + (pa.gateEn || '')], ['Hexagram', r ? qbT(r.name) + ' ' + r.nameEn : '']].map(function (x) {
+          return '<div class="qfr"><span>' + x[0] + '</span><b>' + esc(x[1]) + '</b></div>'; }).join('') + '</div>';
+    }
+    var a = Math.floor(p.day.stem / 2), b = Math.floor(p.hour.stem / 2), A0 = C.STEMS[p.day.stem] + ' ' + QB_ELEM[a], B0 = C.STEMS[p.hour.stem] + ' ' + QB_ELEM[b];
+    var rel = a === b ? A0 + ' and ' + B0 + ' are the same element' : C.controls(a, b) ? A0 + ' controls ' + B0 : C.controls(b, a) ? B0 + ' controls ' + A0 : C.produces(a, b) ? A0 + ' feeds ' + B0 : B0 + ' feeds ' + A0;
+    return '<div class="qwrap"><div class="qfoc"><div class="qft">FOCUS POINT</div><div class="qfgrid">' + panel('ASKER', p.day.stem) + '<div class="qfrel">' + esc(rel) + '</div>' + panel('FOCUS POINT', p.hour.stem) + '</div></div></div>';
   }
 
 
@@ -632,7 +801,7 @@
       var rec = build(); rec.ai = loadNarr(kind, stamp) || null;
       var saved = R.save(user.id, rec);
       $(btnId + '-msg').innerHTML = saved ? '<div class="saved-tick">Saved to your records' + (saved.ai ? ', with the AI reading' : '') +
-        '. Find it under Profile &rsaquo; Saved records.</div>' : '<div class="err">Could not save — this browser is blocking storage.</div>';
+        '. Find it under Journal &rsaquo; Saved Readings.</div>' : '<div class="err">Could not save — this browser is blocking storage.</div>';
       if (saved) { savedId = saved.id; $(btnId).textContent = 'Saved'; }
     };
     return function (data) { if (savedId) R.attachAI(user.id, savedId, data); };
@@ -738,7 +907,7 @@
     aiPanel('aiQmYear', 'sysyear', stamp, function (cfg) { return window.QPAI.analyseQimenYear(cfg, user, a); }, YEAR_SECTIONS, attach);
   }
 
-  /* ---------------- Threat check, shared by Consult › Counter and the annual forecasts ---------------- */
+  /* ---------------- Threat check, shared by Strategy › Counter and the annual forecasts ---------------- */
   // 60-JiaZi timing casts many pilot plates, so every check fills it in from this queue after the page has
   // drawn: one job at a time, with a pause between, skipping jobs whose element has left the page.
   var jzQueue = [], jzBusy = false;
@@ -941,7 +1110,7 @@
   function ctMonthFor(tm, isoDate) {
     var hit = null; tm.forEach(function (m) { if (m.start <= isoDate && isoDate <= m.end) hit = m; }); return hit;
   }
-  var counterPrefill = null;     // { year } handed to Consult › Counter by "Open the full check"
+  var counterPrefill = null;     // { year } handed to Strategy › Counter by "Open the full check"
   function counterRecord(r, yr, when) {
     return { kind: 'counter', title: 'Threat check ' + yr + ' · ' + isoOf(when) + ' ' + r.hourRange,
       subtitle: r.threats.filter(function (t) { return t.verdict === 'Confirmed'; }).map(function (t) { return t.label; }).join(', ') ||
@@ -1076,7 +1245,7 @@
     return r;
   }
 
-  /* ---------------- Chart › Forecast: personalised annual forecast ---------------- */
+  /* ---------------- Seasons › BaZi Luck: personalised annual forecast ---------------- */
   var annualYear = new Date().getFullYear();
   function renderAnnual(year) {
     var host = $('annualHost'); if (!host) return;
@@ -1195,7 +1364,7 @@
     };
   }
 
-  /* ---------------- Consult › Forecast: the Question Oracle ---------------- */
+  /* ---------------- Strategy › Forecast: the Question Oracle ---------------- */
   var qFrame = null;      // { protocol, timeframe, options } applied to the next cast
   function strHash(s) { var h = 5381; s = String(s); for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
     return h.toString(36); }
@@ -1250,7 +1419,7 @@
       if (raw.length < 6 || /\[.*\]/.test(raw)) {
         out.innerHTML = '<div class="err">Type your question first (fill in any brackets).</div>'; return; }
       if (!aiReady()) {
-        out.innerHTML = '<div class="hint">The Question Oracle needs a Gemini or Claude key (Profile tab). Without one, use a ' +
+        out.innerHTML = '<div class="hint">The Question Oracle needs a Gemini or Claude key (Profile screen). Without one, use a ' +
           'question type above: one matter, one time frame with an end date, and for a choice, two real options.</div>';
         return;
       }
@@ -1293,7 +1462,7 @@
     };
   }
 
-  /* ---------------- Consult › Forecast: deep dive on the same chart ---------------- */
+  /* ---------------- Strategy › Forecast: deep dive on the same chart ---------------- */
   // The thread lives with the cast (its stamp), on the device, so it survives the app closing.
   function deepKey(stamp) { return 'qipath.deep.' + user.id + '.' + stamp; }
   function loadDeep(stamp) { try { return JSON.parse(localStorage.getItem(deepKey(stamp)) || '[]'); } catch (e) { return []; } }
@@ -1352,7 +1521,7 @@
     function ask() {
       var q = $('deepQ').value.trim();
       if (q.length < 6) { $('deepMsg').textContent = 'Type a follow-up question first.'; return; }
-      if (!aiReady()) { $('deepMsg').textContent = 'The deep dive needs a Gemini or Claude key (Profile tab).'; return; }
+      if (!aiReady()) { $('deepMsg').textContent = 'The deep dive needs a Gemini or Claude key (Profile screen).'; return; }
       $('deepGo').disabled = true; $('deepMsg').textContent = '';
       $('deepGo').insertAdjacentHTML('afterend', '<div class="empty" id="deepWait">Reading the same chart for this follow-up…</div>');
       window.QPAI.deepDive(loadAI(), r, user, loadNarr('forecast', stamp), thread, q).then(function (a) {
@@ -1377,7 +1546,7 @@
     }
   }
 
-  /* ---------------- Chart › Ask: a typed question read against all the charts ---------------- */
+  /* ---------------- Destiny › Ask: a typed question read against all the charts ---------------- */
   var ASK_EXAMPLES = [
     'What specific area of health should I take care of this year, and how do you recommend that I do it?',
     'I intend to resign this year and look for a new job. I have not found one yet. Should I?',
@@ -1462,7 +1631,7 @@
       if (q.length < 8) { $('askMsg').textContent = 'Type a question first.'; return; }
       if (!aiReady()) {
         $('askOut').innerHTML = '<div class="panel"><div style="font-size:.9rem;line-height:1.7">' +
-          'Add a Gemini or Claude API key on the Profile tab to ask a question.</div>' +
+          'Add a Gemini or Claude API key on the Profile screen to ask a question.</div>' +
           '<button class="btn ghost" id="askProfile">Open Profile</button></div>';
         $('askProfile').onclick = function () { show('profile'); };
         return;
@@ -1514,6 +1683,38 @@
             ['Animal sign', p.zodiac + ' <small>' + p.zodiacCn + '</small>']
           ])) +
         block('Elemental balance', 'weighted for the birth season', '<div class="rows">' + elemBars + '</div>') +
+        (function () {
+          var n = areasSafe(function () { return window.QPBazi.nayinAssessment(user, now()); });
+          if (!n) return '';
+          var tone = function (x) { return x.value > 0 ? 'good-t' : x.value <= -2 ? 'bad-t' : ''; };
+          var row = function (x) {
+            return [esc(x.pillar) + '<small>' + x.ganzhi + '</small>',
+              x.cn + ' <small>' + esc(x.en) + ' · ' + esc(x.area) + '</small><div class="plain">' + esc(x.plain) + '</div>' +
+              '<div class="plain"><span class="' + tone(x) + '">' + esc(x.relLabel) + ':</span> ' + esc(x.relText) + '.</div>'];
+          };
+          var linkTone = function (l) { return l.value > 0 ? 'good-t' : 'bad-t'; };
+          return block('Nayin 納音', 'a macro view of your whole life',
+            '<div class="plain" style="margin-bottom:8px">' + esc(n.summary) + '</div>' +
+            '<div class="plain" style="margin-bottom:8px">' + esc(n.selfText) + '</div>' +
+            '<div class="plain" style="margin-bottom:8px"><span class="' + (n.dialogue.value > 0 ? 'good-t' : 'bad-t') + '">Year and Day: ' + esc(n.dialogue.label) + '.</span> ' + esc(n.dialogue.text) + '</div>' +
+            '<div class="plain" style="margin-bottom:10px"><b>What to do:</b> ' + esc(n.advice) + '</div>' +
+            rows([[ 'Year · life sound<small>' + user.pillars.year.cn + '</small>', n.life.cn + ' <small>' + esc(n.life.en) + ' · ' + esc(n.life.elemEn) + '</small>' ]].concat(n.others.map(row))) +
+            '<h3 style="margin:14px 0 6px;font-size:.9rem">Harmony between life stages: ' + esc(n.harmony) + '</h3>' +
+            rows(n.links.map(function (l) { return [esc(l.fromStage) + '<small>' + esc(l.from) + ' to ' + esc(l.to) + '</small>', l.fromCn + ' → ' + l.toCn + '<div class="plain"><span class="' + linkTone(l) + '">' + esc(l.label) + ':</span> ' + esc(l.text) + '.</div>']; })) +
+            '<h3 style="margin:14px 0 6px;font-size:.9rem">Constitutional resilience: ' + esc(n.resilience) + '</h3>' +
+            '<div class="plain">' + esc(n.resilienceText) + (n.missing.length ? ' Missing from your four Nayin: ' + esc(n.missing.join(', ')) + '.' : '') + '</div>' +
+            '<h3 style="margin:14px 0 6px;font-size:.9rem">Ten-year phases</h3>' +
+            rows(n.phases.map(function (x) { return [esc(x.pillar) + (x.current ? ' <span class="good-t">now</span>' : '') + '<small>' + x.ganzhi + '</small>', x.cn + ' <small>' + esc(x.en) + '</small><div class="plain"><span class="' + tone(x) + '">' + esc(x.relLabel) + '</span></div>']; })) +
+            '<div class="hint">Nayin pairs each of the 60 stem and branch combinations with a sound element and an image, following the classical table in texts such as the 三命通會. The Year is your life sound, used for background, life structure and long phases. The Day is your self sound, used for temperament and inner constitution. It plays no part in your Day Master strength, favourable elements or Ten Gods, and it is not used for yearly or daily timing. The plain-English descriptions are QiPath\'s own.' +
+            (n.others.concat(n.phases).some(function (x) { return x.rel === 'refined'; }) ? ' "Refines you" comes from a traditional saying we have not confirmed in a classical text, yet it still counts towards your support and resilience results.' : '') + '</div>');
+        })() +
+        (function () {
+          var x = areasSafe(function () { return window.QPXiu.profile(user); });
+          if (!x) return '';
+          var one = function (m, tag) { return [tag + '<small>' + m.cn + '宿 ' + esc(m.en) + '</small>', '<div class="plain"><b>Inclination:</b> ' + esc(m.mind) + '</div><div class="plain"><b>Work that suits:</b> ' + esc(m.work) + '</div><div class="plain"><b>Hidden theme:</b> ' + esc(m.theme) + '</div>']; };
+          return block('Birth mansions 二十八宿', 'inclinations and themes', '<div class="plain" style="margin-bottom:8px">' + esc(x.summary) + '</div>' + rows([one(x.hour, 'Birth hour'), one(x.day, 'Birth day')]) +
+            '<div class="hint">The day mansion follows the unbroken 28-day cycle, and the hour mansion follows 七元禽星. The descriptions are QiPath\'s own, drawn from each mansion\'s traditional image, and they sit alongside your Bazi rather than changing it.</div>');
+        })() +
         block('滴天髓 reading', 'the classical frame',
           (function () {
             var D = user.deep, out = '';
@@ -1841,6 +2042,7 @@
       if (err) { host.innerHTML = '<div class="notice">' + esc(err) + '</div>'; return; }
       var ch = res.chart;
       var dp = Q2.destinyProfile(res, user);
+      var life = Q2.lifePalaces(ch, dp);
       lastSavedId = null; currentAI = null;
 
       host.innerHTML =
@@ -1849,7 +2051,7 @@
           ' ' + pad2(user.birth.hour) + ':' + pad2(user.birth.min),
           '<div class="panel" style="font-size:.88rem;line-height:1.7;color:var(--muted)">' +
           'This plate is fixed for life. It is read as a natal chart — the standing configuration ' +
-          'you work from — not as a timing chart. Compare it against the hourly plates in Consult, ' +
+          'you work from — not as a timing chart. Compare it against the hourly plates in Seasons, ' +
           'which change every two hours.</div>' +
           rows([
             ['Four pillars', res.pillars.year.cn + ' ' + res.pillars.month.cn + ' ' +
@@ -1870,11 +2072,10 @@
         destinyProfileHtml(dp) +
 
         block('Your natal nine palaces', 'tap a palace for full detail',
-          plateHtml(ch, res.formations, [], true) +
-          '<div class="panel" style="margin-top:10px;font-size:.8rem;line-height:1.7;color:var(--muted)">' +
-          'Outer ring (green edge) are the four cardinal palaces; shaded cells are the inner ' +
-          'corners. \u7A7A void &middot; \u4F7F envoy gate &middot; \u7B26 chief star &middot; ' +
-          '\u683C structures present.</div>' + saveBar('dsSave', 'Save this chart')) +
+          qbHead(res, true) + plateHtml(ch, res.formations, [], true, life.byPalace, { res: res, natal: true }) +
+          rows(life.list.map(function (a) {
+            return [a.en + ' <small>' + a.cn + '</small>', a.palace + ' ' + a.name + ' &middot; ' + a.dir + ' <small>' + a.basis + '</small>']; })) +
+          saveBar('dsSave', 'Save this chart')) +
 
         block('Standing structures', res.formations.length + ' in the natal plate',
           res.formations.length
@@ -1893,13 +2094,13 @@
 
         block('All palaces in full', '',
           [4,9,2,3,7,8,1,6].map(function (n) {
-            return palaceCard(ch.palacesByNumber[n], ch.mansion, false); }).join('')) +
+            return palaceCard(ch.palacesByNumber[n], ch.mansion, false, life.byPalace); }).join('')) +
 
         (function () { var ar = areasSafe(function () { return Q2.areasDestiny(res, user); });
           return ar ? lifeAreasHtml(ar, 'Your twelve life areas', 'the classical symbol for each area on your destiny chart, against your own seat') : ''; })() +
         block('AI reading of your destiny chart', '', '<div id="aiDestiny"></div>');
 
-      wirePlateTaps('chartBody', ch, res.formations);
+      wirePlateTaps('chartBody', ch, res.formations, life.byPalace);
       wireSave('dsSave', function () {
         return { kind:'chart',
           title: 'Qimen destiny chart \u00b7 ' + res.pillars.day.cn,
@@ -1913,6 +2114,7 @@
             mansion: ch.mansion.cn, voids: ch.voidBranches,
             plate: snapshotPlate(ch),
             destiny: dp.destiny, lifeStar: dp.lifeStar, lifeGua: dp.lifeGua, dayMaster: dp.dayMaster,
+            lifePalaces: life.list,
             dmStars: dp.stars.map(function (s) { return { en: s.en, cn: s.cn, branches: s.branches.map(function (b) {
               return b.branch + ' P' + b.palace + ' ' + b.dir; }) }; }).concat([dp.mindPalace, dp.soulPalace].map(function (m) {
               return { en: m.en, cn: m.cn, branches: [m.pillar + ' ' + m.name + ' P' + m.palace + ' ' + m.dir] }; })),
@@ -1930,11 +2132,19 @@
           { label:'Where it snags', path:'weaknesses' },
           { label:'How to work with it', path:'guidance' }
         ]);
-      host.insertAdjacentHTML('beforeend', block('Annual forecast 年盘', 'your Day Stem on each year\'s and month\'s plate', '<div id="qmAnnualHost" class="stack-sm"></div>'));
+    }
+    else if (chartK === 'zodiac') { renderZodiac(host); }
+    else if (chartK === 'qizheng') { renderQiZheng(host); }
+    else if (chartK === 'heluo') { renderHeLuo(host); }
+    else if (chartK === 'combined') { renderCombined(host); }
+    else if (chartK === 'mobility') { renderMobility(host); }
+    else if (chartK === 'qmseason') {
+      host.innerHTML = block('Annual forecast 年盘', 'your Day Stem on each year\'s and month\'s plate', '<div id="qmAnnualHost" class="stack-sm"></div>');
       renderQimenAnnual(yearSel.qimen);
     }
 
-    else if (chartK === 'zwds') {
+    else if (chartK === 'zwds' || chartK === 'zwperiods') {
+      var zwPeriods = chartK === 'zwperiods';
       var z = user.zwds;
       var zf = window.QPFib.zwds(user);
       var QMz = window.QPMath, zser = QMz.zwdsSeries(user, 120);
@@ -1964,7 +2174,26 @@
       cells += '<div class="mid"><div class="big">' + (z.mingStars.join(' ') || '空宫') + '</div>' +
         '<div class="sm">' + z.juCn + ' · ' + z.juEn + '<br>Life palace in ' + C.BRANCHES[z.ming] +
         '<br>Body palace in ' + C.BRANCHES[z.shen] + '</div></div>';
-      host.innerHTML =
+      host.innerHTML = zwPeriods ?
+        zwdsForecastHtml(zf) +
+        quantGroup('Quantitative analysis',
+          (zgm ? 'This year <b>' + zgm.stance + '</b> &middot; ' : '') + 'decade ' + (zfz.handover ? 'in handover' : 'settled'),
+          block('This year&rsquo;s stance', 'game theory — you against others, ' + new Date().getFullYear(),
+            gameHtml(zgm, 'You are this flow year&rsquo;s Life palace field; others are its 交友 palace (friends, rivals, ' +
+              'subordinates). Initiative t comes from where the year&rsquo;s 化权 and 化忌 fall; Maneuver is valued by each ' +
+              'side&rsquo;s 迁移 (movement) palace; a is the difference of the two fields&rsquo; scores.')) +
+          block('Fuzzy decade handover', 'graduated 大限 transitions', zwdsFuzzyHtml(zfz)) +
+          block('Year-to-year dynamics', 'Markov chain over the 120-year flow-year series',
+            markovHtml(zdy.markov, { short: ['Flour', 'Supp', 'Mixed', 'Strain'], unit: 'years', unitOne: 'year',
+              target: 'Flourishing', horizon: 'the series',
+              hint: 'P is estimated from the ' + zdy.markov.transitions + ' year-to-year transitions of the whole 120-year flow-year ' +
+                'series, and anchored on this year' })) +
+          block('Harmonic cycles', 'Fourier analysis of the flow-year series',
+            harmonicsHtml(zdy.harmonics, { id: 'zwds', window: [Math.max(0, zdy.harmonics.tNow - 15), Math.min(119, zdy.harmonics.tNow + 20)],
+              note: 'The flow-year Life palace rotates through all twelve palaces, and the 四化 follow the ten stems, so 12- and ' +
+                '10-year cycles are built in; a strong 2-year term is the yin–yang alternation of the year stems.' }))) +
+        block('AI forecast', '大限, 流年, 四化 and Fibonacci timing', '<div id="aiZwFc"></div>')
+        :
         block('Zi Wei Dou Shu', 'lunar ' + user.lunar.month + '/' + user.lunar.day +
           (user.lunar.leap ? ' leap' : '') + ' · hour ' + C.BRANCHES[user.pillars.hourBranch],
           '<div class="board">' + cells + '</div>') +
@@ -1986,36 +2215,21 @@
                 '<span class="v">' + (starsBright(x) || '<span style="color:var(--muted)">no major star</span>') +
                 (minorsLine(x) ? '<small>' + minorsLine(x) + '</small>' : '') + '</span></div>';
             }).join('') + '</div>') +
-        zwdsForecastHtml(zf) +
         quantGroup('Quantitative analysis',
-          (zgm ? 'This year <b>' + zgm.stance + '</b> &middot; ' : '') + 'clarity ' + ordinal(zen.percentile) + ' pct &middot; ' +
-          'decade ' + (zfz.handover ? 'in handover' : 'settled') + ' &middot; birth time ' +
+          'clarity ' + ordinal(zen.percentile) + ' pct &middot; birth time ' +
           (zch.fragile ? 'fragile' : zch.tests.some(function (t) { return t.changes.length; }) ? 'sensitive' : 'robust') +
           ' &middot; support pools in ' + zfl.supportHub.name + ', 忌 sink ' + zfl.jiSink.name,
-          block('This year&rsquo;s stance', 'game theory — you against others, ' + new Date().getFullYear(),
-            gameHtml(zgm, 'You are this flow year&rsquo;s Life palace field; others are its 交友 palace (friends, rivals, ' +
-              'subordinates). Initiative t comes from where the year&rsquo;s 化权 and 化忌 fall; Maneuver is valued by each ' +
-              'side&rsquo;s 迁移 (movement) palace; a is the difference of the two fields&rsquo; scores.')) +
           block('Board clarity', 'Shannon entropy', entropyHtml(zen, 'boards')) +
-          block('Fuzzy decade handover', 'graduated 大限 transitions', zwdsFuzzyHtml(zfz)) +
           block('Birth-time sensitivity and life chapters', 'non-linear dynamics', zwdsChaosHtml(zch)) +
-          block('Flying-star network', 'tensor, matrix and graph theory on 宫干飞化', zwdsFlyingHtml(zfl)) +
-          block('Year-to-year dynamics', 'Markov chain over the 120-year flow-year series',
-            markovHtml(zdy.markov, { short: ['Flour', 'Supp', 'Mixed', 'Strain'], unit: 'years', unitOne: 'year',
-              target: 'Flourishing', horizon: 'the series',
-              hint: 'P is estimated from the ' + zdy.markov.transitions + ' year-to-year transitions of the whole 120-year flow-year ' +
-                'series, and anchored on this year' })) +
-          block('Harmonic cycles', 'Fourier analysis of the flow-year series',
-            harmonicsHtml(zdy.harmonics, { id: 'zwds', window: [Math.max(0, zdy.harmonics.tNow - 15), Math.min(119, zdy.harmonics.tNow + 20)],
-              note: 'The flow-year Life palace rotates through all twelve palaces, and the 四化 follow the ten stems, so 12- and ' +
-                '10-year cycles are built in; a strong 2-year term is the yin–yang alternation of the year stems.' }))) +
+          block('Flying-star network', 'tensor, matrix and graph theory on 宫干飞化', zwdsFlyingHtml(zfl))) +
         (function () { var ar = areasSafe(function () { return window.QPFib.zwdsAreasNatal(user); });
           return ar ? lifeAreasHtml(ar, 'Your twelve life areas', 'from the palaces of your birth board') : ''; })() +
-        block('AI reading of your Zi Wei chart', '', '<div id="aiZwds"></div>') +
-        block('AI forecast', '大限, 流年, 四化 and Fibonacci timing', '<div id="aiZwFc"></div>');
+        block('AI reading of your Zi Wei chart', '', '<div id="aiZwds"></div>');
 
       wireCharts();
-      var zwCt = mountCounter('aiZwFc', 'zwds', { subtitle: 'this year\'s threats on the plate of this double-hour' });
+      var zwCt = null;
+      if (zwPeriods) {
+      zwCt = mountCounter('aiZwFc', 'zwds', { subtitle: 'this year\'s threats on the plate of this double-hour' });
       aiPanel('aiZwFc', 'zwdsforecast', 'math3.' + new Date().getFullYear() + '.ct',
         function (cfg) { return window.QPAI.withCounter(zwCt ? counterText(zwCt) : null, function () { return window.QPAI.analyseZwdsForecast(cfg, user, zf,
           { entropy: zen, fuzzy: zfz, chaos: zch, game: zgm, flying: zfl, dynamics: zdy }); }); }, [
@@ -2036,7 +2250,10 @@
           { label:'Strategy', path:'strategy' },
           { label:'What would change this', path:'caution' }
         ]);
-
+      host.insertAdjacentHTML('beforeend', block('Annual forecast 流年', 'the flow-year palaces and the year\'s 四化', '<div id="zwAnnualHost" class="stack-sm"></div>'));
+      renderZwdsAnnual(yearSel.zwds);
+      } else {
+      try { zwCt = window.QPQimen.threatBridge(user, now().y, now(), { days: 5 }); } catch (e) { zwCt = null; }
       aiPanel('aiZwds', 'zwds', 'v1.ct', function (cfg) {
         return window.QPAI.withCounter(zwCt ? counterText(zwCt) : null, function () { return window.QPAI.analyseZwds(cfg, user); });
       }, [
@@ -2047,8 +2264,7 @@
         { label: 'Relationships 夫妻', path: 'relationships' },
         { label: 'Guidance', path: 'guidance' }
       ]);
-      host.insertAdjacentHTML('beforeend', block('Annual forecast 流年', 'the flow-year palaces and the year\'s 四化', '<div id="zwAnnualHost" class="stack-sm"></div>'));
-      renderZwdsAnnual(yearSel.zwds);
+      }
     }
     else {
       var em = user.mansions;
@@ -2235,6 +2451,8 @@
 
   var consultK = 'sancai';
   var manifestPick = null;
+  var manifestDetails = { aspects: '', returns: '', stage: 'prime', goal: 'wealth', ask: null };   // kept when the form is rebuilt
+  var manifestSearch = { days: 14, daytime: true, from: null, found: null, scroll: false };
   var searchState = { ids: [], from: null, to: null, results: null, picked: null, cat: 'auspicious', waking: true, sort: 'best' };
 
   function toneCls(t) { return t === 'good' ? 'good' : t === 'danger' ? 'danger' : 'neutral'; }
@@ -2634,7 +2852,7 @@
         ['Hour boundary', bc.minutesToHourBoundary + ' min ahead <small>' + bc.minutesSinceHourBoundary + ' min since the last</small>'],
         ['Month boundary 節', '<small>' + bc.jie.map(function (j) { return esc(j.name) + ' ' + (j.hours < 0 ? Math.abs(j.hours) + ' h before birth'
           : j.hours + ' h after'); }).join(' &middot; ') + '</small>'],
-        ['Day boundary', bc.minutesToDayEdge + ' min <small>from 23:00 / midnight</small>'],
+        ['Day boundary', bc.minutesToDayEdge + ' min <small>from midnight</small>'],
         ['Luck-pillar start', '&plusmn;' + bc.luckShiftPerHourDays + ' days <small>per hour of birth-time error (3 days of the solar ' +
           'term = 1 year of age)</small>']
       ]) +
@@ -2785,7 +3003,7 @@
         ['Life Stem', d.lifeStem + ' <small>' + esc(d.lifeStemEn) + (d.hiddenUnder ? ' — 甲 hides under ' + d.hiddenUnder : '') +
           ' &middot; over earth stem ' + d.earthStem + '</small>'],
         ['Door of Destiny', esc(d.door) + ' <small>' + esc(d.doorEn) + (d.doorStrength ? ' &middot; ' + d.doorStrength.cn + ' ' +
-          d.doorStrength.en : '') + '</small>'],
+          d.doorStrength.en : '') + (d.doorPalace ? ' &middot; ' + d.doorPalace.cn + ' ' + d.doorPalace.en : '') + '</small>'],
         ['Star of Destiny', esc(d.star) + ' <small>' + esc(d.starEn) + (d.starStrength ? ' &middot; ' + d.starStrength.cn + ' ' +
           d.starStrength.en : '') + '</small>'],
         ['Guardian of Destiny', esc(d.guardian) + ' <small>the deity seated with your Life Stem</small>'],
@@ -2807,7 +3025,7 @@
             '</small><small>' + esc(m.rule) + '</small>'];
         }))) +
       '<div class="hint">Each star is taken from your Day Master (or, for Peach Blossom and Sky Horse, your day branch), ' +
-      'using the same tables as Chart › Relations, and placed on the plate by its branch. &ldquo;In your … pillar&rdquo; ' +
+      'using the same tables as Destiny › Relations, and placed on the plate by its branch. &ldquo;In your … pillar&rdquo; ' +
       'means the branch also appears in your Four Pillars.</div>');
     return palaceBlock + starsBlock;
   }
@@ -2990,7 +3208,7 @@
         'The Fibonacci projection and golden points are a QiPath synthesis on top.</div>');
   }
 
-  /* ---------------- Consult › Structures: the strongest palaces in the hourly charts ahead ---------------- */
+  /* ---------------- Strategy › Structures: the strongest palaces in the hourly charts ahead ---------------- */
   // The scan casts about 720 hourly plates, so it runs after the page draws and is kept for the day.
   var structCache = null, STRUCT_DAYS = 60;
   function structureScanToday() {
@@ -3032,6 +3250,568 @@
     $('segConsult').querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.k === 'manifest')); });
     show('consult');
   }
+  /* ---------------- annual planner ---------------- */
+  var plannerState = null;   // { key, start, plan } for the active profile
+  function plannerDate(s) { return { y: +s.slice(0, 4), m: +s.slice(5, 7), d: +s.slice(8, 10) }; }
+  function plannerPretty(s) { return +s.slice(8, 10) + ' ' + MON[+s.slice(5, 7) - 1].slice(0, 3) + ' ' + s.slice(0, 4); }
+  // Twelve months around the neutral 50, up in green and down in red, each bar carrying its own value.
+  function plannerChart(months) {
+    return '<div class="pl-chart" role="img" aria-label="Overall score for each of the twelve months; 50 is neutral">' + months.map(function (m) {
+      var h = Math.min(50, Math.abs(m.score - 50) * 2.2);
+      return '<div class="pl-col" title="' + plannerPretty(m.start) + ' to ' + plannerPretty(m.end) + ': ' + m.score + '">' +
+        '<div class="pl-half">' + (m.score >= 50 ? '<b>' + m.score + '</b><i class="up" style="height:' + h + '%"></i>' : '') + '</div>' +
+        '<div class="pl-half dn">' + (m.score < 50 ? '<i class="down" style="height:' + h + '%"></i><b>' + m.score + '</b>' : '') + '</div>' +
+        '<small>' + MON[+m.start.slice(5, 7) - 1].slice(0, 3) + '</small></div>';
+    }).join('') + '</div>';
+  }
+  function plannerMonthHtml(m) {
+    var day = function (x) { return x.d + ' ' + MON[x.m - 1].slice(0, 3) + ' <small>' + x.pillar.cn + '</small>'; };
+    return '<details class="tech pl-month"><summary><b>' + m.pillar.cn + '</b> ' + plannerPretty(m.start) + ' to ' + plannerPretty(m.end) +
+        ' <span class="' + (m.score >= 50 ? 'good-t' : 'bad-t') + '">' + m.score + '</span></summary>' +
+      '<div class="plain">' + esc(m.god.en + ': ' + m.godText) + '</div>' +
+      block('Month plate', 'you are in the ' + esc(m.seat.dir) + ' palace', plateHtml(m.res.chart, m.res.formations, [m.seat.num], false, null, { res: m.res }) +
+        '<div class="plain" style="margin-top:8px">' + esc('Your position is ' + m.seat.word + '.') + '</div>') +
+      block('Directions and days', '', rows([
+        ['Directions that help', esc(m.dirs.best.map(function (x) { return x.dir; }).join(', '))],
+        ['Directions to limit', esc(m.dirs.avoid.map(function (x) { return x.dir; }).join(', '))],
+        ['Best days', m.goodDays.map(day).join(', ')],
+        ['Days to go easy', m.avoidDays.map(day).join(', ')]
+      ])) +
+      (m.forces.length ? block('The month and your birth chart', '', rows(m.forces.map(function (f) {
+        return ['<span class="' + (f.tone === 'good' ? 'good-t' : 'bad-t') + '">' + esc(f.title) + '</span>', esc(f.text)]; }))) : '') +
+      lifeAreasHtml(m.areas.map(function (x) { return { key: x.key, label: x.label, cn: x.cn, level: x.level, plain: x.plain, todo: x.todo, signals: [], score: x.score }; }), 'Life areas', '') +
+      '</details>';
+  }
+  function plannerBytesToBase64(bytes, from, to) {
+    var bin = '', step = 0x8000;
+    for (var i = from; i < to; i += step) bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + step, to)));
+    return btoa(bin);
+  }
+  // In the app: written to the cache in pieces, then offered through the share sheet. In a browser: a download.
+  function plannerSave(pdf) {
+    var FS = capPlugin('Filesystem'), SH = capPlugin('Share');
+    if (!FS || !SH) {
+      var a = document.createElement('a'), url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
+      a.href = url; a.download = pdf.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+      return Promise.resolve();
+    }
+    var CHUNK = 3 * 512 * 1024, total = pdf.bytes.length;   // a multiple of 3, so each piece is valid base64 on its own
+    function part(at) {
+      if (at >= total) return Promise.resolve();
+      var end = Math.min(at + CHUNK, total), data = plannerBytesToBase64(pdf.bytes, at, end);
+      var opt = { path: pdf.name, directory: 'CACHE', data: data };
+      return (at === 0 ? FS.writeFile(opt) : FS.appendFile(opt)).then(function () { return part(end); });
+    }
+    return part(0).then(function () { return FS.getUri({ path: pdf.name, directory: 'CACHE' }); })
+      .then(function (r) { return SH.share({ title: 'QiPath Annual Planner', files: [r.uri], dialogTitle: 'Save or send your planner' }); })
+      .catch(function (e) { if (!/cancel/i.test(String(e && e.message))) throw e; });
+  }
+  function renderPlanner(host) {
+    var t = now(), opts = window.QPPlanner.startOptions({ y: t.y, m: t.m, d: t.d });
+    var st = plannerState && plannerState.key === user.id ? plannerState : null;
+    var sel = st ? st.start : opts[0].value;
+    host.innerHTML =
+      '<div class="hint" style="margin-top:0">Twelve solar months for ' + esc(user.name) + ', read from your birth chart and the Qimen month plates, with a PDF you can keep.</div>' +
+      block('Annual planner', 'generated on this device',
+        '<div class="panel"><label for="plStart">First month</label><select id="plStart">' + opts.map(function (o) {
+          return '<option value="' + o.value + '"' + (o.value === sel ? ' selected' : '') + '>' + o.label + '</option>'; }).join('') + '</select>' +
+        '<button class="btn" id="plGo">Create planner</button></div>') +
+      '<div id="plOut"></div>';
+    function show(plan) {
+      var ranked = plan.months.slice().sort(function (a, b) { return b.score - a.score; });
+      $('plOut').innerHTML =
+        block('Your twelve months', plannerPretty(plan.from) + ' to ' + plannerPretty(plan.to),
+          plannerChart(plan.months) +
+          '<div class="hint">Scores run from 0 to 100, with 50 as neutral. The scale is QiPath\'s own and only compares your months with each other.</div>' +
+          rows([['Strongest', ranked.slice(0, 3).map(function (m) { return m.pillar.cn + ' ' + plannerPretty(m.start); }).join(', ')],
+                ['Pace yourself', ranked.slice(-3).reverse().map(function (m) { return m.pillar.cn + ' ' + plannerPretty(m.start); }).join(', ')]]) +
+          '<button class="btn" id="plPdf" style="margin-top:12px">Save as PDF</button><div class="hint" id="plMsg" role="status"></div>') +
+        block('Month by month', 'tap a month to open it', plan.months.map(plannerMonthHtml).join(''));
+      $('plPdf').onclick = function () {
+        var btn = $('plPdf'), msg = $('plMsg');
+        btn.disabled = true; msg.textContent = 'Creating your PDF…';
+        setTimeout(function () {
+          var p;
+          try { p = window.QPPlanner.toPdf(plan); }
+          catch (e) { btn.disabled = false; msg.textContent = 'Could not create the PDF: ' + e.message; return; }
+          plannerSave(p).then(function () {
+            btn.disabled = false; msg.textContent = p.pages + ' pages, ' + (p.bytes.length / 1048576).toFixed(1) + ' MB · ' + p.name;
+          }).catch(function (e) {
+            btn.disabled = false; msg.textContent = 'Could not save the PDF: ' + ((e && e.message) || e);
+          });
+        }, 30);
+      };
+    }
+    $('plGo').onclick = function () {
+      var start = $('plStart').value;
+      $('plOut').innerHTML = '<div class="empty">Reading twelve months…</div>';
+      setTimeout(function () {
+        try {
+          var plan = window.QPPlanner.build(user, plannerDate(start));
+          plannerState = { key: user.id, start: start, plan: plan };
+          show(plan);
+        } catch (e) { $('plOut').innerHTML = '<div class="notice">' + esc(e.message) + '</div>'; }
+      }, 30);
+    };
+    if (st) show(st.plan);
+  }
+
+  /* ---------------- the 28 constellations ---------------- */
+  function xiuName(m) { return m.cn + '宿 <small>' + esc(m.en) + ' · ' + esc(m.group) + ' · ' + esc(m.luminary) + '</small>'; }
+  function postureHtml(p, chart, noHour) {
+    var t = window.QPXiu.posture(p, chart), hg = window.QPSystems.hostGuestRead(chart, !noHour);
+    return block('Tactical posture', 'Host and Guest, from the compendium',
+      '<div style="font-size:1.1rem;margin-bottom:4px" class="' + (hg.side === 'guest' ? 'good-t' : hg.side === 'neither' ? 'bad-t' : 'mid-t') + '">' + esc(hg.name) + '</div>' +
+      '<div class="plain" style="margin-bottom:6px">' + esc(hg.advice) + '</div>' +
+      hg.why.map(function (w) { return '<div class="plain" style="margin-bottom:4px">' + esc(w) + '</div>'; }).join('') +
+      '<div class="hint">Across the eight outer palaces, ' + hg.tally.guest + ' favour the Guest and ' + hg.tally.host + ' favour the Host. The Guest star is on the heaven plate, and the Host star is the one native to the palace.</div>') +
+      block('Mansion background', 'from the day and hour mansions',
+      '<div style="font-size:1.1rem;margin-bottom:4px" class="' + (t.name === 'Assertive' ? 'good-t' : t.name === 'Defensive' ? 'bad-t' : 'mid-t') + '">' + t.name + '</div>' +
+      '<div class="plain" style="margin-bottom:6px">' + esc(t.advice) + '</div>' +
+      t.why.map(function (w) { return '<div class="plain" style="margin-bottom:4px">' + esc(w) + '</div>'; }).join('') +
+      '<div class="hint">QiPath\'s own reading of the mansions\' quarter, luminary and traditional auspice. Take it as background context, not as a decision.</div>');
+  }
+  function xiuChartHtml(res, type) {
+    var X = window.QPXiu, m = X.ofPillars(res.pillars), ch = res.chart, hourly = type === 'hour';
+    var r = [['Day mansion', xiuName(m.day) + '<div class="plain ' + (m.day.auspicious ? 'good-t' : 'bad-t') + '">' + (m.day.auspicious ? 'Traditionally auspicious' : 'Traditionally inauspicious') + '</div>']];
+    if (hourly) r.push(['Hour mansion', xiuName(m.hour) + '<div class="plain ' + (m.hour.auspicious ? 'good-t' : 'bad-t') + '">' + (m.hour.auspicious ? 'Traditionally auspicious' : 'Traditionally inauspicious') + '</div>']);
+    var html = block('28 constellations 二十八宿', hourly ? 'ruling this day and hour' : 'ruling this day', rows(r)) +
+      block('Constellations by palace', 'their fixed positions on the luo pan', rows([4, 9, 2, 3, 7, 8, 1, 6].map(function (n) {
+        return [n + ' ' + ch.palacesByNumber[n].name + '<small>' + ch.palacesByNumber[n].dir + '</small>', X.palaceMansions(n).map(function (x) { return x.cn + ' <small>' + esc(x.en) + '</small>'; }).join(', ')];
+      })));
+    if (!hourly) return html;
+    var fav = user.deep ? user.deep.favourable : null, sv = X.sevenStars(ch, res.formations, fav);
+    return html + postureHtml(res.pillars, ch, !hourly) +
+      block('7 Stars Path 七星', 'the Dipper across this plate', '<div class="plain" style="margin-bottom:8px"><b>Route:</b> ' + sv.route.map(esc).join(' → ') + '</div>' +
+        rows(sv.steps.map(function (s) {
+          return [s.step + ' ' + s.dipper + '<small>' + esc(s.dipperEn) + '</small>', esc(s.dir) + ' <small>' + s.star + ' · ' + s.gate + ' ' + s.deity + '</small>' + (s.isEmpty ? '<div class="plain bad-t">Void, so skip or pass through quickly</div>' : '')];
+        })) +
+        (sv.strongest ? '<div class="plain" style="margin-top:8px">Strongest stop: <span class="good-t">' + esc(sv.strongest.dir) + '</span> (' + sv.strongest.dipper + ').' + (sv.weakest && sv.weakest !== sv.strongest ? ' Weakest: <span class="bad-t">' + esc(sv.weakest.dir) + '</span> (' + sv.weakest.dipper + ').' : '') + '</div>' : '') +
+        '<div class="hint">This follows the seven Dipper stars in order across the plate, using the compendium\'s pairing of the Qimen stars with the Northern Dipper (貪狼 is 天蓬, through to 破軍 as 天柱). It is QiPath\'s own route, not the steps of a taught Seven Stars Path practice.</div>');
+  }
+  function xiuFacingHtml(prop) {
+    if (!prop || prop.facingDegrees === undefined || prop.facingDegrees === null) return '';
+    var X = window.QPXiu, f = X.facing(prop.facingDegrees), t = now(), lat = typeof prop.lat === 'number' ? prop.lat : 1.35, lon = typeof prop.lon === 'number' ? prop.lon : 103.85;
+    var sky = X.sky(A.localToJD(t.y, t.m, t.d, t.hour, t.min), lat, lon, prop.facingDegrees), nx = X.nextDays(f.facing.i, t, 3);
+    var today = X.dayMansion(A.civilJDN(t.y, t.m, t.d)), MON3 = function (d) { return d.d + ' ' + MON[d.m - 1].slice(0, 3); };
+    setTimeout(function () {
+      if (!$('xfSave')) return;
+      $('xfSave').onclick = function () {
+        var a = parseFloat($('xfLat').value), b = parseFloat($('xfLon').value);
+        if (!isFinite(a) || !isFinite(b)) return;
+        prop.lat = a; prop.lon = b; PR.save(user.id, prop); renderProperty();
+      };
+    }, 0);
+    return block('Stellar influence 二十八宿', esc(prop.name || '') + ' · ' + prop.facingDegrees.toFixed(1) + '°',
+      '<div style="font-size:1.15rem;margin-bottom:6px" class="' + (f.verdict === 'Harmonious' ? 'good-t' : f.verdict === 'Disruptive' ? 'bad-t' : 'mid-t') + '">' + f.verdict + '</div>' +
+      rows([['Facing mansion', xiuName(f.facing)], ['Sitting mansion', xiuName(f.sitting)], ['Mansion spans', f.from.toFixed(1) + '° to ' + f.to.toFixed(1) + '°']]) +
+      '<div style="margin-top:8px">' + f.why.map(function (w) { return '<div class="plain" style="margin-bottom:4px">' + esc(w) + '</div>'; }).join('') + '</div>' +
+      '<h3 style="margin:14px 0 6px;font-size:.9rem">In the sky right now</h3>' +
+      rows([['Overhead', xiuName(sky.overhead)],
+        ['Towards the facing', sky.aligned ? xiuName(sky.aligned.mansion) + '<div class="plain">' + (sky.aligned.gap <= 15 ? 'Aligned with this facing' : sky.aligned.gap + '° away from this facing') + ', ' + sky.aligned.altitude + '° up, ' + (sky.aligned.mansion.auspicious ? 'traditionally auspicious' : 'traditionally inauspicious') + '.</div>' : 'None above the horizon in that direction'],
+        ['Today\'s mansion', xiuName(today) + (today.i === f.facing.i ? '<div class="plain good-t">Today matches the facing mansion.</div>' : '')],
+        ['Next days ruled by ' + f.facing.cn, nx.map(MON3).join(', ')]]) +
+      '<div class="panel" style="margin-top:10px"><label for="xfLat">Property latitude</label><input id="xfLat" type="number" step="0.01" value="' + lat + '">' +
+      '<label for="xfLon">Property longitude</label><input id="xfLon" type="number" step="0.01" value="' + lon + '"><button class="btn ghost" id="xfSave">Update location</button></div>' +
+      '<div class="hint">Mansion widths are the classical 古度, placed with 虛 at due north. Luo pans differ between schools, so compare this with your own. The verdict is QiPath\'s own weighing of each mansion\'s traditional auspice and element against the sector. Treat it as an extra layer alongside Flying Stars, not a replacement.</div>');
+  }
+
+  /* ---------------- planets on the plate ---------------- */
+  function planetsBlock(hostId, res, when) {
+    var E = window.QPEphem, T = window.QPTianwen;
+    if (!E || !T || !$(hostId)) return;
+    E.load(function (ok) {
+      var box = $(hostId);
+      if (!ok || !box) return;
+      var jd = A.localToJD(when.y, when.m, when.d, when.hour, when.min || 0), list = T.overlay(res.chart, res.formations, jd);
+      if (!list.length) return;
+      var cls = function (s) { return s === 'Super-structure' || s === 'Amplified' ? 'good-t' : s === 'In tension' ? 'bad-t' : s === 'Neutral' ? '' : 'mid-t'; };
+      box.innerHTML = block('Planets on this plate 七政', 'Swiss Ephemeris positions', rows(list.map(function (o) {
+        return [o.cn + ' <small>' + esc(o.en) + ' · ' + esc(o.element) + ' · ' + o.stems.join('') + '</small>',
+          '<span class="' + cls(o.status) + '">' + esc(o.status) + '</span><div class="plain">' + esc(T.statusText(o)) + '</div><small>Its stems land: ' + o.stemLanding.map(function (x) { return x.stem + ' ' + esc(x.dir); }).join(', ') + '</small>'];
+      })) + '<button class="btn ghost" id="twScan" style="margin-top:10px">Find planet-backed windows, next 30 days</button><div id="twOut"></div>' +
+        '<div class="hint">Longitude maps to the twelve classical palaces (子 runs from 300° to 330°, 戌 from 0° to 30°), then to the Lo Shu palace holding that branch. A super-structure means the planet\'s own stem is on the heaven plate, in a palace of its home or generated element, with a strong stem, door or structure, and not void. This overlay follows your method notes and does not change the chart\'s other scores.</div>');
+      $('twScan').onclick = function () {
+        var t = now(), out = $('twOut');
+        out.innerHTML = '<div class="empty">Checking every double-hour…</div>';
+        setTimeout(function () {
+          var w = T.superWindows(t, 30, 8);
+          out.innerHTML = w.length ? rows(w.map(function (x) {
+            return [x.when.d + ' ' + MON[x.when.m - 1].slice(0, 3) + '<small>' + x.pillar + ' · ' + x.range + '</small>', esc(x.planet) + ' in the ' + esc(x.dir) + ' <small>' + x.stem + ' ' + x.gate + (x.formations.length ? ' · ' + esc(x.formations.slice(0, 2).join(', ')) : '') + '</small>'];
+          })) : '<div class="empty">No planet-backed window in the next 30 days.</div>';
+        }, 30);
+      };
+    });
+  }
+
+  /* ---------------- 7 Stars: a map of where you are, and windows for the walk ---------------- */
+  function sevenLoad() { try { return JSON.parse(localStorage.getItem('qipath.seven.' + user.id)) || {}; } catch (e) { return {}; } }
+  function sevenSave(o) { try { localStorage.setItem('qipath.seven.' + user.id, JSON.stringify(o)); } catch (e) {} }
+  function renderSeven(host) {
+    var T = window.QPTianwen, st = sevenLoad(), cur = st.current || 1, statuses = st.statuses || [], S0 = T.STAGES;
+    var opt = function (v, label, sel) { return '<option value="' + v + '"' + (v === sel ? ' selected' : '') + '>' + label + '</option>'; };
+    function stageHtml() {
+      var s = S0[cur - 1], next = S0[cur] || S0[0], a = T.audit(cur, statuses);
+      return [['Focus', esc(s.focus)], ['Ask yourself', esc(s.ask)], ['Next step', 'Star ' + next.n + ', ' + esc(next.title) + ' (' + next.star + '): ' + esc(s.move)]].concat(s.release ? [['Leave behind', esc(s.release)]] : []).map(function (x) { return '<div class="plain" style="margin-bottom:6px"><b>' + x[0] + ':</b> ' + x[1] + '</div>'; }).join('') +
+        '<div class="plain" style="margin-top:10px"><b>Your audit:</b> ' + esc(a.message) + '</div>';
+    }
+    host.innerHTML =
+      '<div class="hint" style="margin-top:0">The seven Dipper stars used two ways: as a map of where you are in your own development, and as a way to choose the hour for a walking practice on your mat.</div>' +
+      block('Where you are now', 'seven stages of development',
+        '<div class="panel"><label for="ssCur">Which star takes up most of your attention?</label><select id="ssCur">' + S0.map(function (s) { return opt(s.n, s.n + ' ' + s.star + ' · ' + s.title, cur); }).join('') + '</select></div>' +
+        '<div id="ssStage" style="margin-top:10px">' + stageHtml() + '</div>') +
+      block('The audit', 'be honest about each stage', rows(S0.map(function (s, i) {
+        return [s.n + ' ' + s.star + '<small>' + esc(s.title) + '</small>', '<select data-ss="' + i + '" aria-label="Status of star ' + s.n + '">' + opt('none', 'Not yet', statuses[i] || 'none') + opt('working', 'Working on it', statuses[i] || 'none') + opt('stuck', 'Stuck', statuses[i] || 'none') + opt('done', 'Secure', statuses[i] || 'none') + '</select>'];
+      }))) +
+      block('Your chapter across the seven stars', 'a multi-year map',
+        '<div class="panel"><label for="ssStart">Chapter began</label><input id="ssStart" type="date" value="' + (st.start || '') + '">' +
+        '<label for="ssYears">Length in years</label><input id="ssYears" type="number" min="1" max="30" value="' + (st.years || 7) + '"></div><div id="ssMap"></div>' +
+        '<div class="hint">Resistance is built into the sequence. If Star 3 feels hard, that may be the stage doing its job rather than a sign that something has gone wrong.</div>') +
+      block('Reflection', 'for quiet review',
+        '<div class="plain" style="margin-bottom:8px">Which star fills your days? What does the next star ask of you? Which earlier lessons have you already taken in, and which old habits are you still carrying?</div>' +
+        '<label for="ssNote">Your notes, kept on this device</label><textarea id="ssNote" rows="4" style="width:100%">' + esc(st.note || '') + '</textarea>') +
+      block('Find a window for the walk', 'for a 7-step mat',
+        '<div class="panel"><label for="ssObj">What is the walk for?</label><select id="ssObj">' + Object.keys(T.OBJECTIVES).map(function (k) { return opt(k, T.OBJECTIVES[k].label, st.objective || 'authority'); }).join('') + '</select>' +
+        '<div id="ssDoorWrap"><label for="ssDoor">Which door?</label><select id="ssDoor">' + opt('', 'Any of the three', '') + Object.keys(T.DOOR_USE).map(function (d) { return opt(d, T.DOOR_USE[d], ''); }).join('') + '</select></div>' +
+        '<label for="ssDays">Look ahead</label><select id="ssDays">' + opt(7, '7 days', 14) + opt(14, '14 days', 14) + opt(30, '30 days', 14) + '</select>' +
+        '<button class="btn" id="ssFind">Find clean windows</button></div><div id="ssWin"></div>');
+    function save() { st.current = cur; st.statuses = statuses; st.start = $('ssStart').value; st.years = parseFloat($('ssYears').value) || 7; st.note = $('ssNote').value; st.objective = $('ssObj').value; sevenSave(st); }
+    function paintMap() {
+      var v = $('ssStart').value, y = parseFloat($('ssYears').value), box = $('ssMap');
+      if (!v || !(y > 0)) { box.innerHTML = '<div class="hint">Enter a start date to see your map.</div>'; return; }
+      box.innerHTML = rows(T.horizon(v, y, now()).map(function (x) { return [x.n + ' ' + x.star + (x.current ? ' <span class="good-t">now</span>' : '') + '<small>' + esc(x.title) + '</small>', x.from + ' to ' + x.to]; }));
+    }
+    $('ssCur').onchange = function () { cur = +$('ssCur').value; save(); $('ssStage').innerHTML = stageHtml(); };
+    host.querySelectorAll('[data-ss]').forEach(function (el) { el.onchange = function () { statuses[+el.dataset.ss] = el.value; save(); $('ssStage').innerHTML = stageHtml(); }; });
+    $('ssStart').onchange = $('ssYears').onchange = function () { save(); paintMap(); };
+    $('ssNote').onchange = save;
+    paintMap();
+    function doorVis() { $('ssDoorWrap').hidden = $('ssObj').value !== 'breakthrough'; }
+    $('ssObj').onchange = doorVis;
+    doorVis();
+    $('ssFind').onclick = function () {
+      var out = $('ssWin'), obj = $('ssObj').value, days = +$('ssDays').value, t = now();
+      save();
+      out.innerHTML = '<div class="empty">Checking every double-hour…</div>';
+      setTimeout(function () {
+        var r = T.ritualWindows(obj, t, days, user.deep.favourable, 6, obj === 'breakthrough' ? $('ssDoor').value : ''), rj = r.rejected;
+        var head = (r.note ? '<div class="plain" style="margin:10px 0 4px">' + esc(r.note) + '</div>' : '') + '<div class="hint">Looking for ' + esc(r.symbol) + '. Found ' + r.found + ' clean windows. Set aside: ' + rj.void + ' void, ' + rj.hostile + ' with a hostile structure, ' + rj.disharmony + ' in a Five Disharmony Hour, ' + rj.plate + ' on the wrong kind of plate for this goal.</div>';
+        if (!r.windows.length) { out.innerHTML = head + '<div class="empty">No clean window in this period. Try looking further ahead.</div>'; return; }
+        out.innerHTML = head + rows(r.windows.map(function (x, i) {
+          return [x.when.d + ' ' + MON[x.when.m - 1].slice(0, 3) + '<small>' + x.pillar + ' · ' + x.range + '</small>', esc(x.dir) + ' ' + x.bearing + '° <small>' + x.stem + ' ' + x.gate + ' ' + x.deity + '</small>' + (x.doorUse ? '<div class="plain">' + esc(x.doorUse) + '</div>' : '') + (x.sage ? x.sage.map(function (t) { return '<div class="plain">' + esc(t) + '</div>'; }).join('') : '') + (x.plateNote ? '<div class="plain mid-t">' + esc(x.plateNote) + '</div>' : '') + (x.combo ? '<div class="plain mid-t">' + x.combo + ' stem combination here: a Harmony in your compendium, though it may also tie things up. Allow extra time.</div>' : '') + '<button class="btn ghost" data-ssw="' + i + '" style="margin-top:6px;padding:7px">Prepare this walk</button>'];
+        })) + '<div id="ssProto"></div>';
+        out.querySelectorAll('[data-ssw]').forEach(function (b) {
+          b.onclick = function () {
+            var x = r.windows[+b.dataset.ssw], h0 = ('0' + x.startHour).slice(-2), steps = [
+              ['Before the hour', 'Clear the space and silence your devices. Do this only when you feel calm, and save it for genuinely important moments.'],
+              ['Set the mat', 'Lay the mat so that walking from Star 1 to Star 7 carries you towards the ' + x.dir + ' (' + x.bearing + '° on a compass).'],
+              ['Start on time', 'Begin between ' + h0 + ':00 and ' + h0 + ':15, the first 15 minutes of this double-hour.'],
+              ['State your intent', 'Stand before the mat and state exactly what you want to achieve, in writing or in your mind.'],
+              ['Star 1, 貪狼', 'Step on, settle your weight and let distractions go.'],
+              ['Stars 2 to 6', 'Walk one firm, unhurried step at a time: 巨門, 祿存, 文曲, 廉貞, 武曲. Keep this hour\'s ' + x.stem + ', ' + x.gate + ' and ' + x.deity + ' in mind.'],
+              ['Star 7, 破軍', 'Stop completely. Stand tall, breathe evenly and direct your intent towards the ' + x.dir + '. Picture the outcome already done.'],
+              ['Close', 'Hold this for 1 to 3 minutes, then step backwards off the mat.']];
+            var sageWalk = obj === 'sage';
+            if (sageWalk) steps = [
+              ['Before the hour', 'Clear the space and silence your devices. Do this only when you feel calm.'],
+              ['Set your intention', 'Write down a question about clarity, not an outcome. For example: "To clear my mental fog about this challenge, and align my actions with what is true in the long term."'],
+              ['Set the mat', 'Lay the mat so that walking from Star 1 to Star 7 carries you towards the ' + x.dir + ' (' + x.bearing + '° on a compass).'],
+              ['Start on time', 'Begin between ' + h0 + ':00 and ' + h0 + ':15, the first 15 minutes of this double-hour.'],
+              ['Star 1, 貪狼: Grounding', 'Notice how you are, in body and mood, without judging it.'],
+              ['Star 2, 巨門: Releasing noise', 'Let go of needing to control what other people think.'],
+              ['Star 3, 祿存: Facing the shadow', 'Turn your attention to your own resistance, fears and attachments.'],
+              ['Star 4, 文曲: Illumination', 'Stay open to new insight, and look at the problem from a wider view.'],
+              ['Star 5, 廉貞: The centre', 'Rest in stillness, like the calm eye of a storm.'],
+              ['Star 6, 武曲: Integration', 'Consider what calm, disciplined action this clarity asks of you.'],
+              ['Star 7, 破軍: Release', 'Let go of the outcome. Step off the mat and carry on without forcing anything.']];
+            $('ssProto').innerHTML = block(sageWalk ? 'Your Sage Path walk' : 'Your walk', x.when.d + ' ' + MON[x.when.m - 1].slice(0, 3) + ' · ' + x.range, (x.plateNote ? '<div class="plain mid-t" style="margin-bottom:8px">' + esc(x.plateNote) + '</div>' : '') +
+              '<div class="panel" style="margin-bottom:12px"><label for="ssMatter">' + (sageWalk ? 'What do you want clarity about?' : 'What is this walk about?') + '</label>' +
+              '<textarea id="ssMatter" rows="3" style="width:100%" placeholder="A sentence or two, in your own words">' + esc(st.matter || '') + '</textarea>' +
+              '<button class="btn" id="ssWrite">Write my script with AI</button><div class="hint" id="ssWriteMsg" role="status"></div>' +
+              '<label for="ssScript">Your script, which you can edit</label><textarea id="ssScript" rows="12" style="width:100%">' + esc(st.script || '') + '</textarea>' +
+              '<div class="hint">What you type here is sent to your chosen AI provider. It is saved on this device.</div></div>' + steps.map(function (s) { return '<div class="plain" style="margin-bottom:8px"><b>' + esc(s[0]) + '.</b> ' + esc(s[1]) + '</div>'; }).join('') +
+              '<div class="hint">This is a reflective practice from your method notes. On the mat you walk towards the target palace; in a seated practice, you sit with your back to it. It does not replace preparation or professional advice for the decision itself' + (sageWalk ? ', or support from a professional if you are struggling' : '') + '. Check how your own mat is meant to be laid out.</div>');
+            $('ssProto').querySelector('#ssWrite').onclick = function () {
+              var msg = $('ssWriteMsg'), matter = $('ssMatter').value.trim();
+              if (matter.length < 6) { msg.textContent = 'First say what this is about, in a sentence or two.'; return; }
+              if (!aiReady()) { msg.textContent = 'This needs a Gemini or Claude key, which you can add on the Profile screen. You can also write your own in the box below.'; return; }
+              msg.textContent = 'Writing your script…';
+              $('ssWrite').disabled = true;
+              window.QPAI.writeWalkScript(loadAI(), user, { goal: T.OBJECTIVES[obj].label, sage: sageWalk, matter: matter, when: x.when.d + ' ' + MON[x.when.m - 1] + ', ' + x.range, pillar: x.pillar, dir: x.dir, stem: x.stem, gate: x.gate, star: x.star, deity: x.deity, plateNote: x.plateNote }).then(function (a) {
+                $('ssWrite').disabled = false;
+                msg.textContent = a.fit || '';
+                $('ssScript').value = ['My intention', a.intention, '', 'Before the mat', a.opening, ''].concat((a.stars || []).map(function (s) { return s.star + ': ' + s.line; }), ['', 'To close', a.seal]).join('\n');
+                st.matter = matter; st.script = $('ssScript').value; sevenSave(st);
+              }).catch(function (e) {
+                $('ssWrite').disabled = false;
+                msg.textContent = 'The script could not be written: ' + ((e && e.message) || e) + ' You can write your own in the box below.';
+              });
+            };
+            $('ssScript').onchange = function () { st.script = $('ssScript').value; sevenSave(st); };
+            $('ssProto').scrollIntoView({ block: 'start' });
+          };
+        });
+      }, 30);
+    };
+  }
+
+  /* ---------------- the sky at a moment ---------------- */
+  function skyBlock(hostId, when) {
+    var E = window.QPEphem, h = $(hostId);
+    if (!E || !h) return;
+    E.load(function (ok) {
+      var box = $(hostId), pos = ok ? E.positions(A.localToJD(when.y, when.m, when.d, when.hour, when.min || 0)) : null;
+      if (!box || !pos) return;
+      var moonX = window.QPXiu ? window.QPXiu.moonMansion(pos[1].lon, A.localToJD(when.y, when.m, when.d, when.hour, when.min || 0)) : null;
+      box.innerHTML = block('Sky at this moment', 'Swiss Ephemeris positions', (moonX ? '<div class="plain" style="margin-bottom:8px">The Moon is passing through ' + moonX.cn + ' ' + esc(moonX.en) + ' in the sky. This is its true position, which is separate from the calendar\'s day mansion.</div>' : '') + rows(pos.map(function (x) {
+        return [x.cn + ' <small>' + x.en + (x.elem ? ' · ' + x.elem : '') + '</small>',
+          x.sign + ' ' + x.deg + '° ' + ('0' + x.min).slice(-2) + '\'' + (x.retro ? ' <span class="bad-t">retrograde</span>' : '') + '<small>' + x.lon.toFixed(2) + '° longitude</small>'];
+      })) + '<div class="hint">True geocentric positions, shown for reference. They do not affect the scores on this chart.</div>');
+    });
+  }
+
+  /* ---------------- QiMen Oracle ---------------- */
+  var oracleLast = null;
+  function renderOracle(host) {
+    var O = window.QPOracle, t = now(), iso = function (w) { return w.y + '-' + ('0' + w.m).slice(-2) + '-' + ('0' + w.d).slice(-2) + 'T' + ('0' + w.hour).slice(-2) + ':' + ('0' + w.min).slice(-2); };
+    var last = oracleLast && oracleLast.key === user.id ? oracleLast : null;
+    host.innerHTML =
+      '<div class="hint" style="margin-top:0">A quick answer to one question, read from the Flying Palace chart for the moment you ask. Works offline, with no AI key.</div>' +
+      block('QiMen Oracle', 'what, why and what to do',
+        '<div class="panel"><label for="orTopic">What is it about?</label><select id="orTopic">' + Object.keys(O.TOPICS).map(function (k) {
+          return '<option value="' + k + '"' + (last && last.r.topic === k ? ' selected' : '') + '>' + O.TOPICS[k].label + ' · ' + O.TOPICS[k].cn + '</option>'; }).join('') + '</select>' +
+        '<label for="orQ">Your question</label><input id="orQ" type="text" placeholder="One specific question, in plain words" value="' + (last ? esc(last.q) : '') + '">' +
+        '<label for="orWhen">Moment of asking</label><input id="orWhen" type="datetime-local" value="' + iso(last ? last.r.when : t) + '">' +
+        '<button class="btn" id="orGo">Ask the Oracle</button></div>') +
+      '<div id="orOut"></div>';
+    function show(r, q) {
+      var list = function (a) { return a.map(function (s) { return '<div class="plain" style="margin-bottom:6px">' + esc(s) + '</div>'; }).join(''); };
+      var cls = r.score >= 0.75 ? 'good-t' : r.score <= -0.75 ? 'bad-t' : 'mid-t';
+      $('orOut').innerHTML =
+        block(r.label + ' · ' + r.cn, esc(r.whenText),
+          (q ? '<div class="hint" style="margin:0 0 8px">' + esc(q) + '</div>' : '') +
+          '<div style="font-size:1.25rem;margin-bottom:2px" class="' + cls + '">' + r.verdict + '</div>' +
+          '<div class="hint" style="margin:0 0 4px">' + esc(r.clarity) + '</div>' +
+          (r.care ? '<div class="find ' + toneCls('neutral') + '" style="margin-top:10px"><b>' + esc(r.care.label) + '</b><span>' + esc(r.care.text) + '</span></div>' : '') +
+          (r.disharmony ? [r.disharmony] : []).concat(r.graves || []).map(function (w) { return '<div class="find ' + toneCls('danger') + '" style="margin-top:10px"><b>' + esc(w.label) + '</b><span>' + esc(w.text) + '</span></div>'; }).join('')) +
+        block('What is happening', '', list(r.what)) +
+        block('Why', '', list(r.why)) +
+        block('What to do', '', list(r.todo) + (r.note ? '<div class="hint">' + esc(r.note) + '</div>' : '')) +
+        block('Flying Palace chart', r.chart.dun + ' ' + r.chart.ju + '局 · ' + r.p.hour.cn + ' hour', '<div class="fly">' + plateHtml(r.chart, null, r.hits) + '</div>' +
+          postureHtml(r.p, r.chart) +
+          (r.p.solar ? '<div class="hint">Read at true solar time ' + ('0' + r.p.solar.hour).slice(-2) + ':' + ('0' + r.p.solar.min).slice(-2) + '.</div>' : '') +
+          '<div class="hint">Highlighted: your palace and the symbols for this topic. This chart has nine doors and nine deities, with 中门 and 太常 added, and uses the centre palace. Treat a reading as prompts for thinking, not as a prediction.</div>');
+    }
+    $('orGo').onclick = function () {
+      var v = $('orWhen').value, q = $('orQ').value.trim(), topic = $('orTopic').value;
+      if (!v) { $('orOut').innerHTML = '<div class="notice">Please choose a moment.</div>'; return; }
+      try {
+        var w = { y: +v.slice(0, 4), m: +v.slice(5, 7), d: +v.slice(8, 10), hour: +v.slice(11, 13), min: +v.slice(14, 16) };
+        var r = O.cast(user, topic, w);
+        oracleLast = { key: user.id, r: r, q: q };
+        show(r, q);
+      } catch (e) { $('orOut').innerHTML = '<div class="notice">' + esc(e.message) + '</div>'; }
+    };
+    if (last) show(last.r, last.q);
+  }
+
+  /* ---------------- Warcraft: Sun Tzu on the hour plate ---------------- */
+  var warLast = null;
+  function renderWar(host) {
+    var W = window.QPWar, t = now(), iso = function (w) { return w.y + '-' + ('0' + w.m).slice(-2) + '-' + ('0' + w.d).slice(-2) + 'T' + ('0' + w.hour).slice(-2) + ':' + ('0' + w.min).slice(-2); };
+    host.innerHTML =
+      '<div class="hint" style="margin-top:0">Assess a contest the way Sun Tzu does, on the hour plate: you against a rival, in business, at work or in a negotiation. Works offline, with no AI key.</div>' +
+      block('Warcraft 孫子', 'who has the edge, and how to use it',
+        '<div class="panel"><label for="warQ">What is the contest?</label><input id="warQ" type="text" placeholder="For example: winning the tender against a competitor" value="' + (warLast ? esc(warLast.q) : '') + '">' +
+        '<label for="warWhen">Moment of asking</label><input id="warWhen" type="datetime-local" value="' + iso(warLast ? warLast.r.when : t) + '">' +
+        '<button class="btn" id="warGo">Assess the contest</button></div>') +
+      '<div id="warOut"></div>';
+    function show(r, q) {
+      var leanTag = function (l) { return l === 'you' ? '<span class="good-t">You</span>' : l === 'rival' ? '<span class="bad-t">Rival</span>' : '<span class="mid-t">Even</span>'; };
+      var plain = function (s) { return '<div class="plain" style="margin-bottom:6px">' + esc(s) + '</div>'; };
+      var side = function (label, x) { return '<div class="plain" style="margin-bottom:6px"><b>' + label + ':</b> ' + esc(x.pa.dir) + ' palace, ' + esc(x.pa.heavenStemCn || '—') + ', ' + esc(x.pa.gate || '—') + ', ' + esc(x.pa.starCn || '—') + ', ' + esc(x.pa.spirit || '—') + ' <span class="' + (x.q.label === 'Strong' ? 'good-t' : x.q.label === 'Weak' ? 'bad-t' : 'mid-t') + '">' + x.q.label + '</span></div>'; };
+      var formsHtml = function (list, none) {
+        return list.length ? list.map(function (f) { return '<div class="plain" style="margin-bottom:6px"><b>' + esc(f.name) + ' ' + esc(f.en) + '</b> ' + esc(f.dirs.join(', ') || 'whole plate') + (f.isVoid ? ' <span class="mid-t">void, so its effect is muted</span>' : '') + '<br>' + esc(f.use) + '</div>'; }).join('') : '<div class="hint">' + esc(none) + '</div>';
+      };
+      var chapter = function (n, cn, en, body) { return '<details class="tech"><summary><b>' + n + ' ' + cn + '</b> ' + en + '</summary><div style="margin-top:8px">' + body + '</div></details>'; };
+      var groundWord = { host: 'Favours the Host', guest: 'Favours the Guest', both: 'Good for both' };
+      var mapRow = function (m) {
+        return '<div class="plain" style="margin-bottom:6px"><b>' + esc(m.dir) + '</b> ' + esc(m.door || '—') + ' ' + esc(m.deity || '') + ' · ' + m.label +
+          (m.you ? ' · <span class="good-t">you</span>' : '') + (m.rival ? ' · <span class="bad-t">rival</span>' : '') + (m.matter ? ' · the matter' : '') +
+          (m.hazard ? ' · <span class="bad-t">avoid</span>' : '') + (m.ground ? '<br><small>' + groundWord[m.ground] + '</small>' : '') + '</div>';
+      };
+      var dirLine = function (label, m, extra) { return plain(label + ': ' + (m ? m.dir + ', with ' + (extra === 'door' ? m.door : m.deity) + '.' : 'nothing clean this hour.')); };
+      $('warOut').innerHTML =
+        block('The assessment', esc(r.chart.dun) + ' ' + r.chart.ju + '局 · ' + r.pillars.hour.cn + ' hour',
+          (q ? '<div class="hint" style="margin:0 0 8px">' + esc(q) + '</div>' : '') +
+          '<div style="font-size:1.25rem;margin-bottom:2px" class="' + (r.verdict.tone === 'good' ? 'good-t' : r.verdict.tone === 'danger' ? 'bad-t' : 'mid-t') + '">' + esc(r.verdict.title) + '</div>' +
+          '<div class="hint" style="margin:0 0 8px">You lead ' + r.youN + ' of the 7 criteria, and your rival ' + r.rivalN + '.</div>' +
+          plain(r.verdict.text) +
+          (r.disharmony ? '<div class="find ' + toneCls('danger') + '" style="margin-top:10px"><b>' + esc(r.disharmony.label) + '</b><span>' + esc(r.disharmony.text) + '</span></div>' : '')) +
+        block('Where each side stands', 'you are the Day Stem, your rival the Month Stem',
+          side('You', r.you) + side('Your rival', r.rival) + side('The matter', r.matter) + side('The leadership', r.year) + plain(r.force)) +
+        block('The 7 criteria', '七計',
+          r.criteria.map(function (c) { return '<div class="plain" style="margin-bottom:10px"><b>' + esc(c.en) + '</b> ' + leanTag(c.lean) + '<br><small>' + c.cn + ' · ' + esc(c.why) + '</small></div>'; }).join('')) +
+        block('How to play it', 'role and direction',
+          plain('From your stems: ' + r.seat.stemsText) + plain('From the ground: ' + r.seat.groundText) +
+          dirLine('For quick results, go by the deity', r.quick, 'deity') + (r.deityUse ? '<div class="hint" style="margin:-2px 0 6px">It lends ' + esc(r.deityUse) + '.</div>' : '') +
+          dirLine('For lasting results, go by the door', r.lasting, 'door')) +
+        block('The plate', 'highlighted: you, your rival and the matter', '<div>' + plateHtml(r.chart, r.formations, r.hits, true) + '</div>' + postureHtml(r.pillars, r.chart)) +
+        block('The 13 chapters', 'what each one shows on this plate',
+          chapter(2, '作戰', 'Resources', plain(r.resources.text)) +
+          chapter(3, '謀攻', 'Winning without fighting', plain('Your palace ' + (r.you.pa === r.rival.pa ? 'is the same as your rival\'s.' : 'reads ' + r.you.q.label.toLowerCase() + ', and your rival\'s ' + r.rival.q.label.toLowerCase() + '.')) + plain(r.seat.groundText)) +
+          chapter(4, '軍形', 'Deployment', dirLine('Quick', r.quick, 'deity') + dirLine('Lasting', r.lasting, 'door')) +
+          chapter(5, '兵勢', 'Force', plain(r.force)) +
+          chapter(6, '虛實', 'Substance and void', plain(r.substance) + plain('Void palaces: ' + (r.voids.join(', ') || 'none') + '. Emptiness mutes a palace, whether it is good or bad.')) +
+          chapter(7, '軍爭', 'Deception', formsHtml(r.deceptions, 'None of the Three Deceptions is on this plate.')) +
+          chapter(8, '九變', 'The Nine Dun', formsHtml(r.duns, 'None of the Nine Dun is on this plate.')) +
+          chapter(9, '行軍', 'Ground to avoid', formsHtml(r.hazards, 'None of the four hazards is on this plate.')) +
+          chapter(10, '地形', 'Terrain', formsHtml(r.punish, 'No Six Crest punishment on this plate.')) +
+          chapter(11, '九地', 'The battleground', r.map.map(mapRow).join('')) +
+          chapter(12, '火攻', 'Fire', plain(r.geng.text) + formsHtml(r.fire, 'None of the three Fire structures is on this plate.')) +
+          chapter(13, '用間', 'Information and alliances', plain(r.yiGeng) + formsHtml(r.spies, 'Neither 乙 structure is on this plate.'))) +
+        '<div class="hint">Chapter 1, Strategic Assessment, is the 7 criteria above. The method follows Joey Yap\'s Sun Tzu Warcraft, but the book gives no scoring, so the leans and the verdict are this app\'s own. Treat it as prompts for thinking, not as a prediction or as professional advice.</div>';
+      wirePlateTaps('warOut', r.chart, r.formations);
+    }
+    $('warGo').onclick = function () {
+      var v = $('warWhen').value, q = $('warQ').value.trim();
+      if (!v) { $('warOut').innerHTML = '<div class="notice">Please choose a moment.</div>'; return; }
+      try {
+        var r = W.read({ y: +v.slice(0, 4), m: +v.slice(5, 7), d: +v.slice(8, 10), hour: +v.slice(11, 13), min: +v.slice(14, 16) });
+        warLast = { r: r, q: q };
+        show(r, q);
+      } catch (e) { $('warOut').innerHTML = '<div class="notice">' + esc(e.message) + '</div>'; }
+    };
+    if (warLast) show(warLast.r, warLast.q);
+  }
+
+  /* ---------------- Strategic Execution: which seat or direction for an activity ---------------- */
+  var execLast = null;
+  function renderExec(host) {
+    var X = window.QPExec, t = now(), iso = function (w) { return w.y + '-' + ('0' + w.m).slice(-2) + '-' + ('0' + w.d).slice(-2) + 'T' + ('0' + w.hour).slice(-2) + ':' + ('0' + w.min).slice(-2); };
+    var DIRS = [[1, 'North'], [8, 'Northeast'], [3, 'East'], [4, 'Southeast'], [9, 'South'], [2, 'Southwest'], [7, 'West'], [6, 'Northwest']];
+    var last = execLast;
+    host.innerHTML =
+      '<div class="hint" style="margin-top:0">Pick an activity and a moment, and see which seat or direction suits it best. Works offline, with no AI key.</div>' +
+      block('Strategic Execution', 'the best sector for what you are doing',
+        '<div class="panel"><label for="exAct">What are you doing?</label><select id="exAct">' + X.ACTIVITIES.map(function (a) {
+          return '<option value="' + a.id + '"' + (last && last.r.activity.id === a.id ? ' selected' : '') + '>' + esc(a.label) + ' · ' + a.cn + '</option>'; }).join('') + '</select>' +
+        '<label for="exWhen">When is it?</label><input id="exWhen" type="datetime-local" value="' + iso(last ? last.r.when : t) + '">' +
+        '<label for="exDest">Which way is the place from you? (optional)</label><select id="exDest"><option value="0">Not going anywhere, or not sure</option>' + DIRS.map(function (d) {
+          return '<option value="' + d[0] + '"' + (last && last.dest === d[0] ? ' selected' : '') + '>' + d[1] + '</option>'; }).join('') + '</select>' +
+        '<button class="btn" id="exGo">Find the best sector</button></div>') +
+      '<div id="exOut"></div>';
+    function show(r, dest) {
+      var plain = function (s) { return '<div class="plain" style="margin-bottom:6px">' + esc(s) + '</div>'; };
+      var warn = function (w, tone) { return '<div class="find ' + toneCls(tone) + '" style="margin-top:10px"><b>' + esc(w.label) + '</b><span>' + esc(w.text) + '</span></div>'; };
+      var rateCls = function (x) { return x === 'good' ? 'good-t' : x === 'bad' ? 'bad-t' : 'mid-t'; };
+      var row = function (x, i) {
+        var tag = x.hazard ? ' · <span class="bad-t">avoid</span>' : x.isVoid ? ' · <span class="mid-t">void</span>' : '';
+        return '<details class="tech"' + (i === 0 && x.usable ? ' open' : '') + '><summary><b>' + esc(x.dir) + '</b> ' + (x.pair ? '<span class="' + rateCls(x.pair.rating) + '">' + esc(x.pair.ratingEn) + '</span>' : '') + ' · ' + esc(x.door || '—') + tag + '</summary><div style="margin-top:8px">' +
+          (x.pair ? '<div class="plain" style="margin-bottom:6px"><b>' + x.heaven + '加' + x.earth + '</b> ' + esc(x.pair.cn) + ' <small>' + esc(x.pair.en) + '</small></div>' : '') +
+          plain('Star ' + (x.star || '—') + ', deity ' + (x.deity || '—') + '.') +
+          (x.goodForms.length ? plain('Helping: ' + x.goodForms.slice(0, 4).join(', ') + '.') : '') + (x.badForms.length ? plain('Against: ' + x.badForms.slice(0, 4).join(', ') + '.') : '') +
+          x.why.map(plain).join('') + (x.differs ? '<div class="hint">' + esc(x.differs) + '</div>' : '') + '</div></details>';
+      };
+      var stop = dest ? X.pitStop(r, dest) : null, better = r.best && r.usableHour ? [] : X.betterHours(r.when, r.activity.id, 3), whenText = function (w) { return w.d + ' ' + MON[w.m - 1].slice(0, 3) + ', ' + ('0' + w.hour).slice(-2) + ':' + ('0' + w.min).slice(-2); };
+      $('exOut').innerHTML =
+        block(esc(r.activity.label), esc(r.chart.dun) + ' ' + r.chart.ju + '局 · ' + r.pillars.hour.cn + ' hour · ' + esc(r.pillars.hourRange),
+          (r.best ? '<div style="font-size:1.25rem;margin-bottom:2px" class="good-t">' + esc(r.best.dir) + '</div>' +
+              plain('In a room, sit with your back to the ' + r.best.dir + ' the whole time. If you are going somewhere, head ' + r.best.dir + '.')
+            : '<div style="font-size:1.25rem;margin-bottom:2px" class="bad-t">No clean sector</div>' + plain('Nothing on this plate stands out for this activity.')) +
+          plain(r.activity.note) +
+          (r.care ? warn(r.care, 'neutral') : '') + r.warnings.map(function (w) { return warn(w, 'danger'); }).join('')) +
+        (stop ? block('Getting there', 'heading ' + esc(stop.dest.dir), plain(stop.text) + (stop.needed ? '<div class="hint">Arrive by about ' + esc(whenText(stop.by)) + '.</div>' : '')) : '') +
+        (better.length ? block('Better hours', 'the next 3 days, waking hours', better.map(function (b) { return plain(whenText(b.when) + ' · ' + b.hour + ' hour · ' + b.dir + ', with ' + b.door); }).join('')) : '') +
+        block('Every sector', 'best first', r.list.map(row).join('')) +
+        block('The plate', 'highlighted: the best sector', '<div>' + plateHtml(r.chart, r.formations, r.hits, true) + '</div>') +
+        '<div class="hint">Lay this chart over your floor plan, matching the compass directions. The method follows Joey Yap\'s Strategic Executions. Ratings come from the Compendium\'s stem table; the ranking and the notes are this app\'s own, and the book\'s written forecasts are not included. Treat it as prompts for thinking, not as a prediction or as professional advice.</div>';
+      wirePlateTaps('exOut', r.chart, r.formations);
+    }
+    $('exGo').onclick = function () {
+      var v = $('exWhen').value;
+      if (!v) { $('exOut').innerHTML = '<div class="notice">Please choose a moment.</div>'; return; }
+      try {
+        var dest = parseInt($('exDest').value, 10) || 0, r = X.read({ y: +v.slice(0, 4), m: +v.slice(5, 7), d: +v.slice(8, 10), hour: +v.slice(11, 13), min: +v.slice(14, 16) }, $('exAct').value);
+        execLast = { r: r, dest: dest };
+        show(r, dest);
+      } catch (e) { $('exOut').innerHTML = '<div class="notice">' + esc(e.message) + '</div>'; }
+    };
+    if (last) show(last.r, last.dest);
+  }
+
+  /* ---------------- monthly report ---------------- */
+  var monthlyState = null;   // { key, start, report } for the active profile
+  function monthlyThemeHtml(r, t) {
+    var names = window.QPMonthly.LADDER, day = function (x) { return x.d + ' ' + MON[x.m - 1].slice(0, 3); };
+    return '<details class="tech pl-month"><summary><b>' + esc(t.label) + '</b> <span class="' + (t.pct >= 0 ? 'good-t' : 'bad-t') + '">' + t.level + ' ' + (t.pct > 0 ? '+' : '') + t.pct + '</span></summary>' +
+      '<div class="mr-ladder">' + names.map(function (n, i) { return '<span class="' + (i === t.step ? (i >= 3 ? 'on-good' : 'on-bad') : '') + '">' + n + '</span>'; }).join('') + '</div>' +
+      '<div class="plain">' + esc(t.lead) + '</div>' +
+      (t.key !== 'emotions' ? '<div class="hint">' + esc(t.note) + '</div>' : '') +
+      (t.key === 'emotions' ? rows(r.energies.map(function (e) { return [esc(e.name) + ' <small>' + esc(e.element) + '</small>', 'Birth chart ' + e.natal + '% · this month ' + e.month + '%']; })) : '') +
+      (t.key === 'wellbeing' ? rows(r.gauges.map(function (g) { return [g.name, g.word + ' <small>' + (g.pct > 0 ? '+' : '') + g.pct + '</small>']; }).concat([['Zone to watch', esc(r.zone)]])) : '') +
+      '<div class="stack-sm" style="margin-top:8px">' + t.recs.map(function (x) { return '<div class="plain"><b>' + esc(x[0]) + '.</b> ' + esc(x[1]) + '</div>'; }).join('') + '</div>' +
+      '<div class="mr-days" role="img" aria-label="Score for each day of the month">' + t.series.map(function (v, i) {
+        var dx = r.month.days[i], cls = t.best.indexOf(dx) >= 0 ? 'up' : t.worst.indexOf(dx) >= 0 ? 'down' : '';
+        return '<i class="' + cls + '" style="height:' + Math.max(3, v) + '%" title="' + day(dx) + ': ' + v + '"></i>'; }).join('') + '</div>' +
+      rows([['<span class="good-t">Best</span>', t.best.map(day).join(' and ') + '<small>' + esc(t.bestText) + '</small>'],
+            ['<span class="bad-t">Hardest</span>', t.worst.map(day).join(' and ') + '<small>' + esc(t.worstText) + '</small>']]) +
+      '</details>';
+  }
+  function renderMonthly(host) {
+    var t = now(), opts = window.QPPlanner.startOptions({ y: t.y, m: t.m, d: t.d });
+    var st = monthlyState && monthlyState.key === user.id ? monthlyState : null, sel = st ? st.start : opts[0].value;
+    host.innerHTML =
+      '<div class="hint" style="margin-top:0">One solar month for ' + esc(user.name) + ': seven themes, the best and hardest days for each, and good dates, with a PDF you can keep.</div>' +
+      block('Monthly report', 'generated on this device',
+        '<div class="panel"><label for="mrStart">Month beginning</label><select id="mrStart">' + opts.map(function (o) {
+          return '<option value="' + o.value + '"' + (o.value === sel ? ' selected' : '') + '>' + o.label + '</option>'; }).join('') + '</select>' +
+        '<button class="btn" id="mrGo">Create report</button></div>') +
+      '<div id="mrOut"></div>';
+    function show(r) {
+      var m = r.month, day = function (x) { return x.d + ' ' + MON[x.m - 1].slice(0, 3); };
+      var areaRow = function (cls) { return function (a) { return ['<span class="' + cls + '">' + esc(a.label) + '</span>', '<div class="plain">' + esc(a.plain) + '</div><small>' + esc(a.todo) + '</small>']; }; };
+      $('mrOut').innerHTML =
+        block(r.pillar.cn + ' month', plannerPretty(m.start) + ' to ' + plannerPretty(m.end),
+          r.overview.map(function (s) { return '<div class="plain" style="margin-bottom:8px">' + esc(s) + '</div>'; }).join('') +
+          '<div class="panel" style="margin-top:8px"><b>' + esc(r.reflect[0]) + '</b><div class="plain">' + esc(r.reflect[1]) + '</div></div>' +
+          '<button class="btn" id="mrPdf" style="margin-top:12px">Save as PDF</button><div class="hint" id="mrMsg" role="status"></div>') +
+        block('Seven themes', 'from -100 to +100, with 0 as neutral', '<div class="mr-bal">' + r.themes.map(function (x) {
+          var w = Math.abs(x.pct) / 2;
+          return '<div class="mr-row"><span>' + esc(x.label) + '</span><div class="mr-track"><i class="' + (x.pct >= 0 ? 'up' : 'down') + '" style="width:' + w + '%;' + (x.pct >= 0 ? 'left:50%' : 'right:50%') + '"></i></div><b>' + (x.pct > 0 ? '+' : '') + x.pct + '</b></div>'; }).join('') + '</div>' +
+          r.themes.map(function (x) { return monthlyThemeHtml(r, x); }).join('')) +
+        block('Where the month helps you', '', rows(r.opportunities.map(areaRow('good-t')))) +
+        block('Where to take care', '', rows(r.watchOuts.map(areaRow('bad-t')))) +
+        block('Good dates', '', rows([['Money days', r.money.map(day).join(', ') || 'None clear this month'], ['Reset days', r.reset.map(day).join(', ') || 'None clear this month']])) +
+        block('Month plate', 'you are in the ' + esc(m.seat.dir) + ' palace', plateHtml(m.res.chart, m.res.formations, [m.seat.num], false, null, { res: m.res }));
+      $('mrPdf').onclick = function () {
+        var btn = $('mrPdf'), msg = $('mrMsg');
+        btn.disabled = true; msg.textContent = 'Creating your PDF…';
+        setTimeout(function () {
+          var p;
+          try { p = window.QPMonthly.toPdf(r); }
+          catch (e) { btn.disabled = false; msg.textContent = 'Could not create the PDF: ' + e.message; return; }
+          plannerSave(p).then(function () {
+            btn.disabled = false; msg.textContent = p.pages + ' pages, ' + (p.bytes.length / 1048576).toFixed(1) + ' MB · ' + p.name;
+          }).catch(function (e) { btn.disabled = false; msg.textContent = 'Could not save the PDF: ' + ((e && e.message) || e); });
+        }, 30);
+      };
+    }
+    $('mrGo').onclick = function () {
+      var start = $('mrStart').value;
+      $('mrOut').innerHTML = '<div class="empty">Reading the month…</div>';
+      setTimeout(function () {
+        try {
+          var r = window.QPMonthly.build(user, plannerDate(start));
+          monthlyState = { key: user.id, start: start, report: r };
+          show(r);
+        } catch (e) { $('mrOut').innerHTML = '<div class="notice">' + esc(e.message) + '</div>'; }
+      }, 30);
+    };
+    if (st) show(st.report);
+  }
+
   function renderStructures(host) {
     host.innerHTML = '<div class="empty">Scanning every hourly chart for the next ' + STRUCT_DAYS + ' days…</div>';
     setTimeout(function () {
@@ -3053,7 +3833,7 @@
     'button to open its manifestation script.';
 
   /* ---------------- deep links and the daily notification ---------------- */
-  // qipath://structures opens Consult › Structures; qipath://manifest?d=2026-11-15&h=19&p=3&f=yu_nv_shou opens the
+  // qipath://structures opens Strategy › Structures; qipath://manifest?d=2026-11-15&h=19&p=3&f=yu_nv_shou opens the
   // manifestation script for that hour and palace. A link that arrives before sign-in waits until the profile opens.
   var pendingLink = null;
   function capPlugin(name) { var Cp = window.Capacitor; return Cp && Cp.Plugins && Cp.Plugins[name] ? Cp.Plugins[name] : null; }
@@ -3123,6 +3903,12 @@
     var Q = window.QPQimen;
 
     if (consultK === 'structures') { renderStructures(host); return; }
+    if (consultK === 'planner') { renderPlanner(host); return; }
+    if (consultK === 'monthly') { renderMonthly(host); return; }
+    if (consultK === 'oracle') { renderOracle(host); return; }
+    if (consultK === 'warcraft') { renderWar(host); return; }
+    if (consultK === 'execution') { renderExec(host); return; }
+    if (consultK === 'sevenstar') { renderSeven(host); return; }
 
     /* ================= SAN CAI EXECUTION ================= */
     if (consultK === 'sancai') {
@@ -3366,7 +4152,7 @@
             (spca ? ' &middot; decided by ' + spca.driver : '') + (scamp && scamp.path ? ' &middot; campaign ' + scamp.mean : ''),
             '<div class="block"><h2>Across the table<em>game theory — you face ' + w.face.dir + ', the counterpart faces you</em></h2>' +
               gameHtml(sgm, 'In a meeting the counterpart sits facing you, so their palace is the one opposite your facing ' +
-                'palace on the same hour plate. a, t and the maneuver gains are read exactly as in Consult › Forecast.') + '</div>' +
+                'palace on the same hour plate. a, t and the maneuver gains are read exactly as in Strategy › Forecast.') + '</div>' +
             '<div class="block"><h2>Layer alignment<em>fuzzy logic — the weakest link</em></h2>' + sancaiFuzzyHtml(sfz) + '</div>' +
             '<div class="block"><h2>How decisive is this window<em>Shannon entropy</em></h2>' + sancaiEntropyHtml(sen) + '</div>' +
             '<div class="block"><h2>Slippage and tipping points<em>non-linear dynamics</em></h2>' + sancaiChaosHtml(sch) + '</div>' +
@@ -3525,7 +4311,8 @@
             '<span class="sub">' + r.pillars.hour.cn + ' hour &middot; ' + r.hourRange + '<br>' +
             r.chart.dun + ' ju ' + r.chart.ju + ' &middot; ' + r.chart.term + '</span></div>' +
             '<div class="panel" style="margin-top:10px;font-size:.9rem;line-height:1.7">' +
-            esc(r.advice) + '</div>') +
+            esc(r.advice) + '</div>' +
+            (r.care ? '<div class="find ' + toneCls('neutral') + '" style="margin-top:10px"><b>' + esc(r.care.label) + '</b><span>' + esc(r.care.text) + '</span></div>' : '')) +
           block('Fibonacci timing', 'this question recast ' + fib.points.length + ' times, ' +
             fib.horizon.toLowerCase(),
             fibSummaryHtml(fib, qmCls) +
@@ -3847,9 +4634,17 @@
                                    palaceNum: null, formation: null };
       var pM = C.fourPillars(pick.dt.y, pick.dt.m, pick.dt.d, pick.dt.hour, pick.dt.min);
       var chartM = S.qimen(pM);
-      if (!pick.palaceNum) pick.palaceNum = chartM.best[0] ? chartM.best[0].num : 1;
-      var plan = Q.manifestPlan(pick.dt, pick.palaceNum, pick.formation);
+      var mFav = (user.deep || {}).favourable || user.favourable || [];
+      var mGoal = Q.MANIFEST_GOALS.filter(function (g) { return g.key === manifestDetails.goal; })[0] || Q.MANIFEST_GOALS[0];
+      var mStage = Q.MANIFEST_STAGES.filter(function (s) { return s.key === manifestDetails.stage; })[0] || Q.MANIFEST_STAGES[0];
+      var mRank = Q.manifestRank(pick.dt, mGoal.key, mStage.key, mFav);
+      // With no palace chosen yet, start from the one that serves the goal best this hour.
+      if (!pick.palaceNum) pick.palaceNum = mRank.list[0] ? mRank.list[0].num : 1;
       var pal = chartM.palacesByNumber[pick.palaceNum];
+      var mRes = Q.chartFor('hour', pick.dt);
+      // The ask follows the seated door when it already serves the goal; otherwise the goal's own door.
+      var seatDoor = (pal.gate || '').charAt(0);
+      var askNow = manifestDetails.ask || (mGoal.door.concat(mGoal.door2).indexOf(seatDoor) >= 0 ? seatDoor : mGoal.ask);
       lastSavedId = null; currentAI = null;
 
       var palOpts = [1,2,3,4,6,7,8,9].map(function (n) {
@@ -3860,41 +4655,137 @@
       }).join('');
       var askOpts = Object.keys(Q.DOOR_INTENT).map(function (dch) {
         var it = Q.DOOR_INTENT[dch];
-        return '<option value="' + dch + '"' + (dch === (pal.gate || '').charAt(0) ? ' selected' : '') +
+        return '<option value="' + dch + '"' + (dch === askNow ? ' selected' : '') +
           '>' + dch + '门 — ' + it.ask.split(',')[0] + '</option>';
+      }).join('');
+      var stageOpts = Q.MANIFEST_STAGES.map(function (s) {
+        return '<option value="' + s.key + '"' + (s.key === mStage.key ? ' selected' : '') + '>' + s.label + ' ' + s.cn + '</option>'; }).join('');
+      var goalOpts = Q.MANIFEST_GOALS.map(function (g) {
+        return '<option value="' + g.key + '"' + (g.key === mGoal.key ? ' selected' : '') + '>' + g.label + ' ' + g.cn + '</option>'; }).join('');
+      var fromDt = manifestSearch.from || { y: dt.y, m: dt.m, d: dt.d };
+      var dayOpts = [3, 7, 14, 31].map(function (n) { return '<option value="' + n + '"' + (n === manifestSearch.days ? ' selected' : '') + '>' + n + ' days</option>'; }).join('');
+      var fitTag = function (r) { return '<span class="' + (r.fit >= 70 ? 'good-t' : r.fit < 50 ? 'bad-t' : '') + '">' + r.fit + ' ' + r.grade + '</span>'; };
+      var rankRows = mRank.list.map(function (r) {
+        return '<div class="row' + (r.num === pick.palaceNum ? ' on' : '') + '" data-mpal="' + r.num + '" style="cursor:pointer"><span class="k">Back to ' + r.back +
+          '<small>face ' + r.face + ' &middot; palace ' + r.num + ' ' + r.palace.name + '</small></span>' +
+          '<span class="v">' + fitTag(r) + '<small>' + esc(r.why.slice(0, 3).join('; ') || 'nothing here serves this goal') +
+          (r.warn.length ? '<br><span class="bad-t">Watch: ' + esc(r.warn.slice(0, 2).join('; ')) + '</span>' : '') + '</small></span></div>';
       }).join('');
 
       host.innerHTML =
-        block('Choose the window', 'defaults to now; change any of it',
+        block('What to manifest', 'the stage and the goal',
+          '<div class="panel">' +
+          '<label for="mStage">Stage</label><select id="mStage">' + stageOpts + '</select>' +
+          '<div class="hint">' + esc(mStage.what) + '</div>' +
+          '<label for="mGoal">Goal</label><select id="mGoal">' + goalOpts + '</select>' +
+          (mGoal.key === 'health' ? '<div class="hint">' + esc(S.HEALTH_CARE.text) + '</div>' : '') +
+          '</div>') +
+        block('Find the best hours', 'every hour and palace in the range, best first',
+          '<div class="panel">' +
+          '<div class="picker"><div><label for="mFrom">From</label><input id="mFrom" type="date" value="' + isoOf(fromDt) + '"></div>' +
+          '<div><label for="mDays">Search</label><select id="mDays">' + dayOpts + '</select></div></div>' +
+          '<label class="chk"><input type="checkbox" id="mDaytime"' + (manifestSearch.daytime ? ' checked' : '') + '> Leave out 11 pm to 5 am</label>' +
+          '<button class="btn" id="mFind">Find the best hours</button>' +
+          '<div class="hint">Each palace is scored on how well its door, star, deity and heaven stem serve the goal, then on the strength of the hour and its structures. ' +
+          'The stage changes the weights: Priming leans on the star and deity, Attunement on harmony and good structures, Activation on a strong, timely door. ' +
+          'Five Disharmony hours are left out. Joey Yap times these practices by Seven Stars levels, which QiPath cannot calculate, so this ranking is QiPath\'s own.</div>' +
+          '</div><div id="mFound"></div>') +
+        block('Choose the window', 'the hour chart for any date and hour',
           '<div class="panel">' +
           whenPicker('mDate', 'mHour', pick.dt, 'Date') +
+          '</div>' +
+          (mRank.disharmony ? '<div class="find ' + toneCls('danger') + '"><b>' + esc(mRank.disharmony.label) + '</b><span>' + esc(mRank.disharmony.text) + '</span></div>' : '') +
+          '<div id="mPlate" style="margin-top:10px">' + qbHead(mRes) + plateHtml(mRes.chart, mRes.formations, [pick.palaceNum], true, null, { res: mRes }) + '</div>' +
+          '<h3 style="margin:14px 0 6px;font-size:1rem">Palaces this hour for ' + esc(mGoal.label.toLowerCase()) + ' &middot; ' + mStage.label + '</h3>' +
+          '<div class="hint" style="margin-top:0">Tap a palace on the chart or a row below to work from it. You sit with your back to that palace.</div>' +
+          '<div class="rows stack-sm">' + rankRows + '</div>' +
+          '<div class="panel" style="margin-top:10px">' +
           '<label for="mPal">Palace to work from</label><select id="mPal">' + palOpts + '</select>' +
           '<label for="mAsk">What to ask for</label><select id="mAsk">' + askOpts + '</select>' +
-          '<div class="hint">The palace sets the direction you face. The ask normally follows the ' +
+          '<label for="mAspects">What specifically do you want to manifest?</label>' +
+          '<textarea id="mAspects" rows="3" maxlength="600" placeholder="One per line. Example: a senior role at a company that values my work">' + esc(manifestDetails.aspects) + '</textarea>' +
+          '<label for="mReturns">What specifically will you give in return?</label>' +
+          '<textarea id="mReturns" rows="3" maxlength="600" placeholder="One per line. Example: mentor one junior colleague every month this year">' + esc(manifestDetails.returns) + '</textarea>' +
+          '<div class="hint">The palace sets the direction at your back. The ask normally follows the ' +
           'door in that palace, but you can choose another register deliberately.</div>' +
           '<button class="btn" id="mGo">Build the script</button></div>') +
         '<div id="manOut"></div>';
 
-      $('mDate').onchange = $('mHour').onchange = $('mPal').onchange = function () {
-        manifestPick = { dt: readWhen('mDate', 'mHour'),
-                         palaceNum: parseInt($('mPal').value, 10), formation: pick.formation };
+      function usePalace(n) {
+        if (!n || n === 5) return;
+        manifestPick = { dt: pick.dt, palaceNum: n, formation: pick.formation };
+        manifestDetails.ask = null;
+        manifestSearch.scroll = 'mPlate';
+        renderConsult();
+      }
+      $('mDate').onchange = $('mHour').onchange = function () {
+        manifestPick = { dt: readWhen('mDate', 'mHour'), palaceNum: null, formation: null };
+        manifestDetails.ask = null;
         renderConsult();
       };
+      $('mPal').onchange = function () { usePalace(parseInt(this.value, 10)); };
+      host.querySelectorAll('#mPlate [data-pal]').forEach(function (c) { c.onclick = function () { usePalace(parseInt(c.dataset.pal, 10)); }; });
+      host.querySelectorAll('[data-mpal]').forEach(function (r) { r.onclick = function () { usePalace(parseInt(r.dataset.mpal, 10)); }; });
+      // A new stage or goal re-ranks the current hour; the earlier search results belong to the old goal, so they go.
+      $('mStage').onchange = function () { manifestDetails.stage = this.value; manifestDetails.ask = null; manifestSearch.found = null; manifestPick = { dt: pick.dt, palaceNum: null, formation: null }; renderConsult(); };
+      $('mGoal').onchange = function () { manifestDetails.goal = this.value; manifestDetails.ask = null; manifestSearch.found = null; manifestPick = { dt: pick.dt, palaceNum: null, formation: null }; renderConsult(); };
+      $('mAsk').onchange = function () { manifestDetails.ask = this.value; };
+      $('mDays').onchange = function () { manifestSearch.days = parseInt(this.value, 10); };
+      $('mDaytime').onchange = function () { manifestSearch.daytime = this.checked; };
+      $('mFrom').onchange = function () { manifestSearch.from = fromISO(this.value); };
+      $('mFind').onclick = function () {
+        manifestSearch.from = fromISO($('mFrom').value);
+        $('mFound').innerHTML = '<div class="hint">Searching ' + manifestSearch.days + ' days&hellip;</div>';
+        setTimeout(function () {
+          manifestSearch.found = Q.searchManifest(manifestSearch.from, manifestSearch.days, mGoal.key, mStage.key, mFav, { daytime: manifestSearch.daytime });
+          paintFound();
+        }, 30);
+      };
+      function paintFound() {
+        var f = manifestSearch.found;
+        if (!f) return;
+        var dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        $('mFound').innerHTML = !f.list.length ? '<div class="empty">No usable hour in this range.</div>' :
+          '<div class="hint">' + f.stage.label + ' for ' + esc(f.goal.label.toLowerCase()) + ': the ' + f.list.length + ' best hours in ' + f.searched + ' days.</div>' +
+          '<div class="rows stack-sm">' + f.list.map(function (x, i) {
+            var r = x.best, wd = dayName[new Date(Date.UTC(x.y, x.m - 1, x.d)).getUTCDay()];
+            return '<div class="row"><span class="k">' + wd + ' ' + x.d + ' ' + MON[x.m - 1].slice(0, 3) + ' ' + x.y +
+              '<small>' + x.range + ' &middot; ' + x.hourPillar + ' hour</small></span>' +
+              '<span class="v"><b>Back to ' + r.back + '</b> <small style="display:inline">face ' + r.face + ', palace ' + r.num + ' ' + r.palace.name + '</small><br>' +
+              fitTag(r) + '<small>' + esc(r.why.slice(0, 3).join('; ')) + (r.warn.length ? '<br><span class="bad-t">Watch: ' + esc(r.warn.slice(0, 2).join('; ')) + '</span>' : '') + '</small>' +
+              '<button class="btn ghost" data-muse="' + i + '" style="margin-top:6px">Use this hour</button></span></div>';
+          }).join('') + '</div>';
+        $('mFound').querySelectorAll('[data-muse]').forEach(function (b) {
+          b.onclick = function () {
+            var x = f.list[+b.dataset.muse];
+            manifestPick = { dt: { y: x.y, m: x.m, d: x.d, hour: x.hour, min: 30 }, palaceNum: x.best.num, formation: null };
+            manifestDetails.ask = null;
+            manifestSearch.scroll = 'mPlate';
+            renderConsult();
+          };
+        });
+      }
+      paintFound();
+      $('mAspects').oninput = function () { manifestDetails.aspects = this.value; };
+      $('mReturns').oninput = function () { manifestDetails.returns = this.value; };
       $('mGo').onclick = function () { paintManifest($('mAsk').value); };
-      paintManifest((pal.gate || '开').charAt(0));
+      paintManifest(askNow);
+      if (manifestSearch.scroll && $(manifestSearch.scroll)) { $(manifestSearch.scroll).scrollIntoView({ block: 'start' }); }
+      manifestSearch.scroll = false;
 
       function paintManifest(askDoor) {
-        var pl = Q.manifestPlan(pick.dt, pick.palaceNum, pick.formation, askDoor);
+        var pl = Q.manifestPlan(pick.dt, pick.palaceNum, pick.formation, askDoor, manifestDetails);
         lastSavedId = null; currentAI = null;
         $('manOut').innerHTML =
+          (pl.disharmony ? '<div class="find ' + toneCls('danger') + '"><b>' + esc(pl.disharmony.label) + '</b><span>' + esc(pl.disharmony.text) + '</span></div>' : '') +
           block('Window', pl.window.date + ' · ' + pl.window.range,
-            rows([
-              ['Face', '<b style="color:var(--celadon)">' + pl.window.direction + '</b><small>palace ' + pl.window.palace + '</small>'],
+            rows((pl.goal && pl.stage ? [['Practice', pl.stage.label + ' ' + pl.stage.cn + ' &middot; ' + esc(pl.goal.label) + ' ' + pl.goal.cn]] : []).concat([
+              ['Sit', '<b style="color:var(--celadon)">Back to ' + pl.window.direction + '</b><small>facing ' + (Q.OPPOSITE_DIR[pl.window.direction] || '') + ' &middot; palace ' + pl.window.palace + '</small>'],
               ['Hour pillar', pl.window.pillar + ' <small>' + pl.window.range + '</small>'],
               ['Plate', pl.window.dun + ' ju ' + pl.window.ju],
               ['Gatekeeper', pl.deity + ' <small>' + pl.quality + '</small>'],
               ['Register', pl.tone]
-            ]) + '<div style="margin-top:10px">' + palaceCard(pal, chartM.mansion, true) + '</div>') +
+            ])) + '<div style="margin-top:10px">' + palaceCard(pal, chartM.mansion, true) + '</div>') +
           block('What to ask for here', 'the door sets what this palace can give',
             '<div class="panel"><ul style="list-style:none;display:flex;flex-direction:column;gap:9px">' +
             pl.manifestFor.map(function (t) {
@@ -3915,12 +4806,15 @@
               return '<div class="stepn"><span class="i">' + (i+1) + '</span><span class="tx"><b>' +
                 esc(st.t) + '</b><span>' + esc(st.d) + '</span></span></div>';
             }).join('') + '</div>') +
-          block('The script', 'read aloud, once, facing ' + pl.window.direction,
+          block('The script', 'read aloud, once, with ' + pl.window.direction + ' at your back',
             '<div class="script">' + esc(pl.script) + '</div>' +
             '<button class="btn ghost" id="mCopy">Copy the script</button>') +
+          block('Narration audio', 'Sage 64 to 1, then this script', '<div id="manNarr"></div>') +
           block('Returning the favour', 'the exchange that closes the loop',
             '<div class="panel" style="font-size:.9rem;line-height:1.7">This palace is <b style="color:var(--brass)">' +
             pl.exchange.element + '</b>. ' + esc(pl.exchange.note) + '</div>' +
+            (pl.returns.length ? '<div class="panel" style="margin-top:10px;font-size:.9rem;line-height:1.7"><b style="color:var(--brass)">What you committed to</b><br>' +
+              pl.returns.map(esc).join('<br>') + '</div>' : '') +
             '<div class="panel" style="margin-top:10px"><ul style="list-style:none;display:flex;flex-direction:column;gap:9px">' +
             pl.exchange.acts.map(function (a) {
               return '<li style="font-size:.9rem;line-height:1.65;padding-left:15px;position:relative">' +
@@ -3939,16 +4833,19 @@
             setTimeout(function () { $('mCopy').textContent = 'Copy the script'; }, 1600);
           });
         };
+        narrationUI('manNarr', { script: pl.script, spoken: Q.spokenScript(pl),
+          title: pl.window.date + ' ' + pl.window.range + ' ' + pl.window.direction });
         wireSave('manSave', function () {
           return { kind:'manifest',
-            title: 'Manifestation · ' + pl.window.direction + ' · ' + (pal.gate || ''),
+            title: 'Manifestation · ' + (pl.goal && pl.stage ? pl.stage.label + ' · ' + pl.goal.label + ' · ' : '') + pl.window.direction + ' · ' + (pal.gate || ''),
             subtitle: pl.window.date + ' ' + pl.window.range + ' · palace ' + pl.window.palace,
             when: { date: pl.window.date, range: pl.window.range },
             payload: { direction: pl.window.direction, palace: pl.window.palace,
               hourPillar: pl.window.pillar, dayPillar: pl.window.dayPillar,
               dun: pl.window.dun, ju: pl.window.ju,
-              deity: pl.deity, quality: pl.quality, askDoor: askDoor,
-              manifestFor: pl.manifestFor, script: pl.script,
+              deity: pl.deity, quality: pl.quality, askDoor: askDoor, goal: pl.goal, stage: pl.stage,
+              fit: (mRank.list.filter(function (r) { return r.num === pick.palaceNum; })[0] || {}).fit,
+              manifestFor: pl.manifestFor, script: pl.script, aspects: pl.aspects, returns: pl.returns,
               exchange: pl.exchange, steps: pl.steps,
               palaceDetail: snapshotPalace(pal),
               formation: pl.formation ? fmtForm(pl.formation) : null } };
@@ -3956,7 +4853,8 @@
         var mnWhen = fromISO(pl.window.date); mnWhen.hour = branchToHour(pM.hour.branch); mnWhen.min = 30;
         var mnCt = mountCounter('aiMan', 'manifest', { when: mnWhen, year: mnWhen.y, subtitle: 'the year\'s threats on the plate of the manifestation window' });
         aiPanelSaving('aiMan', 'manifest',
-          pl.window.date + '.' + pM.hour.i + '.' + pl.palace.num + '.' + askDoor + '.ct',
+          pl.window.date + '.' + pM.hour.i + '.' + pl.palace.num + '.' + askDoor + '.ct' +
+            (pl.aspects.length || pl.returns.length ? '.' + window.QPNarrate.hash(pl.aspects.join('|') + '#' + pl.returns.join('|')) : ''),
           function (cfg) { return window.QPAI.withCounter(mnCt ? counterText(mnCt) : null, function () { return window.QPAI.expandManifestation(cfg, pl, pM, user); }); }, [
             { label:'What this window is for', path:'overview' },
             { label:'What to manifest', path:'whatToManifest' },
@@ -4012,14 +4910,14 @@
 
         function dayRow(x, tone) {
           var hrs = G.dayHours({ y:x.y, m:x.m, d:x.d }, user)
-            .sort(function (a, b) { return b.score - a.score; });
+            .sort(function (a, b) { return b.timing - a.timing; });
           return '<div class="row"><span class="k" style="flex:0 0 42%">' +
             WD[A.weekday(A.civilJDN(x.y,x.m,x.d))].slice(0,3) + ' ' + x.d + ' ' + MON[x.m-1].slice(0,3) +
             '<br><small style="color:var(--muted)">' + x.pillar.cn + ' &middot; ' + x.officer.cn + '</small></span>' +
             '<span class="v"><b style="color:' + tone + '">' + x.score + '</b>' +
             '<small>' + hrs.slice(0,3).map(function (h, i) {
               return '<span style="color:' + (i === 0 ? 'var(--celadon)' : 'var(--muted)') + '">' +
-                (i+1) + '. ' + h.branchCn + ' ' + h.range.slice(0,5) + '</span>'; }).join(' ') + '</small>' +
+                (i+1) + '. ' + h.branchCn + ' ' + h.range.slice(0,5) + (h.xiu ? ' ' + h.xiu.cn + '宿' : '') + '</span>'; }).join(' ') + '</small>' +
             '<button class="btn ghost" style="margin-top:6px;padding:7px" data-day="' +
               x.y + ',' + x.m + ',' + x.d + '">Why this day</button></span></div>';
         }
@@ -4132,7 +5030,7 @@
               '">Explain</button></span></div>';
           }).join('') + '</div>';
         }
-        $('stOut').innerHTML =
+        $('stOut').innerHTML = postureHtml(pS, chartS) +
           block('Window', pS.hour.cn + ' hour · ' + pS.hourRange,
             '<div class="panel" style="font-size:.9rem;line-height:1.7">' +
             '<span class="tag on">' + cats.auspicious.length + ' auspicious</span>' +
@@ -4304,7 +5202,7 @@
               ['Four pillars', res.pillars.year.cn + ' ' + res.pillars.month.cn + ' ' +
                 res.pillars.day.cn + ' ' + res.pillars.hour.cn],
               ['Plate', ch.dun + ' &middot; ju ' + ch.ju + ' &middot; ' + (ch.basis ? esc(ch.basis) : ch.yuan) + qmMethodLabel(ch)],
-              ['Solar term', qmTermLabel(ch, res.pillars)],
+              ['Solar term', qmTermLabel(ch, res.pillars)]].concat(res.pillars.solar ? [['True solar time', ('0' + res.pillars.solar.hour).slice(-2) + ':' + ('0' + res.pillars.solar.min).slice(-2) + ' <small>clock ' + (res.pillars.solar.shift > 0 ? '+' : '') + res.pillars.solar.shift + ' min at ' + res.pillars.solar.lon + '°</small>']] : []).concat([
               ['Chief star 值符', ch.chief + ' <small>' + ch.chiefEn + '</small>'],
               ['Envoy gate 值使', ch.envoy + ' <small>palace ' + ch.envoyPalace + '</small>'],
               ['Constellation 宿', ch.mansion.cn + ' <small>' + ch.mansion.en + '</small>'],
@@ -4313,12 +5211,12 @@
                 res.formations.filter(function (f) { return f.category === 'auspicious'; }).length +
                 '</span> / <span style="color:var(--cinnabar)">−' +
                 res.formations.filter(function (f) { return f.category === 'hostile'; }).length + '</span>']
-            ])) +
+            ]))) +
+          xiuChartHtml(res, type) +
+          '<div id="qtPlanets"></div>' +
+          '<div id="qtSky"></div>' +
           block('The nine palaces', 'tap a palace for full detail',
-            plateHtml(ch, res.formations, [], true) +
-            '<div class="panel" style="margin-top:10px;font-size:.8rem;line-height:1.7;color:var(--muted)">' +
-            'Outer ring (green edge) are the four cardinal palaces; the shaded cells are the inner ' +
-            'corner palaces. 空 void &middot; 使 envoy gate &middot; 符 chief star &middot; 格 structures present.</div>' +
+            qbHead(res) + plateHtml(ch, res.formations, [], true, null, { res: res }) + (type === 'hour' ? qbFocus(res) : '') +
             saveBar('qtSave', 'Save this chart')) +
           block('All palaces in full', '',
             [4,9,2,3,7,8,1,6].map(function (n) {
@@ -4328,6 +5226,8 @@
         var qtTz = window.QPMath.qimenTensor(ch, { favourable: user.favourable,
           unfavourable: (user.deep || user.bazi).unfavourable });
         wirePlateTaps('qtOut', ch, res.formations);
+        skyBlock('qtSky', when);
+        planetsBlock('qtPlanets', res, when);
         var qtCt = mountCounter('aiQt', 'qimen', { when: when, year: when.y,
           subtitle: 'the year\'s threats on the ' + (type === 'hour' ? 'plate of this hour' : 'hour plate of this moment') });
         aiPanelSaving('aiQt', 'qimenplate', type + '.' + isoOf(when) + '.' + res.pillars.hour.i + '.ct',
@@ -4482,9 +5382,10 @@
     $('segConsult').querySelectorAll('button').forEach(function (b) {
       b.setAttribute('aria-selected', String(b.dataset.k === k)); });
     renderConsult();
+    paintNav();
   }
 
-  function wirePlateTaps(hostId, chart, formations) {
+  function wirePlateTaps(hostId, chart, formations, life) {
     var h = $(hostId);
     if (!h) return;
     h.querySelectorAll('[data-pal]').forEach(function (cell) {
@@ -4495,7 +5396,7 @@
           return (f.palaces || []).indexOf(n) >= 0; });
         openSheet('Palace ' + n + ' ' + pa.name + ' &middot; ' + pa.dir,
           pa.elementCn + ' · ' + (pa.ring === 'inner' ? 'inner' : 'outer') + ' palace',
-          palaceCard(pa, chart.mansion, true) +
+          palaceCard(pa, chart.mansion, true, life) +
           (fs.length ? '<div class="block"><h2>Structures here</h2><div class="rows">' +
             fs.map(function (f) {
               return '<div class="row"><span class="k" style="flex:0 0 42%">' + f.name +
@@ -4505,6 +5406,7 @@
             : '<div class="block"><h2>Structures here</h2><div class="empty">No formation lands in this palace.</div></div>') +
           '<div class="block"><h2>Chart context</h2>' + rows([
             ['Plate', chart.dun + ' ju ' + chart.ju],
+            ['Large number here', String(window.QPSystems.qimenFlownNumber(chart.ju, n)) + ', flown from Ju ' + chart.ju + ' in the centre'],
             ['Chief star', chart.chief],
             ['Envoy gate', chart.envoy],
             ['Constellation', chart.mansion.cn + '宿 ' + chart.mansion.en],
@@ -4522,7 +5424,10 @@
       branches: pa.branches, isVoid: pa.isEmpty, isEnvoy: pa.isEnvoy, isChief: pa.isChief,
       strength: { star: pa.starStrength && pa.starStrength.cn,
                   door: pa.gateStrength && pa.gateStrength.cn,
-                  deity: pa.spiritStrength && pa.spiritStrength.cn } };
+                  deity: pa.spiritStrength && pa.spiritStrength.cn },
+      doorPalace: pa.gatePalace ? pa.gatePalace.cn + ' ' + pa.gatePalace.en : null,
+      stemCombo: (function () { var c = window.QPData.stemCombo(pa.heavenStemCn, pa.earthStemCn); return c ? c.cn + ' ' + c.en + ', ' + c.ratingEn : null; })(),
+      hostGuest: pa.hostGuest ? pa.hostGuest.cn + ' ' + pa.hostGuest.en + ', favours ' + pa.hostGuest.favours : null };
   }
   function snapshotPlate(chart) {
     return [1,2,3,4,5,6,7,8,9].map(function (n) {
@@ -5035,7 +5940,7 @@
     }
   }
 
-  /* ---------------- AI prompt refinements (Profile tab) ---------------- */
+  /* ---------------- AI prompt refinements (Profile screen) ---------------- */
   // Stored per profile. Builds before 9.5 kept one set for the whole device; a profile with no
   // set of its own starts from that one.
   var PROMPTKEY = 'qipath.prompts.v1';
@@ -5154,6 +6059,142 @@
     catch (e) { return false; }   // private mode, or a file:// origin with storage disabled
   }
   function aiReady() { var c = loadAI(); return !!(c && c.key); }
+
+  /*
+   * Narration. Speech comes from Google, so someone using Claude for readings adds a Gemini key
+   * here. ctx.spoken is the text to read; a saved record passes readOnly and only plays.
+   */
+  var TTSKEY = 'qipath.tts.key', narrBusy = null, narrRedraw = null;
+  function ttsKey() {
+    var c = loadAI();
+    if (c.provider === 'gemini' && c.key) return c.key;
+    try { return localStorage.getItem(TTSKEY) || ''; } catch (e) { return ''; }
+  }
+  function narrClock(s) { s = Math.round(s); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+  function narrationUI(hostId, ctx) {
+    var N = window.QPNarrate, host = $(hostId);
+    if (!host) return;
+    var thisHash = N.hash(ctx.script), queue = [], current = null, triedMemory = false;
+    function say(html) { var m = $(hostId + '-msg'); if (m) m.innerHTML = html; }
+    function items() {
+      var all = N.list(user.id).filter(function (x) { return !ctx.readOnly || x.kind === 'sage' || x.scriptHash === thisHash; });
+      function rank(x) { return x.kind === 'sage' ? 0 : x.scriptHash === thisHash ? 1 : 2; }
+      return all.sort(function (a, b) { return rank(a) - rank(b) || (a.made < b.made ? 1 : -1); });
+    }
+    function byKind(kind) {
+      return items().filter(function (x) { return x.kind === kind && (kind === 'sage' || x.scriptHash === thisHash); })[0] || null;
+    }
+    function playNext() {
+      var el = $(hostId + '-audio');
+      current = queue.shift() || null;
+      if (!current || !el) { N.keepAwake(false); return; }
+      triedMemory = false;
+      say('Playing: ' + esc(current.title));
+      N.source(current).then(function (src) {
+        el.src = src;
+        return el.play();
+      }).catch(function (e) { if (e && e.name !== 'AbortError' && e.name !== 'NotAllowedError') say(esc(e.message || 'That audio could not be played.')); });
+    }
+    function playList(list) { queue = list.slice(); N.keepAwake(true); playNext(); }
+    function create(kind) {
+      if (narrBusy) { say('Audio is already being created. Please wait for it to finish.'); return; }
+      var key = ttsKey();
+      if (!key) { say('Add a Google Gemini key first.'); return; }
+      var p = N.prefs(), started = kind === 'sage' ? 'Sage 64 to 1' : 'this script';
+      narrBusy = kind;
+      function speak(text, style) {
+        return window.QPAI.speech(key, text, { voice: p.voice, style: style, onWait: function (s) {
+          say('Google asked for a pause on this key. Continuing in about ' + s + ' seconds.'); } });
+      }
+      function step(i, n, what) { say('Creating ' + started + ': part ' + i + ' of ' + n + ', ' + esc(what) + '. Keep the app open.'); }
+      var job = kind === 'sage' ? N.makeSage(speak, { pace: p.pace, onStep: step }) : N.makeScript(speak, ctx.spoken, { onStep: step });
+      draw();
+      job.then(function (out) {
+        return N.store(user.id, { kind: kind, voice: p.voice, pace: kind === 'sage' ? p.pace : null, seconds: out.seconds, exact: out.exact,
+          title: kind === 'sage' ? 'Sage 64 to 1' : 'Script ' + ctx.title, scriptHash: kind === 'sage' ? null : thisHash }, out.bytes);
+      }).then(function (item) {
+        narrBusy = null;
+        if (narrRedraw) narrRedraw();
+        var m = $(narrRedraw && narrRedraw.hostId + '-msg');
+        if (m) m.innerHTML = '<span class="good-t">Saved on this device (' + narrClock(item.seconds) + ').</span>' +
+          (item.exact ? '' : ' The app could not confirm that every number was spoken. Listen through once, and recreate it if one was skipped.');
+      }, function (e) {
+        narrBusy = null;
+        if (narrRedraw) narrRedraw();
+        var m = $(narrRedraw && narrRedraw.hostId + '-msg');
+        if (m) m.innerHTML = '<span class="bad-t">' + esc(e.message || 'The audio could not be created.') + '</span>';
+      });
+    }
+    function draw() {
+      if (!$(hostId)) return;
+      var p = N.prefs(), list = items(), sage = byKind('sage'), mine = byKind('script'), key = ttsKey();
+      var html = '';
+      if (!ctx.readOnly) {
+        html += '<div class="panel">' +
+          (key ? '' : '<label for="' + hostId + '-key">Google Gemini key for narration</label>' +
+            '<input id="' + hostId + '-key" type="password" autocomplete="off" placeholder="AIza...">' +
+            '<button class="btn ghost" id="' + hostId + '-keysave">Save this key</button>' +
+            '<div class="hint">Narration uses Google voices, and Claude has no speech model. The key stays on this device.</div>') +
+          '<label for="' + hostId + '-voice">Voice</label><select id="' + hostId + '-voice">' + N.VOICES.map(function (v) {
+            return '<option value="' + v.id + '"' + (v.id === p.voice ? ' selected' : '') + '>' + esc(v.label) + '</option>'; }).join('') + '</select>' +
+          '<label for="' + hostId + '-pace">Pace of the count</label><select id="' + hostId + '-pace">' + N.PACES.map(function (v) {
+            return '<option value="' + v.s + '"' + (v.s === p.pace ? ' selected' : '') + '>' + esc(v.label) + '</option>'; }).join('') + '</select>' +
+          '<button class="btn" id="' + hostId + '-sage"' + (narrBusy ? ' disabled' : '') + '>' + (sage ? 'Recreate' : 'Create') + ' the Sage 64 to 1 audio</button>' +
+          '<button class="btn" id="' + hostId + '-script"' + (narrBusy ? ' disabled' : '') + '>' + (mine ? 'Recreate' : 'Create') + ' narration of this script</button>' +
+          '<div class="hint">Each creation uses your own Google quota. The Sage count is made once and reused for every script. ' +
+          'Do not listen while driving or using machinery.</div></div>';
+      }
+      html += '<div id="' + hostId + '-msg" class="hint" aria-live="polite"></div>' +
+        '<audio id="' + hostId + '-audio" controls style="width:100%;margin-top:10px' + (list.length ? '' : ';display:none') + '"></audio>';
+      if (sage && mine) html += '<button class="btn" id="' + hostId + '-both" style="margin-top:10px">Play Sage 64 to 1, then this script</button>';
+      if (list.length) {
+        html += '<div class="panel" style="margin-top:10px">' + list.map(function (x, i) {
+          return '<div style="padding:8px 0;' + (i ? 'border-top:1px solid var(--line)' : '') + '"><div style="font-size:.9rem;overflow-wrap:anywhere">' + esc(x.title) + '</div>' +
+            '<div style="font-size:.76rem;color:var(--muted)">' + narrClock(x.seconds) + ' · ' + (x.bytes / 1048576).toFixed(1) + ' MB · ' + esc(x.voice) + '</div>' +
+            '<div style="display:flex;gap:8px;margin-top:6px">' +
+            '<button class="btn ghost" data-nplay="' + i + '" style="flex:1;margin-top:0">Play</button>' +
+            '<button class="btn ghost" data-nshare="' + i + '" style="flex:1;margin-top:0">Share</button>' +
+            '<button class="btn ghost" data-ndel="' + i + '" style="flex:1;margin-top:0">Delete</button></div></div>';
+        }).join('') + '</div>';
+      }
+      host.innerHTML = html;
+      if (narrBusy) say('Audio is being created. Keep the app open.');
+      var el = $(hostId + '-audio');
+      el.onended = playNext;
+      el.onpause = function () { if (!queue.length && el.ended) N.keepAwake(false); };
+      // Leaving the screen removes the player, and audio must not carry on with no way to stop it.
+      el.ontimeupdate = function () { if (!document.contains(el)) { el.pause(); N.keepAwake(false); } };
+      el.onerror = function () {
+        if (!current || triedMemory || !el.getAttribute('src')) return;
+        triedMemory = true;
+        N.sourceInMemory(current).then(function (src) { el.src = src; return el.play(); }).catch(function (e) {
+          say(esc(e.message || 'That audio could not be played.')); });
+      };
+      if (!ctx.readOnly) {
+        $(hostId + '-voice').onchange = function () { p.voice = this.value; N.setPrefs(p); };
+        $(hostId + '-pace').onchange = function () { p.pace = parseInt(this.value, 10); N.setPrefs(p); };
+        $(hostId + '-sage').onclick = function () { create('sage'); };
+        $(hostId + '-script').onclick = function () { create('script'); };
+        if ($(hostId + '-keysave')) $(hostId + '-keysave').onclick = function () {
+          var v = $(hostId + '-key').value.trim();
+          if (!v) return;
+          try { localStorage.setItem(TTSKEY, v); } catch (e) { /* storage is off */ }
+          draw();
+        };
+      }
+      if ($(hostId + '-both')) $(hostId + '-both').onclick = function () { playList([sage, mine]); };
+      host.querySelectorAll('[data-nplay]').forEach(function (b) { b.onclick = function () { playList([list[+b.dataset.nplay]]); }; });
+      host.querySelectorAll('[data-nshare]').forEach(function (b) { b.onclick = function () {
+        N.share(list[+b.dataset.nshare]).catch(function (e) { if (e && !/cancel/i.test(e.message || '')) say(esc(e.message || 'That audio could not be shared.')); }); }; });
+      host.querySelectorAll('[data-ndel]').forEach(function (b) { b.onclick = function () {
+        var x = list[+b.dataset.ndel];
+        if (!window.confirm('Delete the audio "' + x.title + '"? This cannot be undone.')) return;
+        N.remove(x).then(draw); }; });
+    }
+    draw.hostId = hostId;
+    if (!ctx.readOnly) narrRedraw = draw;
+    draw();
+  }
 
   /*
    * AI readings are kept on the device (localStorage, which survives the app being closed), per
@@ -5340,7 +6381,7 @@
     function run(force) {
       if (!aiReady()) {
         host.innerHTML = '<div class="panel"><div style="font-size:.9rem;line-height:1.7">' +
-          'Add a Gemini or Claude API key on the Profile tab to generate a written reading of this chart.' +
+          'Add a Gemini or Claude API key on the Profile screen to generate a written reading of this chart.' +
           '</div><button class="btn ghost" id="' + hostId + '-go">Open Profile</button></div>';
         $(hostId + '-go').onclick = function () { show('profile'); };
         return;
@@ -5502,7 +6543,7 @@
           : '<div class="deg">' + h.toFixed(1) + '&deg;</div>' +
             '<div class="mt">' + m.char + '</div>' +
             '<div class="sub">' + m.dirFull + ' &middot; ' + m.trigram + ' &middot; ' +
-            m.yuanName + '<br>' + bd.toFixed(1) + '&deg; from the boundary</div>') +
+            m.yuanName + '<br>' + bd.toFixed(1) + '&deg; from the boundary<br>' + (window.QPXiu ? window.QPXiu.mansionAt(h).mansion.cn + '宿 ' + window.QPXiu.mansionAt(h).mansion.en : '') + '</div>') +
       '</div></div>' +
 
       (compassErr ? '<div class="warnbar">' + esc(compassErr) + '</div>' : '') +
@@ -5587,9 +6628,10 @@
     $('segChart').querySelectorAll('button').forEach(function (b) {
       b.setAttribute('aria-selected', String(b.dataset.c === k)); });
     renderChart();
+    paintNav();
   }
 
-  /* ---------------- Chart › Together: two charts read side by side (合婚) ---------------- */
+  /* ---------------- Destiny › Together: two charts read side by side (合婚) ---------------- */
   // The other people are stored inside the signed-in profile, so their birth details stay with the person who entered
   // them. Another profile on this device can be copied in only with that profile's PIN.
   var TG_TYPES = { partner: 'Partner or spouse', family: 'Family member', friend: 'Friend', business: 'Business partner' };
@@ -5608,6 +6650,7 @@
     var on = tgPrefs().show, btn = $('segChart').querySelector('[data-c="together"]');
     if (btn) btn.hidden = !on;
     if (!on && chartK === 'together') switchChart('bazi');
+    else paintNav();
   }
 
   // The month's Qimen plate for the two of them and the next 30 days scanned hour by hour. The scan casts some 360
@@ -5807,6 +6850,12 @@
       (rm ? romanceHtml(res, rm, pt) : '') +
       (res.desire ? desireHtml(res.desire, rm, item) : '') +
       (res.sexual ? sexualHtml(res.sexual, rm, item) : '') +
+      (function () {
+        var nm = areasSafe(function () { return window.QPBazi.nayinMatch(user, other); });
+        return nm ? block('Nayin match 納音', 'separate from the scores above', rows(nm.map(function (x) {
+          return [esc(x.label) + '<small>' + esc(x.area) + '</small>', x.a.cn + ' · ' + x.b.cn + '<div class="plain"><span class="' + (x.value > 0 ? 'good-t' : 'bad-t') + '">' + esc(x.tone) + ':</span> ' + esc(x.text) + '</div>'];
+        }))) : '';
+      })() +
       block('Ways to strengthen the relationship', 'start here',
         '<div class="panel plain"><ol style="margin:0;padding-left:20px">' + res.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') +
         '</ol></div>') +
@@ -5866,6 +6915,7 @@
       '<label for="tgName">Their name</label><input id="tgName" type="text" maxlength="40" placeholder="How should the app refer to them?">' +
       '<label for="tgDate">Date of birth</label><input id="tgDate" type="date">' +
       '<label for="tgTime">Time of birth</label><input id="tgTime" type="time" value="12:00">' +
+      '<label for="tgZone">Time zone at birth</label><select id="tgZone">' + zoneOptions('') + '</select>' +
       '<label for="tgGender">Gender</label><select id="tgGender"><option value="M">Male</option><option value="F">Female</option></select>' +
       '<label for="tgType">Relationship</label><select id="tgType">' + Object.keys(TG_TYPES).map(function (k) {
         return '<option value="' + k + '">' + TG_TYPES[k] + '</option>'; }).join('') + '</select>' +
@@ -5890,14 +6940,14 @@
       var dp = date.split('-').map(Number), tp = time.split(':').map(Number);
       if (dp[0] < 1900 || dp[0] > 2100) return fail('Enter a birth year between 1900 and 2100.');
       store({ id: 't' + Date.now(), name: name, gender: $('tgGender').value, type: $('tgType').value,
-              birth: { y: dp[0], m: dp[1], d: dp[2], hour: tp[0], min: tp[1] } });
+              birth: { y: dp[0], m: dp[1], d: dp[2], hour: tp[0], min: tp[1], zone: $('tgZone').value || undefined } });
     };
     if ($('tgCopy')) $('tgCopy').onclick = function () {
       var p = others.filter(function (x) { return x.id === $('tgProf').value; })[0];
       if (!p) return;
       if (hashPin($('tgPin').value, p.salt) !== p.pin) return fail('That PIN does not match ' + p.name + '\'s profile.');
       store({ id: 't' + Date.now(), name: p.name, gender: p.gender, type: $('tgType').value,
-              birth: { y: p.birth.y, m: p.birth.m, d: p.birth.d, hour: p.birth.hour, min: p.birth.min } });
+              birth: { y: p.birth.y, m: p.birth.m, d: p.birth.d, hour: p.birth.hour, min: p.birth.min, zone: p.birth.zone, lon: p.birth.lon } });
     };
     if ($('tgCancel')) $('tgCancel').onclick = function () { tgAdding = false; renderChart(); };
   }
@@ -5928,6 +6978,7 @@
           : '<div class="empty">No property yet. A flying star chart is a chart of a building, ' +
             'so the module needs one before it can say anything specific.</div>') +
 
+      areasSafe(function () { return xiuFacingHtml(activeProperty()); }) +
       block('Add a property', 'the facing bearing can come later',
         '<div class="panel">' +
         '<label for="prName">Name</label>' +
@@ -6454,7 +7505,7 @@
   function readPlanWithAI() {
     var m = $('plMsg4');
     if (!aiReady()) { m.style.color = 'var(--cinnabar)';
-      m.textContent = 'Reading the plan needs an API key. Add one on the Profile tab.'; return; }
+      m.textContent = 'Reading the plan needs an API key. Add one on the Profile screen.'; return; }
     if (!planDraft.image) { m.style.color = 'var(--cinnabar)';
       m.textContent = 'Import a plan first.'; return; }
     m.style.color = 'var(--muted)'; m.textContent = 'Reading the plan\u2026';
@@ -6592,7 +7643,7 @@
             LB.MODULES[m].cn + ' ' + c[m] + '</button>'; }).join('') +
         '</div><div id="lnList"></div>') +
 
-      block('Qimen forecasting methods', 'selectable on Consult › Forecast',
+      block('Qimen forecasting methods', 'selectable on Strategy › Forecast',
         window.QPQimen.METHODS.map(function (mm) {
           return '<div class="methodcard"><b>' + mm.label +
             ' <span class="cn">' + mm.name + '</span></b>' +
@@ -6603,7 +7654,7 @@
         'point of having them. A note of kind <b>Method</b> in your library is injected into every ' +
         'Qimen reading, so your own school\'s procedure overrides the built-in one.</div>') +
 
-      block('Fibonacci timing', 'on Chart › Forecast and Zi Wei, Consult › San Cai, Forecast and Yijing',
+      block('Fibonacci timing', 'on Seasons › BaZi Luck and Zi Wei, Strategy › San Cai, Forecast and Yijing',
         '<div class="panel" style="font-size:.88rem;line-height:1.75">' +
         'Each system reads one moment. The timing layer asks where the turning points are, by ' +
         'recasting the chart at Fibonacci intervals from an anchor — 1, 2, 3, 5, 8, 13, 21, 34, 55, ' +
@@ -6625,18 +7676,18 @@
 
       block('The quantitative layer', 'matrix algebra, Markov chains, graph theory, Fourier analysis',
         '<div class="panel" style="font-size:.88rem;line-height:1.75">' +
-        '<b>Plate tensor</b> (Consult › Forecast). The Qimen plate as a 9 &times; 5 &times; 5 tensor of palaces, ' +
+        '<b>Plate tensor</b> (Strategy › Forecast). The Qimen plate as a 9 &times; 5 &times; 5 tensor of palaces, ' +
         'layers and elements. Its influence matrix gives the energy hub (principal eigenvector), how ' +
         'concentrated the plate is (&lambda;&#8321;/|&lambda;&#8322;|), and which palace best fits your elements.<br><br>' +
-        '<b>Markov dynamics</b> (Consult › Forecast). Your question recast for 120 double-hours; the verdicts form ' +
+        '<b>Markov dynamics</b> (Strategy › Forecast). Your question recast for 120 double-hours; the verdicts form ' +
         'a four-state chain. It gives the long-run share of each state, the odds a few hours ahead, and the ' +
         'expected wait until Favourable.<br><br>' +
-        '<b>Network topology</b> (Chart › Bazi). The eight characters as a graph. PageRank shows where qi ' +
+        '<b>Network topology</b> (Destiny › Bazi). The eight characters as a graph. PageRank shows where qi ' +
         'accumulates, betweenness finds the bridge character, and the Day Master&rsquo;s net flow sums what ' +
         'feeds, pressures and drains it.<br><br>' +
-        '<b>Harmonic cycles</b> (Chart › Forecast and Consult › Forecast). Fourier analysis finds the dominant ' +
+        '<b>Harmonic cycles</b> (Seasons › BaZi Luck and Strategy › Forecast). Fourier analysis finds the dominant ' +
         'cycles in your scores, where you are in their phase, and the next peak and trough.<br><br>' +
-        '<b>Strategic stance</b> (Consult › Forecast, Chart › Zi Wei, San Cai mandates). Host against guest — or this ' +
+        '<b>Strategic stance</b> (Strategy › Forecast, Destiny › Zi Wei, San Cai mandates). Host against guest — or this ' +
         'year&rsquo;s Life palace against others, or you against the person across the table — as a game over Attack, ' +
         'Hold and Maneuver; the Nash equilibrium gives the stance and the best reply to each move.<br><br>' +
         '<b>Layer alignment</b> (San Cai mandates). A fuzzy AND of Heaven, Earth and Man: the window is only as aligned ' +
@@ -6771,7 +7822,7 @@
     }
     if (!aiReady()) {
       m.style.color = 'var(--cinnabar)';
-      m.textContent = 'Reading material into notes needs an API key. Add one on the Profile tab, ' +
+      m.textContent = 'Reading material into notes needs an API key. Add one on the Profile screen, ' +
         'or use "Save as one note without AI".';
       return;
     }
@@ -6908,7 +7959,7 @@
           ['Gender', user.gender === 'M' ? 'Male' : 'Female']
         ])) +
 
-      block('Relationship screen', 'Chart › Together',
+      block('Relationship screen', 'Destiny › Together',
         '<div class="panel">' +
         '<label class="tg-toggle"><input type="checkbox" id="pfTgShow"' + (tgPrefs().show ? ' checked' : '') + '> Show the Together screen</label>' +
         '<label class="tg-toggle"><input type="checkbox" id="pfTgIntim"' + (tgPrefs().intimacy ? ' checked' : '') + '> ' +
@@ -6924,13 +7975,30 @@
         '<label for="pfQmVoid">Void (空亡) on hourly charts</label><select id="pfQmVoid">' +
           '<option value="hour"' + (loadQmOpts().voidBy === 'hour' ? ' selected' : '') + '>The hour\'s xun (default)</option>' +
           '<option value="day"' + (loadQmOpts().voidBy === 'day' ? ' selected' : '') + '>The day\'s xun</option></select>' +
-        '<div class="hint">置闰 follows the 符头 in 15-day blocks and repeats 芒种 or 大雪 when 超神 passes nine days; 拆补 uses the ' +
+        '<label for="pfQmLong">Year and month plates</label><select id="pfQmLong">' +
+          '<option value="yearly"' + (loadQmOpts().longRule === 'yearly' ? ' selected' : '') + '>Year steps one ju each year; 辰戌丑未 months 阴7 (default)</option>' +
+          '<option value="era"' + (loadQmOpts().longRule === 'era' ? ' selected' : '') + '>Year by 60-year era; 辰戌丑未 months 阴4</option></select>' +
+        '<label for="pfSolar">True solar time</label><select id="pfSolar">' +
+          '<option value="off"' + (loadQmOpts().trueSolar ? '' : ' selected') + '>Off: use the clock (default)</option>' +
+          '<option value="on"' + (loadQmOpts().trueSolar ? ' selected' : '') + '>On: use the sun at my longitude</option></select>' +
+        '<label for="pfSolarLon">My longitude in degrees east (Singapore 103.85, west is negative)</label>' +
+        '<input id="pfSolarLon" type="number" step="0.01" min="-180" max="180" value="' + loadQmOpts().lon + '">' +
+        '<div class="hint">True solar time corrects the clock for your longitude and the equation of time, so the hour and day pillars follow the sun. It applies to current charts on this device, and times listed as hour ranges then mean solar time. In Singapore the sun runs about 48 to 79 minutes behind the clock, which changes the double-hour for over half the day. Your own birth chart has a separate setting below.</div>' +
+        '<div class="hint">置闰 follows the 符头 in 15-day blocks and repeats 芒种 or 大雪 on the schedule in the Joey Yap Ten Thousand Year Calendar; 拆补 uses the ' +
           'current solar term. They agree most days and differ near term changes. Applies to every chart on this device.</div></div>') +
+
+      block('Birth time', 'for your own chart',
+        '<div class="panel"><label for="pfZone">Time zone at birth</label><select id="pfZone">' + zoneOptions(user.birth.zone) + '</select>' +
+        '<label for="pfBirthLon">Birth longitude for true solar time (optional, leave blank for the clock)</label>' +
+        '<input id="pfBirthLon" type="number" step="0.01" min="-180" max="180" value="' + (user.birth.lon === undefined || user.birth.lon === null ? '' : user.birth.lon) + '">' +
+        '<div class="hint">A named place uses that zone\'s offset on your birth date: Singapore, for example, was UTC+7:30 until 1982. Currently ' +
+          (user.birth.tz === undefined ? 'your chart uses this device\'s offset.' : 'your birth moment is read at UTC' + (user.birth.tz >= 0 ? '+' : '') + user.birth.tz + '.') +
+          ' Your chart is rebuilt when you change these, so its readings may change too.</div></div>') +
 
       block('Daily structures', 'the strongest Qimen structures, each morning',
         '<div class="panel">' +
         '<label class="tg-toggle"><input type="checkbox" id="pfDigest"' + (digestPrefs().notify ? ' checked' : '') + '> Notify me at 06:00 each day</label>' +
-        '<div class="hint" id="pfDigestMsg">Names that day\'s strongest structure; tap it to open Consult › Structures. The 06:00 email ' +
+        '<div class="hint" id="pfDigestMsg">Names that day\'s strongest structure; tap it to open Strategy › Structures. The 06:00 email ' +
           'comes from the GitHub Actions job described in the README.</div></div>') +
 
       block('AI narrative analysis', 'your key, your account, called from this device',
@@ -6963,10 +8031,6 @@
 
       block('AI prompts', 'refine each reading — ' + window.QPAI.promptRegistry().length + ' prompts', promptPrefsHtml()) +
 
-      block('Saved records', '', '<div id="recHost"></div>') +
-
-      block('AI readings on this device', 'kept when the app closes', '<div id="narrHost"></div>') +
-
       block('Profiles on this device', list.length + ' saved',
         '<div class="rows">' + list.map(function (x) {
           return '<div class="row"><span class="k">' + esc(x.name) +
@@ -6986,16 +8050,26 @@
         'judgement, not as fact about the future. Nothing here is medical, legal or financial advice.' +
         '</div>');
 
-    renderRecords();
     wirePromptPrefs();
-    paintNarrStats();
 
     // provider switch repopulates the model list
-    $('pfQmMethod').onchange = $('pfQmVoid').onchange = function () {
-      var o = { method: $('pfQmMethod').value, voidBy: $('pfQmVoid').value };
+    $('pfQmMethod').onchange = $('pfQmVoid').onchange = $('pfQmLong').onchange = $('pfSolar').onchange = $('pfSolarLon').onchange = function () {
+      var o = { method: $('pfQmMethod').value, voidBy: $('pfQmVoid').value, longRule: $('pfQmLong').value, trueSolar: $('pfSolar').value === 'on' && isFinite(parseFloat($('pfSolarLon').value)),
+        lon: isFinite(parseFloat($('pfSolarLon').value)) ? parseFloat($('pfSolarLon').value) : 103.85 };
       try { localStorage.setItem(QM_OPTS_KEY, JSON.stringify(o)); } catch (e) {}
       applyQmOpts(o);
-      structCache = null; tgRomCache = {};   // scans were cast on the old plates
+      structCache = null; tgRomCache = {}; plannerState = null; monthlyState = null;   // these were cast on the old plates
+    };
+    $('pfZone').onchange = $('pfBirthLon').onchange = function () {
+      var list = loadProfiles(), me = list.filter(function (x) { return x.id === user.id; })[0];
+      if (!me) return;
+      var lv = parseFloat($('pfBirthLon').value);
+      me.birth.zone = $('pfZone').value || undefined;
+      me.birth.lon = isFinite(lv) ? lv : undefined;
+      saveProfiles(list);
+      user = enrich(me);
+      structCache = null; tgRomCache = {}; plannerState = null; monthlyState = null;
+      renderProfile();
     };
     $('pfDigest').onchange = function () {
       var on = $('pfDigest').checked, p = digestPrefs(); p.notify = on; saveDigestPrefs(p);
@@ -7070,6 +8144,7 @@
     $('pfDelete').onclick = function () {
       if (!window.confirm('Delete ' + user.name + ' from this device? This cannot be undone.')) return;
       saveProfiles(loadProfiles().filter(function (x) { return x.id !== user.id; }));
+      window.QPNarrate.removeUser(user.id);
       user = null; $('app').hidden = true; $('gate').hidden = false; showList();
     };
   }
@@ -7077,6 +8152,302 @@
 
   /* ---------------- saved records browser ---------------- */
   var recFilter = '';
+
+  function solarYearNow() { var t = now(); return C.fourPillars(t.y, t.m, t.d, 12, 0).solarYear; }
+  function validYear(v, fallback) { v = parseInt(v, 10); return v >= 1900 && v <= 2200 ? v : fallback; }
+
+  function renderQiZheng(host) {
+    host.innerHTML = '<div class="empty">Loading the planetary tables…</div>';
+    window.QPEphem.load(function (ok) {
+      if (chartK !== 'qizheng' || current !== 'chart') return;
+      var Q = ok ? window.QPQiZheng.chart(user.birth, user.pillars.hourBranch) : null;
+      if (!Q) { host.innerHTML = '<div class="notice">Qi Zheng Si Yu needs a birth date between 1900 and 2100.</div>'; return; }
+      var layout = [[5,6,7,8],[4,null,null,9],[3,null,null,10],[2,1,0,11]], cells = '', byB = {};
+      Q.palaces.forEach(function (p) { byB[p.branch] = p; });
+      layout.forEach(function (row, r) {
+        row.forEach(function (b, c0) {
+          if (b === null) return;
+          var p = byB[b];
+          cells += '<div class="pal' + (p === Q.ming ? ' ming' : '') + (p === Q.shen ? ' shen' : '') + '" style="grid-column:' + (c0 + 1) + ';grid-row:' + (r + 1) + '">' +
+            '<div class="st">' + (p.bodies.length ? p.bodies.map(function (o) { return o.cn; }).join('<br>') : '<span style="color:var(--muted)">—</span>') + '</div>' +
+            '<div><div class="nm">' + p.cn + (p === Q.shen ? ' · 身' : '') + '</div><div class="bz">' + p.branchCn + '</div></div></div>';
+        });
+      });
+      cells += '<div class="mid"><div class="big">' + Q.mingRuler.cn + '</div><div class="sm">Life ruler<br>Life palace in ' + Q.ming.branchCn + '<br>Body palace in ' + Q.shen.branchCn + '</div></div>';
+      var tcls = function (t) { return t > 0 ? 'good-t' : t < 0 ? 'bad-t' : ''; };
+      host.innerHTML =
+        block('Qi Zheng Si Yu 七政四餘', 'the seven bodies and four remainders at your birth',
+          '<div class="board">' + cells + '</div>') +
+        block('Life and Body', '', rows([
+          ['Life palace 命宮', Q.ming.branchCn + ' <small>' + esc(Q.ming.note) + '</small>'],
+          ['Life ruler 命主', Q.mingRuler.cn + ' ' + Q.mingRuler.en + ' <small>in ' + Q.mingRuler.palace.cn + ' ' + Q.mingRuler.palace.en + ', ' + Q.mingRuler.mansion.cn + ' ' + Q.mingRuler.deg + '°</small>'],
+          ['Body palace 身宮', Q.shen.branchCn + ' ' + Q.shen.cn + ' <small>' + Q.shen.en + ', where the Moon sits</small>'],
+          ['Body ruler 身主', Q.shenRuler.cn + ' ' + Q.shenRuler.en + ' <small>in ' + Q.shenRuler.palace.cn + ' ' + Q.shenRuler.palace.en + '</small>']])) +
+        block('The twelve palaces', 'from Life, running backward through the branches',
+          rows(Q.palaces.map(function (p) {
+            return [p.cn + ' ' + p.en + ' <small>' + p.branchCn + ' &middot; ruler ' + p.ruler.cn + '</small>',
+              (p.bodies.length ? p.bodies.map(function (o) { return '<span class="' + tcls(o.tone) + '">' + o.cn + '</span>'; }).join(' ') : '<span style="color:var(--muted)">empty</span>') +
+              '<small>' + esc(p.note) + '</small>']; }))) +
+        block('The eleven bodies', 'palace, mansion and degree',
+          rows(Q.bodies.map(function (o) {
+            return [o.cn + ' <small>' + o.en + (o.retro ? ' &middot; retrograde' : '') + '</small>',
+              o.palace.cn + ' ' + o.branchCn + ' <small>' + o.mansion.cn + ' ' + o.mansion.en + ' ' + o.deg + '° &middot; longitude ' + o.lon + '° &middot; ' + esc(o.note) + '</small>']; })) +
+          '<div class="hint">The seven bodies are true positions. 羅睺 and 計都 are the mean lunar nodes as Chinese astrologers assign them, and 月孛 is the mean lunar apogee. 紫氣 has no object in the sky, so it follows a conventional 28-year circuit. Palaces follow the solar terms. Schools differ on palaces and on 紫氣, so another chart may place some bodies differently.</div>');
+    });
+  }
+
+  function hexFigure(lines, tang) {
+    return '<div class="hxl">' + [5, 4, 3, 2, 1, 0].map(function (i) {
+      return (lines[i] ? '━━━━━' : '━━ ━━') + (i + 1 === tang ? ' ◀' : ''); }).join('\n') + '</div>';
+  }
+
+  function renderHeLuo(host) {
+    var H = window.QPHeLuo.compute(user.pillars, user.gender === 'M'), y = solarYearNow(), age = y - user.pillars.solarYear + 1;
+    var cur = H.periods.filter(function (p) { return age >= p.fromAge && age <= p.toAge; })[0];
+    function hexBlock(title, sub, h) {
+      return block(title, sub, '<div class="panel" style="display:flex;gap:16px;align-items:center">' + hexFigure(h.lines, h.tang) +
+        '<div><div style="font-size:1.1rem;color:var(--brass)">' + h.hex.name + ' ' + esc(h.hex.nameEn) + '</div><div class="hint" style="margin-top:2px">Hexagram ' + h.hex.number + ' &middot; ' +
+        h.hex.upper + ' ' + esc(h.hex.upperEn) + ' over ' + h.hex.lower + ' ' + esc(h.hex.lowerEn) + '<br>元堂 line: ' + h.line + '</div></div></div>');
+    }
+    host.innerHTML =
+      block('He Luo Li Shu 河洛理數', 'your four pillars turned into hexagrams',
+        rows([['Heaven number 天數', H.numbers.heaven + ' <small>reduces to ' + H.heavenNum + '</small>'], ['Earth number 地數', H.numbers.earth + ' <small>reduces to ' + H.earthNum + '</small>'],
+          ['Placement', (H.heavenOnTop ? 'Heaven trigram above Earth' : 'Earth trigram above Heaven') + (H.usedFive ? ' <small>a 5 took its trigram from the era and your gender</small>' : '')],
+          ['Now', cur ? 'Age ' + age + ': ' + cur.hex.name + ' ' + cur.line + ' <small>' + cur.fromYear + ' to ' + cur.toYear + '</small>' : 'Age ' + age + ' <small>past the two hexagram cycles</small>']])) +
+      hexBlock('Early heaven hexagram 先天卦', 'your starting pattern', H.first) +
+      hexBlock('Later heaven hexagram 後天卦', H.swap ? 'the 元堂 line changed, trigrams swapped' : 'the 元堂 line changed, trigrams kept in place', H.second) +
+      block('Life periods 大運', 'a yang line rules nine years, a yin line six; ages count from one at birth',
+        rows(H.periods.map(function (p) {
+          var on = p === cur;
+          return [(on ? '<b style="color:var(--brass)">' : '') + 'Age ' + p.fromAge + ' to ' + p.toAge + (on ? ' (now)</b>' : '') + ' <small>' + p.fromYear + ' to ' + p.toYear + '</small>',
+            p.hex.name + ' ' + p.line + ' <small>' + (p.stage === 'Early' ? 'early heaven' : 'later heaven') + ' &middot; ' + (p.yang ? 'yang' : 'yin') + ' line, ' + p.years + ' years</small>']; })) +
+        '<div class="hint">Schools differ on small points, especially when a total reduces to 5. Yearly and monthly hexagrams are not included.</div>');
+  }
+
+  function renderCombined(host) {
+    host.innerHTML = '<div class="empty">Reading the five systems…</div>';
+    window.QPEphem.load(function (ok) {
+      if (chartK !== 'combined' || current !== 'chart') return;
+      lastSavedId = null; currentAI = null;
+      var qz = null, y = solarYearNow(), M;
+      try { qz = ok ? window.QPQiZheng.chart(user.birth, user.pillars.hourBranch) : null; } catch (e) { qz = null; }
+      try { M = window.QPCombined.compute(user, y, qz); } catch (e) { host.innerHTML = '<div class="notice">' + esc(e.message) + '</div>'; return; }
+      var cls = { Strong: 'good-t', Steady: '', Weak: 'bad-t' }, sign = function (v) { return (v > 0 ? '+' : '') + v; };
+      var tag = function (a) { return a.agree === 'Agree' ? (a.up ? a.up : a.down) + ' agree' : a.agree === 'Split' ? 'systems split' : 'few signals'; };
+      var names = function (l) { return l.map(function (a) { return a.label + ' <small>' + sign(a.score) + '</small>'; }).join('<br>'); };
+      var care = window.QPSystems.HEALTH_CARE;
+      host.innerHTML =
+        block('Combined reading 合參', 'BaZi, Zi Wei, Qimen Destiny, Qi Zheng and He Luo',
+          '<div class="hint" style="margin-top:0">Each system scores an area from -3 to +3 only where it has something of its own to say, and the level is their plain average. This weighing is the app\'s own, as no classical text sets one.' +
+            (M.usedQiZheng ? '' : ' Qi Zheng is left out because its tables cover births from 1900 to 2100.') + '</div>' +
+          rows([['Strongest', names(M.top)], ['Needs most care', names(M.low)], ['Systems disagree on', M.split.length ? M.split.map(function (a) { return esc(a.label); }).join(', ') : 'none of the areas']])) +
+        '<button class="btn ghost" id="cbOpen">Open all areas</button>' +
+        M.groups.map(function (g) {
+          var list = M.areas.filter(function (a) { return a.group === g[0]; });
+          return block(g[1] + ' ' + g[2], list.length + ' areas', '<div style="display:grid;gap:6px">' + list.map(function (a) {
+            return '<details class="pp cbA"><summary><span class="' + cls[a.level] + '">' + esc(a.label) + ' — ' + a.level + (a.isNew ? ' <b style="color:var(--brass);font-weight:400">new</b>' : '') + '</span>' +
+              '<small>' + a.cn + ' &middot; ' + sign(a.score) + '<br>' + tag(a) + '</small></summary>' +
+              '<div class="hint" style="margin-top:0">' + esc(a.covers) + '</div>' +
+              '<div class="plain" style="margin-top:6px"><b>What this means for you.</b> ' + esc(a.meaning) + '</div>' +
+              '<div class="plain" style="margin-top:6px"><b>How sure is this?</b> ' + esc(a.sure) + '</div>' +
+              '<div class="plain" style="margin-top:6px"><b>What each system shows</b>' + M.systems.map(function (s0) {
+                var r = a.per[s0[0]];
+                return r ? '<div style="margin-top:4px"><b>' + s0[1] + ' ' + sign(r.v) + '.</b> ' + esc(r.why) + (r.via ? ' <small style="display:inline;color:var(--muted)">No direct symbol, so this reads ' + esc(r.via) + '.</small>' : '') + '</div>' : '';
+              }).join('') + '</div>' +
+              '<div class="todo" style="margin-top:8px"><b>What to do</b><ol style="margin:4px 0 0;padding-left:20px">' + a.steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>' +
+              (a.key === 'health' || a.key === 'vitality' || a.key === 'emotions' ? '<div class="hint">' + esc(care.text) + '</div>' : '') + '</details>';
+          }).join('') + '</div>');
+        }).join('') +
+        block('AI analysis of the combined chart', 'written with your own API key', '<div id="aiCombined"></div>') +
+        saveBar('cbSave', 'Save this combined reading');
+      $('cbOpen').onclick = function () {
+        var all = host.querySelectorAll('details.cbA'), open = !all[0].open;
+        all.forEach(function (x) { x.open = open; });
+        this.textContent = open ? 'Close all areas' : 'Open all areas';
+      };
+      wireSave('cbSave', function () {
+        var brief = function (a) { return { label: a.label, score: a.score }; };
+        return { kind: 'combined', title: 'Combined reading · ' + user.pillars.day.cn,
+          subtitle: 'BaZi, Zi Wei, Qimen, ' + (M.usedQiZheng ? 'Qi Zheng, ' : '') + 'He Luo · read in ' + y,
+          when: { date: user.birth.y + '-' + pad2(user.birth.m) + '-' + pad2(user.birth.d), range: user.pillars.hourRange },
+          payload: { type: 'combined', year: y, usedQiZheng: M.usedQiZheng, systems: M.systems, top: M.top.map(brief), low: M.low.map(brief),
+            split: M.split.map(function (a) { return a.label; }),
+            areas: M.areas.map(function (a) { return { key: a.key, label: a.label, cn: a.cn, level: a.level, score: a.score, agree: a.agree, up: a.up, down: a.down, covers: a.covers, meaning: a.meaning, sure: a.sure, steps: a.steps, isNew: a.isNew, per: a.per }; }) } };
+      });
+      aiPanelSaving('aiCombined', 'combined', 'v2.' + y, function (cfg) { return window.QPAI.analyseCombined(cfg, user, M, y); }, [
+        { label: 'Overview', path: 'overview' }, { label: 'Where the systems agree you are strong', path: 'strengths' },
+        { label: 'Where they agree it is hard', path: 'challenges' }, { label: 'Where they disagree', path: 'disagreements' },
+        { label: 'Life areas', path: 'lifeAreas', list: 'areas' }, { label: 'Priorities', path: 'guidance' }, { label: 'What would change this', path: 'caution' }
+      ]);
+    });
+  }
+
+  var zodiacYear = null;
+  function renderZodiac(host) {
+    var y = zodiacYear || solarYearNow(), Z = window.QPZodiac.personal(user, y);
+    var mine = {};
+    Z.pillars.forEach(function (x) { (mine[x.sign.branch] = mine[x.sign.branch] || []).push(x.pillar); });
+    var cls = { Supported: 'good-t', Balanced: 'good-t', Mixed: 'bad-t', Pressured: 'bad-t' };
+    function marks(s, pick) { return s.marks.filter(pick).map(function (m) { return esc(m.en) + ' ' + m.cn + ': ' + esc(m.note); }); }
+    function detail(s) {
+      var good = marks(s, function (m) { return m.tone > 0; }), mid = marks(s, function (m) { return m.tone === 0; }), bad = marks(s, function (m) { return m.tone < 0; });
+      return '<div class="plain"><b>' + s.duke.en + ' ' + s.duke.cn + '.</b> ' + esc(s.duke.note) + '</div>' +
+        '<div class="plain" style="margin-top:6px"><b>' + s.stage.en + ' ' + s.stage.cn + '.</b> ' + esc(s.stage.note) + '</div>' +
+        (good.length ? '<div class="plain" style="margin-top:6px"><b class="good-t">Helpful</b><br>' + good.join('<br>') + '</div>' : '') +
+        (mid.length ? '<div class="plain" style="margin-top:6px"><b>Depends on use</b><br>' + mid.join('<br>') + '</div>' : '') +
+        (bad.length ? '<div class="plain" style="margin-top:6px"><b class="bad-t">Take care</b><br>' + bad.join('<br>') + '</div>' : '');
+    }
+    host.innerHTML =
+      block('Zodiac forecast 生肖', Z.pillar + ' year',
+        '<div class="panel"><label for="zdYear">Year</label><input id="zdYear" type="number" min="1900" max="2200" value="' + y + '">' +
+        '<div class="hint">The outlook word is this app\'s own weighing of each sign\'s markers. Years run from Li Chun in early February.</div></div>') +
+      block('Your chart this year', 'each pillar carries the markers of its animal',
+        rows(Z.pillars.map(function (x) {
+          return [x.pillar + ' <small>' + x.cn + ' &middot; ' + x.sign.en + '</small>',
+            '<span class="' + cls[x.sign.outlook] + '">' + x.sign.outlook + '</span> <small>' + x.sign.duke.en + ' ' + x.sign.duke.cn + ' &middot; ' + esc(x.area) + '</small>']; }))) +
+      block('All twelve signs', 'tap a sign for its markers',
+        '<div style="display:grid;gap:6px">' + Z.signs.map(function (s) {
+          return '<details class="pp"><summary><span>' + s.cn + ' ' + s.en + (mine[s.branch] ? ' <b style="color:var(--brass)">' + mine[s.branch].join(', ') + '</b>' : '') + '</span>' +
+            '<small><span class="' + cls[s.outlook] + '">' + s.outlook + '</span><br>' + s.duke.en + '</small></summary>' + detail(s) + '</details>';
+        }).join('') + '</div>');
+    $('zdYear').onchange = function () { zodiacYear = validYear(this.value, y); renderZodiac(host); };
+  }
+
+  var mobilityYear = null;
+  function mobilityKey(y) { return 'qipath.mobility.' + user.id + '.' + y; }
+  function renderMobility(host) {
+    var Q = window.QPQimen, y = mobilityYear || solarYearNow(), saved = 0;
+    try { saved = parseInt(localStorage.getItem(mobilityKey(y)), 10) || 0; } catch (e) { saved = 0; }
+    var M = Q.mobility(user, y, saved);
+    host.innerHTML =
+      block('Mobility directions 出行方', M.pillar + ' year &middot; plate ' + M.plate,
+        '<div class="panel"><label for="mbYear">Year</label><input id="mbYear" type="number" min="1900" max="2200" value="' + y + '">' +
+        '<label for="mbCentre">Centre god (not shown on the compass)</label><select id="mbCentre">' +
+          '<option value="0"' + (saved ? '' : ' selected') + '>Year star: ' + Q.NINE_NOBLES[M.autoCentre].en + ' ' + Q.NINE_NOBLES[M.autoCentre].cn + ' (default)</option>' +
+          Q.NINE_NOBLES.slice(1).map(function (g) { return '<option value="' + g.n + '"' + (saved === g.n ? ' selected' : '') + '>' + g.en + ' ' + g.cn + '</option>'; }).join('') + '</select>' +
+        '<div class="hint">The gods run ' + (M.forward ? 'forward' : 'backward') + ' around the palaces because your natal plate is ' + (M.forward ? 'Yang' : 'Yin') + '. ' +
+          'Thrive reports use a personal centre whose rule is not published, so the default here can differ. If you have a Thrive report for this year, choose the one god its list leaves out and all eight directions will match it.</div></div>') +
+      block('Directions, strongest first', 'scored on the year plate at each direction',
+        rows(M.rows.map(function (r) {
+          return [esc(r.dir) + ' <small>' + r.num + ' ' + r.name + ' &middot; score ' + r.score + '</small>',
+            '<b class="' + (r.noble.tone > 0 ? 'good-t' : r.noble.tone < 0 ? 'bad-t' : '') + '">' + r.noble.en + ' ' + r.noble.cn + '</b> <small>' + esc(r.noble.theme) + '</small>' +
+            '<small>' + esc(r.door || '') + ' &middot; ' + esc(r.star || '') + ' &middot; ' + esc(r.deity || '') + (r.isEmpty ? ' &middot; void' : '') + '</small>']; })) +
+        '<div class="hint">A direction is measured from where you normally live or work. The score reads the year plate. The god names the theme of the trip.</div>');
+    $('mbYear').onchange = function () { mobilityYear = validYear(this.value, y); renderMobility(host); };
+    $('mbCentre').onchange = function () {
+      try { if (+this.value) localStorage.setItem(mobilityKey(y), this.value); else localStorage.removeItem(mobilityKey(y)); } catch (e) {}
+      renderMobility(host);
+    };
+  }
+
+  var journalK = 'saved';
+  function renderJournal() {
+    var host = $('journalBody');
+    if (journalK === 'audio') { renderJournalAudio(host); return; }
+    if (journalK === 'outcomes') { renderJournalOutcomes(host); return; }
+    host.innerHTML = block('Saved readings', '', '<div id="recHost"></div>') +
+      block('AI readings on this device', 'kept when the app closes', '<div id="narrHost"></div>');
+    renderRecords();
+    paintNarrStats();
+  }
+
+  // Saved readings that make a claim about what will happen. Numbers have their own ledger in Numbers Lab.
+  var OUTCOME_KINDS = ['forecast', 'plan', 'manifest', 'sancai', 'yijing', 'annual', 'counter', 'strategy', 'search'];
+  var OUTCOME_LABEL = { hit: 'Happened', partly: 'Partly', miss: 'Did not happen' };
+
+  function renderJournalOutcomes(host) {
+    var list = R.all(user.id).filter(function (r) { return OUTCOME_KINDS.indexOf(r.kind) >= 0; });
+    var open = list.filter(function (r) { return !r.outcome; }), done = list.filter(function (r) { return r.outcome; });
+    if (!list.length) {
+      host.innerHTML = block('Outcomes', 'forecasts compared with what happened', '<div class="empty">Nothing to compare yet. Save a Forecast, Date Selection, Manifest or other reading, then come back once it has played out.</div>');
+      return;
+    }
+    function tally(rs) {
+      var t = { hit: 0, partly: 0, miss: 0 };
+      rs.forEach(function (r) { t[r.outcome.result]++; });
+      t.n = rs.length; t.rate = rs.length ? Math.round((t.hit + t.partly / 2) / rs.length * 100) : 0;
+      return t;
+    }
+    function line(t) { return t.rate + '% <small>' + t.hit + ' happened, ' + t.partly + ' partly, ' + t.miss + ' did not, of ' + t.n + '</small>'; }
+    var kinds = OUTCOME_KINDS.filter(function (k) { return done.some(function (r) { return r.kind === k; }); });
+    var head = function (r) {
+      return '<span class="b" data-rid="' + r.id + '"><b>' + esc(r.title) + '</b><small>' + esc(r.subtitle) + '</small>' +
+        '<small style="color:var(--brass)">' + R.KINDS[r.kind].label + ' · saved ' + r.savedAt.slice(0, 10) + ' · tap to reread</small></span>';
+    };
+    host.innerHTML =
+      (done.length ? block('How your readings have held up', done.length + ' logged',
+        rows([['All readings', line(tally(done))]].concat(kinds.map(function (k) {
+          return [R.KINDS[k].label, line(tally(done.filter(function (r) { return r.kind === k; })))]; }))) +
+        (done.length < 20 ? '<div class="hint">Fewer than 20 outcomes is too few to say a method works. This is your own judgement of each reading, and partly counts as half.</div>' : '')) : '') +
+      block('Waiting for an outcome', open.length ? String(open.length) : '',
+        open.length ? open.map(function (r) {
+          return '<div class="panel" style="margin-bottom:10px"><div class="rec" style="padding:0;border:0;background:none">' + head(r) + '</div>' +
+            '<label for="oc-' + r.id + '">What happened (optional)</label><textarea id="oc-' + r.id + '" rows="2" maxlength="500"></textarea>' +
+            '<div class="seg" style="margin:8px 0 0">' + ['hit', 'partly', 'miss'].map(function (x) {
+              return '<button data-oc="' + r.id + '" data-res="' + x + '">' + OUTCOME_LABEL[x] + '</button>'; }).join('') + '</div></div>';
+        }).join('') : '<div class="empty">Every saved reading has an outcome logged.</div>') +
+      (done.length ? block('Logged', '', done.map(function (r) {
+        return '<div class="panel" style="margin-bottom:10px"><div class="rec" style="padding:0;border:0;background:none">' + head(r) + '</div>' +
+          '<div style="margin-top:8px;font-size:.88rem"><b>' + OUTCOME_LABEL[r.outcome.result] + '</b> · ' + esc(r.outcome.at) + '</div>' +
+          (r.outcome.note ? '<div class="plain" style="margin-top:4px">' + esc(r.outcome.note) + '</div>' : '') +
+          '<button class="btn ghost" data-occlear="' + r.id + '">Change this outcome</button></div>';
+      }).join('')) : '');
+    host.querySelectorAll('[data-rid]').forEach(function (b) {
+      b.onclick = function () { openRecord(R.get(user.id, b.dataset.rid)); };
+    });
+    host.querySelectorAll('[data-oc]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.oc, t = now();
+        R.setOutcome(user.id, id, { result: b.dataset.res, note: $('oc-' + id).value.trim(), at: isoOf(t) });
+        renderJournalOutcomes(host);
+      };
+    });
+    host.querySelectorAll('[data-occlear]').forEach(function (b) {
+      b.onclick = function () { R.setOutcome(user.id, b.dataset.occlear, null); renderJournalOutcomes(host); };
+    });
+  }
+
+  function renderJournalAudio(host) {
+    var N = window.QPNarrate;
+    var list = N.list(user.id).sort(function (a, b) { return a.made < b.made ? 1 : -1; });
+    if (!list.length) {
+      host.innerHTML = block('Narrations', '', '<div class="empty">No narrations yet. Create one from a script in Strategy › Manifest.</div>');
+      return;
+    }
+    host.innerHTML = block('Narrations', list.length + ' on this device',
+      '<audio id="jnAudio" controls style="width:100%"></audio><div id="jnMsg" class="hint" aria-live="polite"></div>' +
+      '<div class="panel" style="margin-top:10px">' + list.map(function (x, i) {
+        return '<div style="padding:8px 0;' + (i ? 'border-top:1px solid var(--line)' : '') + '">' +
+          '<div style="font-size:.9rem;overflow-wrap:anywhere">' + esc(x.title) + '</div>' +
+          '<div style="font-size:.76rem;color:var(--muted)">' + narrClock(x.seconds) + ' · ' + (x.bytes / 1048576).toFixed(1) + ' MB · ' + esc(x.voice) + ' · ' + esc(x.made.slice(0, 10)) + '</div>' +
+          '<button class="btn ghost" data-jplay="' + i + '">Play</button>' +
+          '<button class="btn ghost" data-jdel="' + i + '">Delete</button></div>';
+      }).join('') + '</div>');
+    var el = $('jnAudio'), playing = null, retried = false;
+    function failed() { $('jnMsg').textContent = 'That audio could not be played.'; N.keepAwake(false); }
+    el.onended = function () { N.keepAwake(false); };
+    el.onerror = function () {
+      if (!playing || retried) { if (playing) failed(); return; }
+      retried = true;
+      N.sourceInMemory(playing).then(function (src) { el.src = src; return el.play(); }).catch(failed);
+    };
+    host.querySelectorAll('[data-jplay]').forEach(function (b) {
+      b.onclick = function () {
+        playing = list[+b.dataset.jplay]; retried = false;
+        $('jnMsg').textContent = 'Playing: ' + playing.title;
+        N.keepAwake(true);
+        N.source(playing).then(function (src) { el.src = src; return el.play(); })
+          .catch(function (e) { if (!e || (e.name !== 'AbortError' && e.name !== 'NotAllowedError')) failed(); });
+      };
+    });
+    host.querySelectorAll('[data-jdel]').forEach(function (b) {
+      b.onclick = function () {
+        var x = list[+b.dataset.jdel];
+        if (!window.confirm('Delete this narration?')) return;
+        N.remove(x).then(function () { renderJournalAudio(host); }, function () { renderJournalAudio(host); });
+      };
+    });
+  }
 
   function renderRecords() {
     var host = $('recHost');
@@ -7099,12 +8470,12 @@
                 '<span class="b" data-rid="' + r.id + '"><b>' + esc(r.title) + '</b>' +
                 '<small>' + esc(r.subtitle) + '</small>' +
                 '<small style="color:var(--brass)">' + R.KINDS[r.kind].label +
-                (r.ai ? ' · has AI reading' : '') + ' · saved ' + r.savedAt.slice(0,10) + '</small></span>' +
+                (r.ai ? ' · has AI reading' : '') + (r.outcome ? ' · outcome logged' : '') + ' · saved ' + r.savedAt.slice(0,10) + '</small></span>' +
                 '<button class="x" data-del="' + r.id + '" aria-label="Delete">&times;</button></div>';
             }).join('') + '<button class="btn ghost" id="recExport">Export all records</button>'
           : '<div class="empty">Nothing saved under that filter.</div>')
       : '<div class="panel" style="font-size:.9rem;line-height:1.7;color:var(--muted)">' +
-        'Nothing saved yet. Every Consult screen and the Numbers screen has a save button — ' +
+        'Nothing saved yet. The chart, Strategy and Numbers Lab screens have a save button — ' +
         'saved items appear here, tied to this profile.</div>';
 
     host.querySelectorAll('[data-rk]').forEach(function (b) {
@@ -7198,8 +8569,12 @@
         ['Hour pillar', p.hourPillar], ['Day pillar', p.dayPillar],
         ['Plate', p.dun + ' ju ' + p.ju], ['Gatekeeper', p.deity + ' — ' + p.quality],
         ['Ask register', (p.askDoor || '') + '门']]);
+      if (p.aspects && p.aspects.length) body += '<div class="block"><h2>What you asked for</h2><div class="panel" style="font-size:.9rem;line-height:1.7">' +
+        p.aspects.map(esc).join('<br>') + '</div></div>';
+      if (p.returns && p.returns.length) body += '<div class="block"><h2>What you committed to give</h2><div class="panel" style="font-size:.9rem;line-height:1.7">' +
+        p.returns.map(esc).join('<br>') + '</div></div>';
       if (p.script) body += '<div class="block"><h2>The script</h2><div class="script">' +
-        esc(p.script) + '</div></div>';
+        esc(p.script) + '</div></div><div class="block"><h2>Narration audio</h2><div id="recNarr"></div></div>';
       if (p.exchange) body += '<div class="block"><h2>Returning the favour</h2>' +
         '<div class="panel" style="font-size:.9rem;line-height:1.7">' + esc(p.exchange.element) +
         '<br><br>' + (p.exchange.acts||[]).map(esc).join('<br>') + '</div></div>';
@@ -7245,6 +8620,8 @@
         ['Life Gua', p.lifeGua ? p.lifeGua.num + ' ' + p.lifeGua.cn + ' (' + p.lifeGua.group + ' group)' : '']]) +
         (p.dmStars ? kv([['Day Master stem', p.dayMaster ? p.dayMaster.stem + ' ' + p.dayMaster.en : '']].concat(
           p.dmStars.map(function (s) { return [s.en + ' ' + s.cn, s.branches.join('; ')]; }))) : '') + '</div>';
+      if (p.lifePalaces) body += '<div class="block"><h2>Life palaces</h2>' + kv(p.lifePalaces.map(function (a) {
+        return [a.en + ' ' + a.cn, a.palace + ' ' + a.name + ' · ' + a.dir]; })) + '</div>';
       if (p.plate) body += '<div class="block"><h2>Palaces</h2>' +
         p.plate.filter(function (x) { return x && x.num !== 5; }).map(snapshotCard).join('') + '</div>';
     }
@@ -7341,13 +8718,36 @@
       if (p.note) body += '<div class="notice" style="margin-top:10px">' + esc(p.note) + '</div>';
     }
 
+    if (r.kind === 'combined') {
+      var sg = function (v) { return (v > 0 ? '+' : '') + v; }, lv = { Strong: 'good-t', Steady: '', Weak: 'bad-t' };
+      body += kv([['Read in', String(p.year)], ['Strongest', (p.top || []).map(function (a) { return a.label + ' ' + sg(a.score); }).join(', ')],
+        ['Needs most care', (p.low || []).map(function (a) { return a.label + ' ' + sg(a.score); }).join(', ')],
+        ['Systems disagree on', (p.split || []).join(', ') || 'none of the areas']]);
+      body += '<div class="block"><h2>The life areas</h2><div class="rows stack-sm">' + (p.areas || []).map(function (a) {
+        return '<div class="row"><span class="k"><span class="' + lv[a.level] + '">' + esc(a.label) + ' — ' + a.level + '</span><small>' + a.cn + ' &middot; ' + sg(a.score) + '</small></span>' +
+          '<span class="v"><div class="plain">' + esc(a.meaning || a.lead || '') + (a.sure ? ' ' + esc(a.sure) : '') +
+            '<div class="todo"><b>What to do:</b> ' + (a.steps ? a.steps.map(esc).join(' ') : esc(a.advice || '')) + '</div></div>' +
+          '<small>' + (p.systems || []).map(function (y) { var x = a.per[y[0]]; return y[1] + ' ' + (x ? sg(x.v) + (x.via ? ' via ' + esc(x.via) : '') : '—'); }).join(' &middot; ') + '</small></span></div>';
+      }).join('') + '</div></div>';
+    }
+
+    // Saved narratives hold plain text, lists of text, and lists of objects (life areas, action plans).
+    function aiValueHtml(v) {
+      if (!Array.isArray(v)) return esc(typeof v === 'object' && v ? JSON.stringify(v) : v);
+      return v.map(function (x) {
+        if (typeof x !== 'object' || !x) return esc(x);
+        if (x.area) return '<b>' + esc(x.area) + '.</b> ' + esc(x.outlook || '') + (x.advice ? ' <i>' + esc(x.advice) + '</i>' : '');
+        return Object.keys(x).map(function (k) { return (k === 'action' ? '<b>' + esc(x[k]) + '</b>' : esc(k.charAt(0).toUpperCase() + k.slice(1)) + ': ' + esc(x[k])); }).join('\n');
+      }).join('\n\n');
+    }
+
     if (r.ai) {
       body += '<div class="block"><h2>AI reading<em>saved with this record</em></h2>' +
         Object.keys(r.ai).filter(function (k) { return k.charAt(0) !== '_'; }).map(function (k) {
           return '<div class="panel"><div style="font-size:.8rem;color:var(--brass);margin-bottom:6px">' +
             k.replace(/([A-Z])/g, ' $1').replace(/^./, function (c) { return c.toUpperCase(); }) +
             '</div><div style="font-size:.9rem;line-height:1.75;white-space:pre-wrap">' +
-            esc(r.ai[k]) + '</div></div>';
+            aiValueHtml(r.ai[k]) + '</div></div>';
         }).join('') + '</div>';
     }
 
@@ -7394,7 +8794,7 @@
         }).join('') + '</div>';
     }
 
-    openSheet(esc(r.title), esc(r.subtitle) + ' · saved ' + r.savedAt.slice(0, 10), body);
+    openSheet(esc(r.title), esc(r.subtitle) + ' · saved ' + r.savedAt.slice(0, 10), body, r.kind === 'manifest' && p.script ? function () { narrationUI('recNarr', { script: p.script, readOnly: true }); } : undefined);
   }
 
   function snapshotCard(pa) {
@@ -7414,19 +8814,80 @@
   }
 
   /* ---------------- routing ---------------- */
+  // The seven categories. Each item opens an existing screen; s is the screen and k its sub-view.
+  var NAV = [
+    { id: 'destiny', ic: '命', en: 'Destiny', cn: '命運', items: [
+      { label: 'BaZi', s: 'chart', k: 'bazi' }, { label: 'Elements', s: 'chart', k: 'elements' }, { label: 'Relations', s: 'chart', k: 'relations' },
+      { label: 'Together', s: 'chart', k: 'together', when: function () { return tgPrefs().show; } },
+      { label: 'Zi Wei', s: 'chart', k: 'zwds' }, { label: 'Qimen Destiny', s: 'chart', k: 'destiny' }, { label: 'Qi Zheng', s: 'chart', k: 'qizheng' }, { label: 'He Luo', s: 'chart', k: 'heluo' }, { label: 'Combined', s: 'chart', k: 'combined' }, { label: 'Ask', s: 'chart', k: 'ask' }] },
+    { id: 'seasons', ic: '時', en: 'Seasons', cn: '時運', items: [
+      { label: 'BaZi Luck', s: 'chart', k: 'luck' }, { label: 'Zi Wei Periods', s: 'chart', k: 'zwperiods' },
+      { label: 'Qimen Year and Month', s: 'chart', k: 'qmseason' }, { label: 'Cast Qimen', s: 'consult', k: 'qimen' }, { label: 'Zodiac', s: 'chart', k: 'zodiac' }, { label: 'Tong Shu', s: 'almanac', k: '' }] },
+    { id: 'strategy', ic: '策', en: 'Strategy', cn: '策略', items: [
+      { label: 'Yijing', s: 'consult', k: 'yijing' }, { label: 'Forecast', s: 'consult', k: 'forecast' }, { label: 'Oracle', s: 'consult', k: 'oracle' },
+      { label: 'Date Selection', s: 'consult', k: 'plan' }, { label: 'Formations', s: 'consult', k: 'search' }, { label: 'Structures', s: 'consult', k: 'structures' },
+      { label: 'Windows', s: 'consult', k: 'strategy' }, { label: 'San Cai', s: 'consult', k: 'sancai' }, { label: 'Execution', s: 'consult', k: 'execution' },
+      { label: 'Warcraft', s: 'consult', k: 'warcraft' }, { label: 'Counter', s: 'consult', k: 'counter' }, { label: '7 Stars', s: 'consult', k: 'sevenstar' },
+      { label: 'Manifest', s: 'consult', k: 'manifest' }] },
+    { id: 'space', ic: '风', en: 'Space', cn: '风水', items: [
+      { label: 'Feng Shui', s: 'chart', k: 'fs' }, { label: 'Compass', s: 'chart', k: 'compass' }, { label: 'Property', s: 'chart', k: 'property' }, { label: 'Floor Plan', s: 'chart', k: 'plan' }, { label: 'Mobility', s: 'chart', k: 'mobility' }] },
+    { id: 'reports', ic: '报', en: 'Reports', cn: '报告', items: [
+      { label: 'Thrive', s: 'consult', k: 'planner' }, { label: 'TribePlus', s: 'consult', k: 'monthly' }] },
+    { id: 'numbers', ic: '数', en: 'Numbers Lab', tab: 'Numbers', cn: '数字实验室', items: [{ label: 'Numbers Lab', s: 'numbers', k: '' }] },
+    { id: 'journal', ic: '志', en: 'Journal', cn: '日志', items: [
+      { label: 'Saved Readings', s: 'journal', k: 'saved' }, { label: 'Narrations', s: 'journal', k: 'audio' }, { label: 'Outcomes', s: 'journal', k: 'outcomes' }] }
+  ];
+  var navLast = {};
+
+  function navOn(item) { return !item.when || item.when(); }
+  function navKey(name) { return name === 'chart' ? chartK : name === 'consult' ? consultK : name === 'journal' ? journalK : ''; }
+  function navFind(name, key) {
+    var hit = null;
+    NAV.forEach(function (c) { c.items.forEach(function (i) { if (!hit && i.s === name && i.k === key) hit = { cat: c, item: i }; }); });
+    return hit;
+  }
+  function navOpen(item) {
+    if (item.s === 'chart') chartK = item.k;
+    if (item.s === 'consult') consultK = item.k;
+    if (item.s === 'journal') journalK = item.k;
+    show(item.s);
+  }
+  function navOpenCat(cat) {
+    var last = navLast[cat.id];
+    navOpen(last && navOn(last) ? last : cat.items.filter(navOn)[0]);
+  }
+  function paintNav() {
+    var hit = navFind(current, navKey(current)), bar = $('catBar');
+    if (hit) navLast[hit.cat.id] = hit.item;
+    $('tabs').querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-selected', String(!!hit && b.dataset.cat === hit.cat.id)); });
+    $('topActs').querySelectorAll('button').forEach(function (b) {
+      if (b.dataset.s === current) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    bar.hidden = !hit;
+    if (!hit) { bar.innerHTML = ''; return; }
+    var items = hit.cat.items.filter(navOn);
+    bar.innerHTML = '<div class="cathd"><b>' + hit.cat.en + '</b><span>' + hit.cat.cn + '</span></div>' +
+      (items.length > 1 ? '<div class="seg scroll" role="tablist">' + items.map(function (it) {
+        return '<button role="tab" aria-selected="' + (it === hit.item) + '" data-nav="' + hit.cat.items.indexOf(it) + '">' + it.label + '</button>'; }).join('') + '</div>' : '');
+    bar.querySelectorAll('[data-nav]').forEach(function (b) {
+      b.onclick = function () { navOpen(hit.cat.items[+b.dataset.nav]); };
+    });
+    var sel = bar.querySelector('[aria-selected="true"]');
+    if (sel) sel.parentNode.scrollLeft = Math.max(0, sel.offsetLeft - sel.parentNode.offsetLeft - 24);
+  }
+
   function show(name) {
     current = name;
-    ['now','almanac','chart','consult','numbers','learn','profile'].forEach(function (n) {
+    ['now','almanac','chart','consult','numbers','journal','learn','profile'].forEach(function (n) {
       $('s-' + n).classList.toggle('on', n === name);
     });
-    $('tabs').querySelectorAll('button').forEach(function (b) {
-      b.setAttribute('aria-selected', String(b.dataset.s === name));
-    });
+    paintNav();
     if (name === 'now') renderNow();
     if (name === 'almanac') renderAlmanac();
     if (name === 'chart') renderChart();
     if (name === 'consult') renderConsult();
     if (name === 'numbers') renderNumbers();
+    if (name === 'journal') renderJournal();
     if (name === 'learn') renderLearn();
     if (name === 'profile') renderProfile();
     window.scrollTo(0, 0);
@@ -7449,7 +8910,12 @@
     seg('segChart', 'c', function (v) { chartK = v; renderChart(); });
     applyTogetherTab();
     seg('segConsult', 'k', function (v) { consultK = v; renderConsult(); });
+    $('tabs').innerHTML = NAV.map(function (c) {
+      return '<button role="tab" aria-selected="false" data-cat="' + c.id + '"><span class="ic">' + c.ic + '</span>' + (c.tab || c.en) + '</button>'; }).join('');
     $('tabs').querySelectorAll('button').forEach(function (b) {
+      b.onclick = function () { navOpenCat(NAV.filter(function (c) { return c.id === b.dataset.cat; })[0]); };
+    });
+    $('topActs').querySelectorAll('button').forEach(function (b) {
       b.onclick = function () { show(b.dataset.s); };
     });
     show('now');
@@ -7473,6 +8939,7 @@
   // Solar terms and lunar months must be evaluated in the same wall clock the app reads
   // from the device, otherwise boundaries land on the wrong civil day when travelling.
   A.setTimezone(-new Date().getTimezoneOffset() / 60);
+  if ($('nZone')) $('nZone').innerHTML = zoneOptions('');
 
   // If an analysis had to switch models to succeed, remember the working one.
   // Every module prompt pulls the user's own notes through this hook.

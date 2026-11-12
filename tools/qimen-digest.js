@@ -15,7 +15,7 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 const dir = path.join(__dirname, '..', 'www', 'js');
 global.window = globalThis;
 global.localStorage = { getItem() { return null; }, setItem() {} };
-for (const f of ['qpdata', 'astro', 'core', 'systems', 'fengshui', 'bazi', 'qmdj'])
+for (const f of ['qpdata', 'structures', 'ephem-terms', 'astro', 'core', 'systems', 'fengshui', 'bazi', 'qmdj'])
   vm.runInThisContext(fs.readFileSync(path.join(dir, f + '.js'), 'utf8'), { filename: f });
 const C = QPCore, Q = QPQimen;
 

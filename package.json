@@ -1,6 +1,6 @@
 {
   "name": "qipath-pro",
-  "version": "9.31.0",
+  "version": "10.1.0",
   "private": true,
   "description": "Chinese metaphysics timing companion — almanac, Bazi, Zi Wei Dou Shu, Qimen, Yijing, Feng Shui",
   "scripts": {
@@ -16,7 +16,9 @@
     "@capacitor/android": "^6.2.2",
     "@capacitor/app": "6.0.3",
     "@capacitor/core": "^6.2.2",
-    "@capacitor/local-notifications": "6.1.3"
+    "@capacitor/filesystem": "^6.0.4",
+    "@capacitor/local-notifications": "6.1.3",
+    "@capacitor/share": "^6.0.4"
   },
   "devDependencies": {
     "@babel/cli": "^8.0.4",

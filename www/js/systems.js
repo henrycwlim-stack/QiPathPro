@@ -58,14 +58,23 @@
   }
 
   // 大运 — ten-year luck pillars.
+  function adjacentJie(jd, after) {
+    var g = A.jdToLocal(jd), pool = [];
+    [g.y - 1, g.y, g.y + 1].forEach(function (yy) {
+      A.termsForYear(yy).forEach(function (t, i) { if (i % 2 === 0) pool.push(t); });
+    });
+    pool.sort(function (a, b) { return a.jd - b.jd; });
+    if (after) return pool.filter(function (t) { return t.jd > jd; })[0];
+    return pool.filter(function (t) { return t.jd <= jd; }).pop();
+  }
   function luckPillars(p, gender, birth) {
     var yangYear = C.STEM_YIN[p.year.stem] === 0;
     var male = gender === 'M';
     var forward = (yangYear && male) || (!yangYear && !male);
     // Days to the adjacent solar term boundary -> starting age (3 days = 1 year)
-    var jd = A.localToJD(birth.y, birth.m, birth.d, birth.hour, birth.min);
-    var target = forward ? A.nextTerm(birth.y, birth.m, birth.d, birth.hour, birth.min)
-                         : A.currentTerm(birth.y, birth.m, birth.d, birth.hour, birth.min);
+    var jd = A.localToJD(birth.y, birth.m, birth.d, birth.hour, birth.min, birth.tz);
+    var target = forward ? adjacentJie(jd, true)
+                         : adjacentJie(jd, false);
     var days = Math.abs(jd - target.jd);
     var startAge = Math.round((days / 3) * 10) / 10;
     var out = [];
@@ -359,7 +368,7 @@
   var STARS9 = ['天蓬','天芮','天冲','天辅','天禽','天心','天柱','天任','天英'];
   var STARS9_EN = ['Grass','Ailment','Rush','Assistant','Bird','Heart','Pillar','Task','Hero'];
   var GATES8 = { 1:'休门', 2:'死门', 3:'伤门', 4:'杜门', 6:'开门', 7:'惊门', 8:'生门', 9:'景门' };
-  var GATES8_EN = { 1:'Rest', 2:'Death', 3:'Harm', 4:'Delusion', 6:'Open', 7:'Fright', 8:'Life', 9:'Scenery' };
+  var GATES8_EN = { 1:'Rest', 2:'Death', 3:'Harm', 4:'Delusion', 6:'Open', 7:'Fear', 8:'Life', 9:'Scenery' };
   var GATE_RANK = { 8:2, 6:2, 1:2, 9:1, 4:1, 3:0, 7:0, 2:0 }; // 2 auspicious, 1 neutral, 0 inauspicious
   var SPIRITS = ['值符','腾蛇','太阴','六合','白虎','玄武','九地','九天'];
   var SPIRITS_EN = ['Chief','Serpent','Moon','Harmony','Tiger','Warrior','Earth','Heaven'];
@@ -399,7 +408,7 @@
     { key:'supported',  cn:'相', en:'Supported',  note:'the palace feeds it — strong and rising',    rank:4 },
     { key:'resting',    cn:'休', en:'Resting',    note:'it feeds the palace — spending itself',      rank:3 },
     { key:'trapped',    cn:'囚', en:'Trapped',    note:'it controls the palace — effortful',         rank:2 },
-    { key:'dead',       cn:'死', en:'Weak',       note:'the palace controls it — suppressed',        rank:1 }
+    { key:'dead',       cn:'死', en:'Dead',       note:'the palace controls it — suppressed',        rank:1 }
   ];
   function strengthOf(symbolElem, palaceElem) {
     if (!symbolElem || !palaceElem) return null;
@@ -412,6 +421,413 @@
   var PRODUCE_EN = { wood:'fire', fire:'earth', earth:'metal', metal:'water', water:'wood' };
   var CONTROL_EN = { wood:'earth', earth:'water', water:'fire', fire:'metal', metal:'wood' };
 
+  /* ---------------- 九星四時旺相休囚: the stars by season ----------------
+   * Stars take their strength from the solar month, not from their palace, and by their own cycle (compendium p.449-452):
+   * a star that feeds the month is 旺, one of the month's element is 相, one that controls the month is 休, one the month
+   * controls is 囚, and one the month feeds is 死 (the book's text also calls this Useless 廢).
+   */
+  var STAR_STAGE = [
+    { key:'prosperous', cn:'旺', en:'Prosperous', note:'the star feeds the element of the month, so it is at its most influential', rank:5 },
+    { key:'strong',     cn:'相', en:'Strong',     note:'the star shares the element of the month', rank:4 },
+    { key:'weak',       cn:'休', en:'Weak',       note:'the star controls the element of the month', rank:3 },
+    { key:'trapped',    cn:'囚', en:'Trapped',    note:'the element of the month controls the star', rank:2 },
+    { key:'dead',       cn:'死', en:'Dead',       note:'the element of the month feeds the star, leaving it no role (also called Useless 廢)', rank:1 }
+  ];
+  var MONTH_ELEM = ['water','earth','wood','wood','earth','fire','fire','earth','metal','metal','earth','water'];   // by branch, 子 first
+  function starSeason(starElem, monthBranch) {
+    var m = MONTH_ELEM[monthBranch];
+    if (!starElem || !m) return null;
+    if (PRODUCE_EN[starElem] === m) return STAR_STAGE[0];
+    if (starElem === m) return STAR_STAGE[1];
+    if (CONTROL_EN[starElem] === m) return STAR_STAGE[2];
+    if (CONTROL_EN[m] === starElem) return STAR_STAGE[3];
+    return STAR_STAGE[4];
+  }
+
+  /* ---------------- 主客: Host and Guest ----------------
+   * The heaven plate star is the Guest and the star native to the palace is the Host (compendium p.454-459). Countering or being
+   * produced favours the side on top: 客克主 and 主生客 favour the Guest, 主克客 and 客生主 favour the Host. The book's own
+   * paragraph on 主克客 repeats "Heavenly harming Earthly"; p.456 states the rule plainly, so that is what is followed here.
+   * A 客克主 pair can never have both stars in season, so its Timely Host case is simply the out-of-season Guest.
+   */
+  var HOST_GUEST = {
+    guest_controls: { cn:'客克主', en:'Guest Harming the Host', favours:'guest' },
+    guest_produces: { cn:'客生主', en:'Guest Produces the Host', favours:'host' },
+    host_controls:  { cn:'主克客', en:'Host Harming the Guest', favours:'host' },
+    host_produces:  { cn:'主生客', en:'Host Producing the Guest', favours:'guest' },
+    bi_he:          { cn:'比和', en:'Harmony', favours:'even' }
+  };
+  function hostGuest(heavenStar, earthStar, palaceElem, monthBranch, dayStem, hourStem) {
+    var he = STAR_ELEM[heavenStar], ee = STAR_ELEM[earthStar];
+    if (!he || !ee) return null;
+    var h = starSeason(he, monthBranch), e = starSeason(ee, monthBranch), timely = function (x) { return x.rank >= 4; };
+    var key = he === ee ? 'bi_he' : CONTROL_EN[he] === ee ? 'guest_controls' : PRODUCE_EN[he] === ee ? 'guest_produces' : CONTROL_EN[ee] === he ? 'host_controls' : 'host_produces';
+    var r = HOST_GUEST[key], favours = r.favours, strong = false, note;
+    if (key === 'guest_controls') {
+      if (timely(h)) { strong = true; note = 'The Guest star is in season and the Host star is not. This is bad for a passive Host, so act first.'; }
+      else if (timely(e)) { favours = 'host'; note = 'The Guest star is out of season and the Host star is in season, so the attack cannot land. The Host holds.'; }
+      else { favours = 'even'; note = 'Both stars are out of season, so the Guest star cannot do real harm. Neither side has an edge.'; }
+    } else if (key === 'guest_produces') {
+      if (h.key === 'weak' && e.key === 'prosperous') { strong = true; note = 'A weak Guest star is feeding a prosperous Host star. The Host gains most, especially with quiet or hidden moves.'; }
+      else note = 'The Guest star feeds the Host star. Being passive pays: plan and prepare.';
+    } else if (key === 'host_controls') note = 'Good for the Host in travel, fame or a management role. Avoid elaborate planning, which is likely to be flawed and costly.';
+    else if (key === 'host_produces') note = 'The Host star feeds the Guest star. Attack, show your strengths and plan soundly, but expect to contribute your own effort and resources.';
+    else note = 'Both stars share an element, so there is harmony and no edge for either side.';
+    // Dead and countered by both the Day and Hour Stems: the Qi is spent, and neither side will succeed.
+    var ctl = function (s) { return s !== undefined && CONTROL_EN[STEM_ELEM_EN[s]] === he; };
+    if (h.key === 'dead' && ctl(dayStem) && ctl(hourStem)) { favours = 'neither'; strong = false; note = 'The Guest star is Dead and countered by both the Day and Hour Stems. Neither side will succeed.'; }
+    var fed = palaceElem === he || PRODUCE_EN[palaceElem] === he, hit = CONTROL_EN[palaceElem] === he;
+    return { key: key, cn: r.cn, en: r.en, favours: favours, strong: strong, note: note,
+      heaven: heavenStar, heavenStage: h, earth: earthStar, earthStage: e,
+      doubled: timely(h) && fed,            // 喜上加喜: in season and supported as well
+      worsened: h.rank <= 2 && hit };       // out of season and countered as well
+  }
+
+  /* ---------------- The eight doors by season, and against their palace ----------------
+   * Each door takes one of eight states from the current eighth of the year, which starts at 冬至 and turns every three solar terms
+   * (compendium p.305-306). The states step along the door order below, so one cycle gives the whole table. Separately, the door's
+   * element against its palace gives 门迫, 宫迫, 和 or 义 (p.300-303). Ranks place the eight states on the five-step strength scale.
+   */
+  var DOOR_ORDER = ['休门', '生门', '伤门', '杜门', '景门', '死门', '惊门', '开门'];
+  var DOOR_STATES = [
+    { key:'prosperous', cn:'旺', en:'Prosperous', note:'this is the door\'s own season, so it is at full strength', rank:5 },
+    { key:'abandoned',  cn:'廢', en:'Abandoned',  note:'its season has just passed, and it is out of use', rank:1 },
+    { key:'weak',       cn:'休', en:'Weak',       note:'it is resting, some way past its season', rank:3 },
+    { key:'trapped',    cn:'囚', en:'Trap',       note:'the season holds it down', rank:2 },
+    { key:'death',      cn:'死', en:'Death',      note:'its season is opposite, so it is at its lowest', rank:1 },
+    { key:'absent',     cn:'沒', en:'Absent',     note:'it has faded from the season', rank:2 },
+    { key:'conceived',  cn:'胎', en:'Conceived',  note:'it is forming, and its season is still ahead', rank:3 },
+    { key:'strong',     cn:'相', en:'Strong',     note:'its season comes next, so it is rising', rank:4 }
+  ];
+  function doorSeason(door, termIndex) {
+    var d = DOOR_ORDER.indexOf(door);
+    if (d < 0 || termIndex === undefined) return null;
+    return DOOR_STATES[mod(Math.floor(mod(termIndex - 21, 24) / 3) - d, 8)];   // term 21 is 冬至
+  }
+  var DOOR_PALACE = {
+    same:           { key:'same',           cn:'比和', en:'Same element', note:'the door and palace share an element' },
+    harmony:        { key:'harmony',        cn:'和',   en:'Harmony',      note:'the door produces its palace' },
+    justice:        { key:'justice',        cn:'义',   en:'Justice',      note:'the palace produces the door' },
+    door_compels:   { key:'door_compels',   cn:'门迫', en:'Door Compelling', note:'the door counters its palace, the more severe case: a good door gives little, and a bad door does less harm' },
+    palace_compels: { key:'palace_compels', cn:'宫迫', en:'Palace Compelling', note:'the palace counters the door: a good door is reduced, and a bad door is subdued' }
+  };
+  function doorVsPalace(doorElem, palaceElem) {
+    if (!doorElem || !palaceElem) return null;
+    if (doorElem === palaceElem) return DOOR_PALACE.same;
+    if (PRODUCE_EN[doorElem] === palaceElem) return DOOR_PALACE.harmony;
+    if (PRODUCE_EN[palaceElem] === doorElem) return DOOR_PALACE.justice;
+    return CONTROL_EN[doorElem] === palaceElem ? DOOR_PALACE.door_compels : DOOR_PALACE.palace_compels;
+  }
+
+  /* 五不遇时: the hour stem counters the day stem at the same polarity. The compendium calls it highly unfavourable (p.754) but gives it
+   * only minor influence on analysis and forecasting; it belongs mainly to date selection (p.163). So readings warn without rescoring,
+   * and the tools that suggest a time leave these hours out. */
+  function disharmony(dayStem, hourStem) {
+    if (!C.controls(C.STEM_ELEM[hourStem], C.STEM_ELEM[dayStem]) || C.STEM_YIN[hourStem] !== C.STEM_YIN[dayStem]) return null;
+    return { day: C.STEMS[dayStem], hour: C.STEMS[hourStem], label: 'Five Disharmony Hour 五不遇时',
+      text: 'The hour stem ' + C.STEMS[hourStem] + ' counters the day stem ' + C.STEMS[dayStem] + ', which makes this a Five Disharmony Hour. Host and Guest are out of harmony and the situation is unstable. This matters most when you choose a time to act, so use another hour if you can.' };
+  }
+
+  /* 三奇入墓 (compendium p.742): a Noble on the heaven plate in one of its two grave palaces. The structure fires on most plates somewhere,
+   * so readings only warn about a Noble they actually depend on. */
+  var NOBLE_GRAVE = { '乙': ['Day Noble', 6, 2], '丙': ['Month Noble', 6, 1], '丁': ['Star Noble', 1, 8] };
+  function nobleGrave(stem, palaceNum) {
+    var g = NOBLE_GRAVE[stem];
+    if (!g || (palaceNum !== g[1] && palaceNum !== g[2])) return null;
+    return { stem: stem, noble: g[0], num: palaceNum, label: stem + ' ' + g[0] + ' in its grave 入墓',
+      text: stem + ', the ' + g[0] + ', is in a grave palace (' + PAL_NAME[palaceNum] + ', palace ' + palaceNum + '). A Noble here loses strength, which points to setbacks and to supporters falling away.' };
+  }
+
+  // Shown with every health reading, whatever its verdict.
+  var HEALTH_CARE = { label: 'Your health comes first', text: 'This reading is about timing and approach, not the state of your health. Whatever it says, good or bad, it is never a reason to delay, avoid or stop medical care. If you have a concern, see a doctor now and do not wait for a better time shown here.' };
+
+  /* 马星 from the hour branch (chart legends, compendium p.159): 申子辰 to 寅, 寅午戌 to 申, 巳酉丑 to 亥, 亥卯未 to 巳. This gives the palace holding that branch. */
+  function horsePalace(hourBranch) { return { 0: 8, 4: 8, 8: 8, 2: 2, 6: 2, 10: 2, 5: 6, 9: 6, 1: 6, 11: 4, 3: 4, 7: 4 }[hourBranch]; }
+
+  /* White Tiger and Black Tortoise appear on Yin plates. On Yang plates Grappling Hook and Red Phoenix replace them (p.613). */
+  var DEITY_SLOT = { '白虎': '勾陈', '勾陈': '白虎', '玄武': '朱雀', '朱雀': '玄武' };
+  var RULE_ELEMS = ['wood', 'fire', 'earth', 'metal', 'water'], STEM_CHARS = '甲乙丙丁戊己庚辛壬癸';
+
+  /* The compendium's Forecast panels (door pages p.316-430, star pages p.468-515, deity pages p.631-674), for each topic.
+   * seats are the person's palaces: the Day Stem, and the birth-year stem when known, since the book reads either. The points are QiPath's own weights. */
+  function forecastRules(chart, topic, seats, hourBranch, ctx) {
+    var P = chart.palacesByNumber, out = [], horse = P[horsePalace(hourBranch)];
+    var add = function (tone, score, label, text) { out.push({ tone: tone, score: score, label: label, text: text }); };
+    var where = function (field, c) {
+      for (var n = 1; n <= 9; n++) if (P[n] && P[n][field] === c) return P[n];
+      return null;
+    };
+    var deity = function (c) { return where('spirit', c) || where('spirit', DEITY_SLOT[c]); };
+    var mine = function (pa) { return !!pa && seats.indexOf(pa) >= 0; };
+    var idx = function (pa) { return RULE_ELEMS.indexOf(pa.element); };
+    var feeds = function (a, b) { return C.produces(idx(a), idx(b)); };
+    var counters = function (a, b) { return C.controls(idx(a), idx(b)); };
+    var feedsMe = function (a) { return seats.some(function (s) { return feeds(a, s); }); };
+    var countersMe = function (a) { return seats.some(function (s) { return counters(a, s); }); };
+    var timely = function (a) { return !!a.gateStrength && a.gateStrength.rank >= 4; };
+    var ownSeat = function (field, c) { return seats.filter(function (s) { return s[field] === c; })[0] || null; };
+    var harmony = function (a) {
+      var h = STEM_CHARS.indexOf(a.heavenStemCn), e = STEM_CHARS.indexOf(a.earthStemCn);
+      return h >= 0 && e >= 0 && Math.abs(h - e) === 5;
+    };
+    var lingers = function (a, what) {
+      if (a && harmony(a)) add('danger', -1, 'A stem Harmony 相合 at ' + what, 'A Harmony usually brings people together, but in illness and disputes it means the trouble tends to linger.');
+    };
+
+    if (topic === 'marriage') {
+      var he = where('spirit', '六合');
+      if (he) {
+        var g = he.gate;
+        if (g === '开门') add('danger', -2, 'Six Harmony with the Open Door', 'The door of the marriage stands open, which points to a third person entering.');
+        if (g === '伤门' || g === '杜门') add('danger', -2, 'Six Harmony with the ' + (g === '伤门' ? 'Harm' : 'Delusion') + ' Door', 'This points to an unhappy marriage and family life.');
+        if (g === '死门') add('danger', countersMe(he) ? -3 : -2, 'Six Harmony with the Death Door', countersMe(he) ? 'This points to a marriage coming to an end. The palace also counters yours, so divorce is a real possibility.' : 'This points to a marriage coming to an end.');
+        if (g === '景门' && countersMe(he)) add('danger', -3, 'Six Harmony with the Scenery Door', 'Together they counter your palace, which points to an unhappy marriage that may end in divorce.');
+        var fe = where('gate', '惊门');
+        if (mine(he) && fe && (fe === he || counters(fe, he))) add('danger', -3, 'Six Harmony with you, against the Fear Door', 'This points to a marriage breaking down. At worst it goes to court.');
+        if (he.gateRank === 0 && (he.starCn === '天芮' || he.starCn === '天冲')) add('danger', -1, 'Six Harmony with ' + he.starCn + ' and a bad door', 'This adds to the signs of trouble in the marriage.');
+        if (he.starCn === '天蓬' && (he.gateRank === 2 || he.isEmpty || he === horse)) add('danger', -2, 'Six Harmony with the Grass star 天蓬', 'The marriage is not running smoothly, and a third party may come into the picture.');
+        if (mine(he) && he.gateRank === 2 && g !== '开门') add('good', 3, 'Six Harmony and a good door with you', 'This points to a happy and harmonious marriage.');
+      }
+      var re = where('gate', '休门');
+      if (re && timely(re) && feedsMe(re)) add('good', 2, 'A timely Rest Door feeds you', 'This points to a happy family and a contented life.');
+      else if (re && seats.some(function (s) { return counters(s, re); })) add('danger', -2, 'Your palace counters the Rest Door', 'This points to unhappiness at home.');
+      var lf = where('gate', '生门');
+      if (lf && timely(lf) && seats.some(function (s) { return feeds(lf, s) || feeds(s, lf); })) add('good', 2, 'A timely Life Door supports you', 'You and the Life Door feed each other, which points to a happy marriage.');
+    }
+
+    if (topic === 'career' || topic === 'promotion' || topic === 'job') {
+      var op = where('gate', '开门');
+      if (op) {
+        var pk = op.gatePalace && op.gatePalace.key;
+        if (topic !== 'job' && timely(op) && feedsMe(op)) add('good', 3, 'A timely Open Door feeds you', 'This points to career success and good luck with work.');
+        if (op === horse && (op.isEmpty || pk === 'palace_compels')) add('danger', -3, 'The Open Door with the Horse Star 马星', 'The door is ' + (op.isEmpty ? 'void' : 'countered') + ' while the Horse Star moves it, which points to a real risk of losing the post.');
+        else if (op === horse && pk === 'door_compels') add('neutral', -1, 'The Open Door with the Horse Star 马星', 'The door is compelled while the Horse Star moves it, so the job is likely to change.');
+      }
+    }
+
+    if (topic === 'wealth') {
+      var li = where('gate', '生门'), hm = where('gate', '伤门');
+      if (li && timely(li) && seats.some(function (s) { return feeds(li, s) || feeds(s, li) || idx(s) === idx(li); })) add('good', li.gateStrength.rank >= 5 ? 3 : 1, 'A timely Life Door supports you', li.gateStrength.rank >= 5 ? 'You and the Life Door are in step, which points to good luck with money.' : 'You and the Life Door are in step, but it is only at its second-best stage, so expect modest gains.');
+      if (hm && timely(hm) && feedsMe(hm)) add('good', 2, 'A timely Harm Door feeds you', 'This points to a chance of a windfall.');
+      var tt = ownSeat('spirit', '玄武') || ownSeat('spirit', '朱雀');
+      if (tt && tt.gateRank === 2 && tt.starCn === '天蓬') add('good', 3, 'The Grass star, a good door and the Black Tortoise with you', 'This points to luck with money.');
+      if (tt && tt.gateRank === 0) add('danger', -3, 'The Black Tortoise and a bad door with you', 'This warns of unexpected loss through a dispute or fraud.');
+    }
+
+    if (topic === 'deal') {
+      var hd = where('spirit', '六合');
+      if (hd && hd.gate === '生门') add('good', 2, 'Six Harmony with the Life Door', 'This points to a favourable deal or agreement.');
+      else if (hd && hd.gateRank === 0) add('danger', -2, 'Six Harmony with a bad door', 'This points to an unsuitable or uncooperative partner.');
+    }
+
+    if (topic === 'health') {
+      var gr = where('starCn', '天芮');
+      var sick = 'This is a chart symbol and not a diagnosis, so please see a doctor.';
+      if (gr) {
+        var tiger = gr.spirit === '白虎' || gr.spirit === '勾陈';
+        if (mine(gr) && gr.gate === '死门') add('danger', -3, 'The Grain star and the Death Door with you', 'The book reads this as a serious illness that is hard to treat. ' + sick);
+        else if (mine(gr) && tiger && gr.gateRank === 0) add('danger', -3, 'The Grain star, a bad door and the White Tiger with you', 'The book reads this as a serious illness that is hard to treat. ' + sick);
+        else if (mine(gr) && gr.spirit === '六合') add('danger', -2, 'The Grain star and Six Harmony with you', 'The book reads this as several health problems at once. ' + sick);
+        else if ((mine(gr) && gr.gateRank === 0) || countersMe(gr)) add('danger', -2, mine(gr) ? 'The Grain star and a bad door with you' : 'The Grain star counters you', 'The book reads this as a stubborn condition that is slow to clear. ' + sick);
+      }
+      var ot = where('gate', '开门');
+      if (ot && (ot.spirit === '白虎' || ot.spirit === '勾陈') && (mine(ot) || ot === gr)) add('danger', -1, 'The Open Door with the White Tiger', 'In health matters the book reads this as the need for surgery. ' + sick);
+      lingers(gr, 'the Grain star');
+    }
+
+    if (topic === 'travel') {
+      var tg = seats.filter(function (s) { return (s.spirit === '白虎' || s.spirit === '勾陈') && s.gateRank === 0; })[0];
+      if (tg) add('danger', -3, 'The White Tiger and a bad door with you', 'The book warns of serious misfortune on the road, such as a traffic accident.');
+      var nh = ownSeat('spirit', '九天');
+      if (nh && nh === horse) add('neutral', 0, 'Nine Heaven and the Horse Star 马星 with you', 'This points to a long journey by air.');
+    }
+
+    if (topic === 'exams') {
+      var fu = where('starCn', '天辅');
+      if (mine(fu)) add('good', 3, 'The Assistant star 天辅 with you', 'This points to good exam results.');
+      else if (fu && countersMe(fu)) add('danger', -3, 'The Assistant star 天辅 counters you', 'This points to difficulty passing the exam.');
+    }
+
+    /* Below: Joey Yap's Forecasting Methods. Book 1 (FM1) covers wealth, career and exams; book 2 (FM2) covers marriage, health, law and lost things. */
+    var at = function (stem) { return where('heavenStemCn', stem); };
+    var rated = function (a, cat) { return !a ? 0 : ((ctx && ctx.forms) || []).filter(function (f) { return f.category === cat && (f.palaces || []).indexOf(a.num) >= 0; }).length; };
+    var fine = function (a) { return rated(a, 'auspicious') > rated(a, 'hostile'); };
+    var poor = function (a) { return rated(a, 'hostile') > rated(a, 'auspicious'); };
+    var starGood = function (a) { return ['天辅', '天心', '天任', '天禽', '天冲'].indexOf(a.starCn) >= 0; };
+    var starTimely = function (a) { return !!a.starStrength && a.starStrength.rank >= 4; };
+    var nobleHere = function (a) { return ['乙', '丙', '丁'].indexOf(a.heavenStemCn) >= 0; };
+
+    if (topic === 'travel') { // FM1 p.262-263 and p.279-280: Scenery is the road, Rest the sea route, and Nine Heaven with the Open Door the air route.
+      var tv = seats[0], hs = ctx && ctx.hourStem ? at(ctx.hourStem) : null, rd = where('gate', '景门'), sr = where('gate', '休门'), oa = where('gate', '开门');
+      if (tv && tv.gateRank === 2 && fine(tv)) add('good', 2, 'A good door and good structures with you', 'Whatever the transport, the trip should run smoothly.');
+      if (hs && hs.isEmpty) add('danger', -2, 'The Hour Stem is void', 'The trip may do more harm than good, so it is better to wait.');
+      if (rd && fine(rd)) add('neutral', 0, 'By land: the Scenery Door is well supported', 'This is a good time to travel by road or rail.');
+      if (sr && fine(sr)) add('neutral', 0, 'By sea: the Rest Door is well supported', 'This is a good time to travel by water.');
+      else if (sr && poor(sr)) add('neutral', 0, 'By sea: the Rest Door has bad structures', 'Avoid travelling by water if you can.');
+      if (oa && fine(oa)) add('neutral', 0, 'By air: the Open Door is well supported', 'This is a good time to fly.');
+    }
+
+    if (topic === 'partnership') { // FM1 p.100: the Day Stem is you, the Hour Stem the partner and the Life Door the profit.
+      var me = seats[0], pr = ctx && ctx.hourStem ? at(ctx.hourStem) : null, pfd = where('gate', '生门');
+      if (me && pr) {
+        if (me === pr || idx(me) === idx(pr)) add('good', 2, 'You and your partner stand level', 'This points to an alliance that benefits everyone, with agreement on most matters.');
+        else if (feeds(pr, me) && fine(pr)) add('good', 3, 'Your partner\'s palace feeds yours', 'This points to a profitable partnership, so an offer is worth taking.');
+        else if (feeds(me, pr)) add('danger', -2, 'Your palace feeds your partner\'s', 'You may lose out on the profit share and carry more of the work.');
+        else if (counters(pr, me)) add('danger', -2, 'Your partner\'s palace counters yours', 'This partnership is not ideal for you, so look at other options.');
+        else if (counters(me, pr)) add('danger', -2, 'Your palace counters your partner\'s', 'An unbalanced deal is likely to bring disputes and slow the business down.');
+      }
+      if (me && pfd && feeds(pfd, me)) add('good', 2, 'The Life Door feeds you', 'This points to a profitable partnership with a good return.');
+      else if (me && pfd && counters(pfd, me)) add('danger', -2, 'The Life Door counters you', 'This points to obstacles and little profit for either partner.');
+    }
+
+    if (topic === 'loan') { // FM1 p.156-157: the Chief is the lender, and the Envoy the borrower.
+      var ld2 = where('spirit', '值符'), ev = ctx && ctx.envoy ? where('gate', ctx.envoy) : null;
+      if (ld2 && ev && ld2 !== ev) {
+        if (feeds(ld2, ev) || counters(ev, ld2)) add('good', 2, 'The lender favours the borrower', 'The Chief feeds the Envoy, or the Envoy has the upper hand, which points to approval.');
+        else if (counters(ld2, ev) || feeds(ev, ld2)) add('danger', -2, 'The lender does not favour the borrower', 'Expect obstacles, such as paperwork or criteria you may not meet.');
+      }
+      if ((ld2 && ld2.isEmpty) || (ev && ev.isEmpty)) add('danger', -2, 'The lender or borrower is void', 'Expect rejections before anything is approved.');
+    }
+
+    if (topic === 'marriage') { // FM2 p.30-41: 乙 is the wife and 庚 the husband.
+      var wife = at('乙'), man = at('庚');
+      if (wife && man && wife === man && (wife.gateRank === 0 || poor(wife))) add('danger', -3, '乙 and 庚 together with bad signs', 'The relationship has a shaky foundation and may crumble at the first sign of trouble.');
+      if (wife && man && wife !== man) {
+        if (counters(man, wife)) add('danger', -3, 'The husband\'s palace 庚 counters the wife\'s 乙', 'This points to constant argument and a possible divorce.');
+        else if (counters(wife, man)) add('danger', -2, 'The wife\'s palace 乙 counters the husband\'s 庚', 'This points to a proposal being turned down, or the other side needing more time.');
+        else if (feeds(wife, man) || feeds(man, wife)) add('good', 2, 'The palaces of 乙 and 庚 support each other', 'This points to a successful marriage with mutual respect.');
+      }
+      [wife, man].forEach(function (a, i) {
+        if (!a || (i && a === wife)) return;
+        var who = a === wife && a === man ? '乙 and 庚' : i ? '庚' : '乙';
+        if (a.spirit === '腾蛇' || a.spirit === '朱雀') add('danger', -1, a.spirit + ' with ' + who, 'Be wary of a devious go-between and of unnecessary expense around the marriage.');
+        if (a.spirit === '勾陈' || a.spirit === '白虎') add('danger', -2, a.spirit + ' with ' + who, 'This points to a match that turns out badly.');
+        if (a.spirit === '九地') add('neutral', 0, 'Nine Earth with ' + who, 'Marriage is likely to come much later, after some disappointments.');
+        if (a.spirit === '九天') add('neutral', -1, 'Nine Heaven with ' + who, 'This points to a sudden marriage on short notice, with the pressure that brings.');
+      });
+    }
+
+    if (topic === 'promotion') { // FM1 p.164-165.
+      var po = where('gate', '开门'), pl = where('gate', '生门'), duke = ctx && ctx.yearStem ? at(ctx.yearStem) : null;
+      if (po && pl) {
+        var bothTimely = timely(po) && timely(pl), bothFine = fine(po) && fine(pl);
+        if (bothTimely && bothFine && duke && feedsMe(duke)) add('good', 3, 'Open and Life Doors timely, with the year stem feeding you', 'This points to a promotion, so it may be the right time to show what you can do.');
+        else if (bothFine && !bothTimely) add('neutral', 1, 'Open and Life Doors well supported but not timely', 'A promotion is possible but not immediate. Keep showing your ability.');
+        else if (bothTimely && !bothFine) add('danger', -2, 'Open and Life Doors timely but unsupported', 'A promotion is unlikely for now, because the backing for it is not there.');
+      }
+    }
+
+    if (topic === 'job') { // FM1 p.181: the Open Door against the Day Stem or Life Stem.
+      var jo = where('gate', '开门'), day = seats[0];
+      if (jo && feedsMe(jo)) add('good', 3, 'The Open Door feeds you', 'This points to a successful application, and to a role that can be a good stepping stone.');
+      else if (jo) add('danger', -2, 'The Open Door does not feed you', 'This points to not being offered this role.');
+      if (day && nobleHere(day) && fine(day)) add('good', 2, 'A Noble and good structures with you', 'This points to a very desirable position.');
+    }
+
+    if (topic === 'wealth') { // FM1 p.76-77 and p.105: 戊 is the capital and the Life Door the profit.
+      var wu = at('戊'), pf = where('gate', '生门');
+      if (wu && pf && wu === pf) add(starGood(wu) ? 'good' : 'danger', starGood(wu) ? 3 : -2, '戊 and the Life Door together', starGood(wu) ? 'With a good star here, this is a good time for important business plans.' : 'With a poor star here, expect obstacles in business.');
+      if (wu && pf && wu !== pf) {
+        if (feeds(pf, wu) && fine(pf)) add('good', 2, 'The Life Door feeds your capital 戊', 'This points to a profitable investment.');
+        else if (counters(pf, wu) && poor(pf)) add('danger', -3, 'The Life Door counters your capital 戊', 'This points to losses. The opportunities are there, but the timing is not.');
+        else if (feeds(wu, pf)) add('neutral', 0, 'Your capital 戊 feeds the Life Door', 'Returns are more likely later, so manage what you have and wait.');
+      }
+      if (pf && pf === P[4] && poor(pf)) add('danger', -3, 'The Life Door in its grave', 'With bad structures here, this warns of heavy loss. Be patient and wait for the right time.');
+    }
+
+    if (topic === 'deal') { // FM1 p.108-110: the Day Stem is the buyer, the Hour Stem the seller and Six Harmony the agent.
+      var seller = ctx && ctx.hourStem ? at(ctx.hourStem) : null, agent = where('spirit', '六合'), buyer = seats[0];
+      if (seller && seller === buyer) add('good', 3, 'Day Stem and Hour Stem together', 'This points to a fair trade and a successful deal.');
+      if ((seller && seller.isEmpty) || (buyer && buyer.isEmpty)) add('danger', -2, 'A party to the deal is void', 'This points to a deal that falls through after many disagreements.');
+      if (agent && agent.isEmpty) add('danger', -2, 'The agent Six Harmony is void', 'Watch for dishonesty, and get everything in writing.');
+    }
+
+    if (topic === 'launch') { // FM1 p.92-94: the Open Door with each deity.
+      var lo = where('gate', '开门'), LD = { '值符': [2, 'Smooth start, with support from helpful people.'], '太阴': [2, 'A good start that makes an impact on customers.'], '六合': [2, 'A warm reception, and it suits a partnership.'], '九天': [1, 'It suits building a strong name, with extra work.'],
+        '腾蛇': [-2, 'An unsteady start.'], '白虎': [-2, 'Major obstacles after the start.'], '勾陈': [-2, 'Major obstacles after the start.'], '玄武': [-2, 'Chaos or internal threats that weaken the foundation.'], '朱雀': [-2, 'Chaos or internal threats that weaken the foundation.'], '九地': [-2, 'A period of inactivity after the start.'] };
+      var ld = lo && LD[lo.spirit];
+      if (ld) add(ld[0] > 0 ? 'good' : 'danger', ld[0], 'The Open Door with ' + lo.spirit, ld[1]);
+    }
+
+    if (topic === 'health') { // FM2 p.66 and p.81: the patient and the Grain star against the Life and Death Doors. Wording is softened on purpose.
+      var pt = seats[0], ill = where('starCn', '天芮'), sk = 'This is a chart symbol and not a diagnosis, so please see a doctor.';
+      if (pt && pt.gate === '生门') add('good', 3, 'You stand with the Life Door', 'The book reads this as good prospects of recovery, even if things do not look good yet. ' + sk);
+      else if (pt && pt.gate === '死门') add('danger', poor(pt) ? -3 : -2, 'You stand with the Death Door', (poor(pt) ? 'The book reads this as a serious illness. ' : 'The book reads this as a stubborn illness, though you are still pulling through. ') + sk);
+      else if (pt) add('neutral', -1, 'You stand with neither the Life nor the Death Door', 'The book reads this as an illness that may linger, with a better outcome if help comes early. ' + sk);
+      if (ill) {
+        var lf2 = where('gate', '生门'), dd = where('gate', '死门');
+        if (ill === lf2 || (lf2 && feeds(lf2, ill))) add('good', 2, 'The Grain star with the Life Door', 'Recovery may be hard, but the book reads this as the strength to overcome it. ' + sk);
+        else if (ill === dd || (dd && feeds(dd, ill))) add('danger', -2, 'The Grain star with the Death Door', 'The book reads this as the condition getting worse. ' + sk);
+        if (ill === P[7] || ill === P[6]) add('danger', -2, 'The Grain star in a Metal palace', 'The book reads this as a condition that resists the usual treatment. ' + sk);
+        if (ill === P[9]) add('danger', -1, 'The Grain star in the Li palace', 'The book reads this as a condition that may come back. ' + sk);
+      }
+    }
+
+    if (topic === 'cure') { // FM2 p.73-75: the Heart star and 乙 are the doctor.
+      var doc = where('starCn', '天心'), med = at('乙'), ig = where('starCn', '天芮');
+      if (doc && starTimely(doc) && fine(doc)) add('good', 2, 'The Heart star is timely and well supported', 'This points to a skilled doctor and a suitable treatment.');
+      else if (doc && (!starTimely(doc) || poor(doc))) add('neutral', -1, 'The Heart star is not well placed', 'Consider asking another doctor as well. This is not a reason to stop your treatment.');
+      if (ig && ((doc && counters(doc, ig)) || (med && counters(med, ig)))) add('good', 2, 'The doctor counters the illness', 'This points to a skilled practitioner who can deal with the condition.');
+    }
+
+    if (topic === 'exams') { // FM1 p.231-232.
+      var cf = where('spirit', '值符'), dg = at('丁');
+      if (cf && countersMe(cf)) add('danger', -2, 'The Chief counters you', 'The examiners may be hard to impress, so do more than the standard answer.');
+      else if (cf && feedsMe(cf)) add('good', 2, 'The Chief feeds you', 'Put in the effort and you should pass.');
+      if (dg && countersMe(dg)) add('danger', -2, 'Ding 丁, the exam topic, counters you', 'Expect a challenging paper, and prepare well.');
+      else if (dg && feedsMe(dg)) add('good', 1, 'Ding 丁, the exam topic, feeds you', 'The paper should be within reach.');
+    }
+
+    if (topic === 'learning') { // FM2 p.198: the Assistant star is the teacher and the Grain star the student.
+      var tc = where('starCn', '天辅'), st = where('starCn', '天芮');
+      if (tc && st && fine(tc) && feeds(tc, st)) add('good', 3, 'The teacher feeds the student', 'This points to a good teacher and a fruitful relationship.');
+      else if (tc && st && fine(tc) && idx(tc) === idx(st)) add('neutral', 0, 'The teacher and student stand level', 'A great teacher may be hard to engage, but there is still plenty to learn.');
+    }
+
+    if (topic === 'lost_object') { // FM2 p.236-237: the deity with the Day Stem.
+      var LS = { '九地': [-2, 'Someone may be hiding the item.'], '太阴': [-2, 'Someone may be hiding the item.'], '九天': [-2, 'The item may be far away, and getting it back would cost time and money.'], '玄武': [-3, 'The item has probably been stolen.'],
+        '腾蛇': [-2, 'Someone has probably taken the item.'], '朱雀': [2, 'Someone may have borrowed it, and it should come back.'], '勾陈': [1, 'Someone may have taken it by accident, so it may be returned.'] };
+      var os = seats[0] && LS[seats[0].spirit];
+      if (os) add(os[0] > 0 ? 'good' : 'danger', os[0], seats[0].spirit + ' with you', os[1]);
+    }
+
+    if (topic === 'dispute') { // FM2 p.148: the Chief is the plaintiff and the earth star of its palace, the Heavenly Yi, is the defendant.
+      var pl2 = where('spirit', '值符'), yiStar = pl2 && pl2.hostGuest ? pl2.hostGuest.earth : null, EA = function (s) { var e = STAR_ELEM[s]; return typeof e === 'number' ? e : RULE_ELEMS.indexOf(e); };
+      if (pl2 && yiStar && pl2.starCn) {
+        if (C.controls(EA(pl2.starCn), EA(yiStar))) add('neutral', 0, 'The Chief counters the Heavenly Yi', 'The court leans toward the plaintiff, the side that brought the case.');
+        else if (C.controls(EA(yiStar), EA(pl2.starCn))) add('neutral', 0, 'The Heavenly Yi counters the Chief', 'The court leans toward the defendant.');
+      }
+    }
+
+    if (topic === 'dispute') lingers(where('heavenStemCn', '庚'), 'your opponent');
+    return out;
+  }
+
+  /** The plate's read: the star relation at the chief star, then the hour. Yang hours (甲 to 戊) favour the Guest, and Yin hours (己 to 癸) the Host. */
+  function hostGuestRead(chart, useHour) {
+    var P = chart.palacesByNumber, nums = [1, 2, 3, 4, 6, 7, 8, 9], chief = null, tally = { guest: 0, host: 0, even: 0, neither: 0 };
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(function (n) { if (P[n] && P[n].isChief && P[n].hostGuest) chief = P[n]; });
+    nums.forEach(function (n) { var x = P[n] && P[n].hostGuest; if (x) tally[x.favours]++; });
+    var j = chief ? chief.hostGuest : null, jf = j && (j.favours === 'guest' || j.favours === 'host') ? j.favours : null;
+    var idx = chart.meta.hourStemIdx, hf = useHour ? (idx < 5 ? 'guest' : 'host') : null, why = [];
+    if (j) why.push('Chief star ' + j.heaven + ' ' + j.heavenStage.cn + ' over ' + j.earth + ' ' + j.earthStage.cn + ' in palace ' + chief.num + ': ' + j.cn + ' ' + j.en + '. ' + j.note);
+    if (useHour) why.push(hf === 'guest'
+      ? chart.meta.hourCn + ' is a Yang hour, which favours the Guest. It suits expeditions, travel and new ventures, not hiding or escape.'
+      : chart.meta.hourCn + ' is a Yin hour, which favours the Host. It suits preparing, secret plans and escape, not taking office, moving, travel, marriage, new business or deals.');
+    var dh = useHour ? disharmony(chart.meta.dayStemIdx, idx) : null;
+    if (dh) why.push(dh.text);
+    if (j && j.doubled) why.push('The chief star is also supported by its palace (喜上加喜), which adds to its strength.');
+    if (j && j.worsened) why.push('The chief star is out of season and countered by its palace, which makes things worse.');
+    var side = j && j.favours === 'neither' ? 'neither' : jf && hf && jf !== hf ? 'mixed' : jf || hf || 'even';
+    return { side: side, chief: j, hour: hf, tally: tally, why: why,
+      name: { guest: 'Guest: move first', host: 'Host: wait and respond', mixed: 'Mixed', neither: 'Neither side', even: 'Even' }[side],
+      advice: { guest: 'Take the initiative. Make the first move, and favour distance and the outside world.',
+        host: 'Hold your ground. Let the other side move first, prepare quietly, and favour what is close to you.',
+        mixed: 'The star favours the ' + (jf === 'guest' ? 'Guest' : 'Host') + ', but the hour favours the ' + (hf === 'guest' ? 'Guest' : 'Host') + '. Prepare now and choose a better hour for the decisive step.',
+        neither: 'Neither attacking nor defending will succeed now. Delay anything important.',
+        even: 'The stars give neither side an edge, so choose your role by the other factors in the chart.' }[side] };
+  }
+
   // Inner (near) palaces sit around the centre; the four cardinal seats are the outer ring.
   var PAL_RING = { 1:'outer', 9:'outer', 3:'outer', 7:'outer',
                    2:'inner', 4:'inner', 6:'inner', 8:'inner', 5:'centre' };
@@ -420,16 +836,36 @@
    * Two ways to set the hourly ju, chosen in Profile (setQimenOptions):
    *  - 置闰 Zhi Run (default): the ju runs in 15-day blocks, each starting on an upper-yuan 符头 day (甲子 己卯 甲午 己酉)
    *    with five days each of 上元 中元 下元. Blocks take the 24 terms in sequence; a block that starts before its term
-   *    is 超神, after it 接气. When 超神 passes nine days at 芒种 or 大雪, that term's block is repeated (置闰). The
-   *    sequence is anchored on the latest 正授 block — a 符头 on its term's own day — and walked forward from there.
+   *    is 超神, after it 接气. A block of 芒种 or 大雪 is sometimes repeated (置闰) to catch up with the terms. The repeats from
+   *    1947 to 2049 come from Joey Yap's Ten Thousand Year Calendar (LEAP_BLOCKS), because no single day count reproduces them.
+   *    Outside those years the sequence is anchored on the latest 正授 block and repeats once 超神 reaches nine days.
    *  - 拆补 Chai Bu: the current solar term, with the yuan from the leading 甲/己 day.
    * The void (空亡) on an hourly plate is the hour's xun by default, as most charting software marks it; the day's
    * xun is the alternative. Both are always reported on the chart.
    */
-  var QM_OPTS = { method: 'zhirun', voidBy: 'hour' };
-  function setQimenOptions(o) { if (o && o.method) QM_OPTS.method = o.method; if (o && o.voidBy) QM_OPTS.voidBy = o.voidBy; }
+  var QM_OPTS = { method: 'zhirun', voidBy: 'hour', longRule: 'yearly' };
+  function setQimenOptions(o) { if (o && o.method) QM_OPTS.method = o.method; if (o && o.voidBy) QM_OPTS.voidBy = o.voidBy; if (o && o.longRule) QM_OPTS.longRule = o.longRule; }
   var UPPER_HEADS = [0, 15, 30, 45];      // 甲子 己卯 甲午 己酉
   var zhiRunCache = {};
+  // Each block that the calendar repeats: the 符头 day (JDN) of its first copy, with M for 芒种 and D for 大雪.
+  var LEAP_BLOCKS = (
+    '2432336M 2433431M 2434346D 2435441D 2436536D 2437631D 2438726D 2439641M 2440736M 2441651D ' +
+    '2442746D 2443841D 2444936D 2446031D 2446946M 2448041M 2449136M 2450051D 2451146D 2452241D ' +
+    '2453336D 2454251M 2455346M 2456441M 2457356D 2458451D 2459546D 2460641D 2461736D 2462651M ' +
+    '2463746M 2464661D 2465756D 2466851D 2467946D 2469041D 2469776D'
+  ).split(' ').map(function (s) { return { f: +s.slice(0, -1), name: s.slice(-1) === 'M' ? '芒种' : '大雪' }; });
+  // The term of block F, walked from the latest repeat in the table. Null outside the years the calendar covers.
+  function termFromLeaps(F, pool) {
+    var L = null;
+    LEAP_BLOCKS.forEach(function (x) { if (x.f <= F) L = x; });
+    if (!L || F > A.civilJDN(2051, 6, 1)) return null;
+    var t = -1;
+    pool.forEach(function (x, j) { if (x.name === L.name && (t < 0 || Math.abs(x.day - L.f) < Math.abs(pool[t].day - L.f))) t = j; });
+    if (t < 0) return null;
+    if (F === L.f) return { t: t, leap: false };
+    if (F === L.f + 15) return { t: t, leap: true };
+    return { t: t + 1 + (F - L.f - 30) / 15, leap: false };
+  }
   function localDayJDN(jd) { var g = A.jdToLocal(jd); return A.civilJDN(g.y, g.m, Math.floor(g.d)); }
   function zhiRun(p) {
     var D = p.dayJDN, i0 = mod(p.day.i - D, 60), F = D - mod(mod(D + i0, 60), 15);
@@ -440,6 +876,8 @@
     [y - 3, y - 2, y - 1, y, y + 1].forEach(function (yy) {
       A.termsForYear(yy).forEach(function (t) { pool.push({ name: t.name, day: localDayJDN(t.jd) }); }); });
     pool.sort(function (a, b) { return a.day - b.day; });
+    var known = termFromLeaps(F, pool);
+    if (known && pool[known.t]) return (zhiRunCache[F] = { term: pool[known.t].name, start: F, drift: pool[known.t].day - F, leap: known.leap });
     // Anchor: the latest block at or before F whose 符头 day is a term's day (正授).
     var anchorF = null, anchorT = -1;
     for (var k = 0; k < 120 && anchorF === null; k++) {
@@ -450,12 +888,13 @@
     var t = anchorT, repeated = false;
     for (var b = anchorF; b < F; b += 15) {
       var nm = pool[t].name;
-      if (!repeated && (nm === '芒种' || nm === '大雪') && pool[t].day - b > 9) { repeated = true; continue; }  // 置闰: repeat this term
+      if (!repeated && (nm === '芒种' || nm === '大雪') && pool[t].day - b >= 9) { repeated = true; continue; }  // 置闰: repeat this term
       repeated = false; t++;
     }
     return (zhiRunCache[F] = { term: pool[t].name, start: F, drift: pool[t].day - F, leap: repeated });
   }
 
+  function plateStem(q) { return C.STEMS[q.stem === 0 ? YI_ORDER[Math.floor(mod(q.i - (q.i % 10), 60) / 10)] : q.stem]; }
   function qimen(p) {
     var termName = p.term.name;
     var dayIdx = p.day.i, yuan, zr = null;
@@ -579,9 +1018,10 @@
         heavenStemStrength: hs !== undefined ? strengthOf(STEM_ELEM_EN[hs], PAL_ELEM[q]) : null,
         earthStemStrength: es !== undefined ? strengthOf(STEM_ELEM_EN[es], PAL_ELEM[q]) : null,
         starCn: star, starEn: star ? STARS9_EN[STARS9.indexOf(star)] : '',
-        starElement: starEl, starStrength: strengthOf(starEl, PAL_ELEM[q]),
+        starElement: starEl, starStrength: starSeason(starEl, p.month.branch), starPalace: strengthOf(starEl, PAL_ELEM[q]),
+        hostGuest: star && STARS9[q - 1] ? hostGuest(star, STARS9[q - 1], PAL_ELEM[q], p.month.branch, p.day.stem, p.hour.stem) : null,
         gate: gate || '', gateEn: gnum ? GATES8_EN[gnum] : '',
-        gateElement: gateEl, gateStrength: strengthOf(gateEl, PAL_ELEM[q]),
+        gateElement: gateEl, gateStrength: doorSeason(gate, p.term.index), gatePalace: doorVsPalace(gateEl, PAL_ELEM[q]),
         gateRank: gnum ? GATE_RANK[gnum] : 1,
         gateNature: gate ? GATE_NATURE[gate] : null,
         spirit: spirit, spiritEn: spirit,
@@ -622,9 +1062,68 @@
         hourPillar: { stem: { char: C.STEMS[p.hour.stem], element: STEM_ELEM_EN[p.hour.stem], yinYang: C.STEM_YIN[p.hour.stem] ? 'yin' : 'yang' },
                       branch: { char: C.BRANCHES[p.hour.branch] } },
         fuYin: shift === 0, fanYin: shift === 4,
-        solarTime: null, month: null
+        solarTime: null, month: null,
+        // What the structure tables read: the 符首, and each pillar's stem as it stands on a plate (甲 hides under its 六儀).
+        fuShou: C.STEMS[xunYi], pillarBranches: [p.year.branch, p.month.branch, p.day.branch, p.hour.branch], hourCn: p.hour.cn, dayStemCn: C.STEMS[p.day.stem], dayStemIdx: p.day.stem, hourStemIdx: p.hour.stem,
+        plateYear: plateStem(p.year), plateMonth: plateStem(p.month), plateDay: plateStem(p.day), plateHour: plateStem(p.hour)
       }
     };
+    return chart;
+  }
+
+  /* ---------------- Flying Palace plate (飛宮) ----------------
+   * The same 局, earth plate, xun chief and envoy as the rotating plate, but nothing is lodged and everything travels through all
+   * nine palaces in Lo Shu number order, forwards in Yang dun and backwards in Yin dun. There are nine doors (中门 in the centre) and
+   * nine deities (太常 added). Stars and heaven stems follow the chief to the hour stem's palace; doors follow the envoy's count.
+   */
+  var FLY_DOORS = ['休门', '死门', '伤门', '杜门', '中门', '开门', '惊门', '生门', '景门'];
+  var FLY_DOORS_EN = ['Rest', 'Death', 'Harm', 'Delusion', 'Centre', 'Open', 'Fear', 'Life', 'Scenery'];
+  var FLY_DEITIES = ['值符', '腾蛇', '太阴', '六合', '勾陈', '太常', '朱雀', '九地', '九天'];
+  var FLY_ELEM = { '休门': 'water', '死门': 'earth', '伤门': 'wood', '杜门': 'wood', '中门': 'earth', '开门': 'metal', '惊门': 'metal', '生门': 'earth', '景门': 'fire' };
+  function flyingQimen(p) {
+    var base = qimen(p), yin = base.dun === '阴遁', ju = base.ju, dir = yin ? -1 : 1;
+    var wrap = function (n) { return mod(n - 1, 9) + 1; };
+    var earth = {}, stemPalace = {};
+    for (var i = 0; i < 9; i++) { var pal = wrap(ju + (yin ? -i : i)); earth[pal] = YI_ORDER[i]; stemPalace[YI_ORDER[i]] = pal; }
+    var hourIdx = p.hour.i, xunHead = hourIdx - (hourIdx % 10);
+    var xunPalace = stemPalace[YI_ORDER[Math.floor(mod(xunHead, 60) / 10)]];
+    var landing = p.hour.stem === 0 ? xunPalace : stemPalace[p.hour.stem];
+    var doorPalace = wrap(xunPalace + dir * mod(hourIdx - xunHead, 12));
+    var stars = {}, heaven = {}, doors = {}, deities = {};
+    for (var k = 1; k <= 9; k++) {
+      var to = wrap(landing + (k - xunPalace) * dir);
+      stars[to] = STARS9[k - 1]; heaven[to] = earth[k];
+      doors[wrap(doorPalace + (k - xunPalace) * dir)] = k;
+    }
+    FLY_DEITIES.forEach(function (d, s) { deities[wrap(landing + s * dir)] = d; });
+    var byNumber = {}, palaces = base.palaces.map(function (c0) {
+      var q = c0.num, cell = {}, door = FLY_DOORS[doors[q] - 1], star = stars[q], deity = deities[q], hs = heaven[q], e0 = earth[q];
+      Object.keys(c0).forEach(function (key) { cell[key] = c0[key]; });
+      var starEl = STAR_ELEM[star], doorEl = FLY_ELEM[door], deityEl = deity === '太常' ? 'earth' : SPIRIT_ELEM[deity];
+      var nature = deity === '太常' ? 'auspicious' : SPIRIT_NATURE[deity], doorNature = door === '中门' ? 'neutral' : GATE_NATURE[door];
+      cell.heavenStem = { char: C.STEMS[hs], element: STEM_ELEM_EN[hs], yinYang: C.STEM_YIN[hs] ? 'yin' : 'yang' };
+      cell.earthStem = { char: C.STEMS[e0], element: STEM_ELEM_EN[e0], yinYang: C.STEM_YIN[e0] ? 'yin' : 'yang' };
+      cell.door = { char: door.charAt(0), element: doorEl, nature: doorNature };
+      cell.star = { char: star, element: starEl };
+      cell.deity = { char: deity, nature: nature, element: deityEl };
+      cell.earthStemCn = C.STEMS[e0]; cell.heavenStemCn = C.STEMS[hs]; cell.heavenStem2Cn = ''; cell.star2Cn = ''; cell.earthStem2Cn = '';
+      cell.heavenStemStrength = strengthOf(STEM_ELEM_EN[hs], PAL_ELEM[q]); cell.earthStemStrength = strengthOf(STEM_ELEM_EN[e0], PAL_ELEM[q]);
+      cell.starCn = star; cell.starEn = STARS9_EN[STARS9.indexOf(star)]; cell.starElement = starEl; cell.starStrength = starSeason(starEl, p.month.branch); cell.starPalace = strengthOf(starEl, PAL_ELEM[q]);
+      cell.hostGuest = hostGuest(star, STARS9[q - 1], PAL_ELEM[q], p.month.branch, p.day.stem, p.hour.stem);
+      cell.gate = door; cell.gateEn = FLY_DOORS_EN[doors[q] - 1]; cell.gateElement = doorEl; cell.gateStrength = doorSeason(door, p.term.index); cell.gatePalace = doorVsPalace(doorEl, PAL_ELEM[q]);
+      cell.gateRank = door === '中门' ? 1 : GATE_RANK[doors[q]]; cell.gateNature = doorNature;
+      cell.spirit = deity; cell.spiritEn = deity; cell.spiritElement = deityEl; cell.spiritStrength = strengthOf(deityEl, PAL_ELEM[q]); cell.spiritNature = nature;
+      cell.isEnvoy = q === doorPalace; cell.isChief = q === landing; cell.isDuty = q === landing;
+      byNumber[q] = cell;
+      return cell;
+    });
+    var chart = {};
+    Object.keys(base).forEach(function (key) { chart[key] = base[key]; });
+    var fanYin = mod(landing - xunPalace, 9) !== 0 && landing + xunPalace === 10;
+    chart.palaces = palaces; chart.palacesByNumber = byNumber; chart.method = 'flying'; chart.landing = landing; chart.doorPalace = doorPalace; chart.xunPalace = xunPalace;
+    chart.chief = STARS9[xunPalace - 1]; chart.chiefEn = STARS9_EN[xunPalace - 1]; chart.envoy = FLY_DOORS[xunPalace - 1]; chart.envoyPalace = doorPalace;
+    chart.meta = {}; Object.keys(base.meta).forEach(function (key) { chart.meta[key] = base.meta[key]; });
+    chart.meta.fuYin = landing === xunPalace; chart.meta.fanYin = fanYin;
     return chart;
   }
 
@@ -643,7 +1142,7 @@
         var res;
         try { res = f.detect(chart.palaces, chart.meta); } catch (e) { return null; }
         if (res === null || res === undefined || (Array.isArray(res) && res.length === 0)) return null;
-        return { id: f.id, name: f.name, nameEn: f.nameEn, category: f.category,
+        return { id: f.id, name: f.name, nameEn: f.nameEn, category: f.category, source: f.source || null,
                  description: f.description, palaces: res,
                  seasonalStrength: D.formationSeasonalStrength(f, month || 1) };
       }).filter(Boolean);
@@ -728,6 +1227,27 @@
     var h = HEX[up][lo];
     return { number: h[0], name: h[1], nameEn: HEX_EN[h[0]], upperIdx: up, lowerIdx: lo,
              upper: TRIGRAMS[up], lower: TRIGRAMS[lo], upperEn: TRI_EN[up], lowerEn: TRI_EN[lo] };
+  }
+
+  // Qimen rim hexagram: the Star's home trigram above the Door's home trigram. Worked out from Thrive
+  // charts (64 of 64 palaces). The two numbers are the Xuan Kong number of the upper trigram and the
+  // period set by which lines differ between the lower and upper trigrams.
+  var STAR_TRI = { '天蓬':5, '天芮':7, '天禽':7, '天冲':3, '天辅':4, '天心':0, '天柱':1, '天任':6, '天英':2 };
+  var GATE_TRI = { '休门':5, '死门':7, '伤门':3, '杜门':4, '开门':0, '惊门':1, '生门':6, '景门':2 };
+  var XK_TRI_NUM = [9, 4, 3, 8, 2, 7, 6, 1];
+  var XK_PERIOD = { 0:1, 6:2, 5:3, 3:4, 4:6, 2:7, 1:8, 7:9 };
+  function qimenRimHex(pa) {
+    var up = STAR_TRI[pa && pa.starCn], lo = GATE_TRI[pa && pa.gate];
+    if (up === undefined || lo === undefined) return null;
+    var u = TRI_BITS[up], l = TRI_BITS[lo], h = HEX[up][lo], lines = [];
+    for (var i = 0; i < 3; i++) lines.push((l >> i) & 1);
+    for (i = 0; i < 3; i++) lines.push((u >> i) & 1);
+    return { number: h[0], name: h[1], nameEn: HEX_EN[h[0]], upper: TRIGRAMS[up], lower: TRIGRAMS[lo], upperEn: TRI_EN[up], lowerEn: TRI_EN[lo],
+             lines: lines, top: XK_TRI_NUM[up], period: XK_PERIOD[u ^ l] };
+  }
+  // The large palace number on a Thrive chart: the Ju sits in the centre and flies forward in Luo Shu order.
+  function qimenFlownNumber(ju, palace) {
+    return mod(ju - 1 + [5, 6, 7, 8, 9, 1, 2, 3, 4].indexOf(palace), 9) + 1;
   }
 
   /* ================= FENG SHUI ================= */
@@ -903,6 +1423,13 @@
     if (mansion.auspicious) { score += 8; reasons.push(mansion.cn + ' mansion is favourable'); }
     else { score -= 6; reasons.push(mansion.cn + ' mansion is unfavourable'); }
 
+    // The ruling mansion's own lists for this activity.
+    var actDef = ACTIVITIES.filter(function (x) { return x.key === activity; })[0];
+    if (actDef && global.QPXiu) {
+      var fit = global.QPXiu.activityFit(global.QPXiu.dayMansion(p.jdn), actDef.cn);
+      if (fit > 0) { score += 8; reasons.push(mansion.cn + ' mansion favours this activity'); }
+      if (fit < 0) { score -= 12; reasons.push(mansion.cn + ' mansion warns against this activity'); }
+    }
     // Personal clash against the user's animal sign
     if (profile && profile.zodiacBranch !== undefined) {
       if (p.day.branch === C.branchClash(profile.zodiacBranch)) {
@@ -936,15 +1463,15 @@
   }
 
   global.QPSystems = {
-    setQimenOptions: setQimenOptions, qimenOptions: function () { return { method: QM_OPTS.method, voidBy: QM_OPTS.voidBy }; },
+    setQimenOptions: setQimenOptions, qimenOptions: function () { return { method: QM_OPTS.method, voidBy: QM_OPTS.voidBy, longRule: QM_OPTS.longRule }; },
     analyseBazi: analyseBazi, luckPillars: luckPillars,
     zwds: zwds, ZW_PALACES: ZW_PALACES, ZW_PALACES_EN: ZW_PALACES_EN,
     zwdsPeriod: zwdsPeriod, zwdsDecades: zwdsDecades, SIHUA: SIHUA, HUA: HUA, STAR_TONE: STAR_TONE,
     brightness: brightness, BRIGHT: BRIGHT, BRIGHT_EN: BRIGHT_EN, starEffect: starEffect,
     placeMinors: placeMinors, MINOR_EN: MINOR_EN, MINOR_ABBR: MINOR_ABBR, MINOR_TONE: MINOR_TONE,
-    qimen: qimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines,
+    qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber,
     TRIGRAMS: TRIGRAMS, TRI_EN: TRI_EN,
-    strengthOf: strengthOf, STRENGTH: STRENGTH,
+    strengthOf: strengthOf, STRENGTH: STRENGTH, starSeason: starSeason, STAR_STAGE: STAR_STAGE, hostGuest: hostGuest, hostGuestRead: hostGuestRead, doorSeason: doorSeason, doorPalace: doorVsPalace, disharmony: disharmony, nobleGrave: nobleGrave, horsePalace: horsePalace, forecastRules: forecastRules, HEALTH_CARE: HEALTH_CARE,
     annualStar: annualStar, monthStar: monthStar, flyingStars: flyingStars,
     eightMansions: eightMansions, guaNumber: guaNumber, STAR_MEAN: STAR_MEAN,
     ACTIVITIES: ACTIVITIES, scoreDay: scoreDay, bestDates: bestDates

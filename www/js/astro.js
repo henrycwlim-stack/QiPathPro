@@ -47,8 +47,9 @@
   }
 
   // Local civil datetime -> JD (in UT)
-  function localToJD(y, m, d, hour, min) {
-    var frac = ((hour || 0) + (min || 0) / 60 - TZ) / 24;
+  // tz: the UTC offset of this civil time in hours; defaults to the app timezone.
+  function localToJD(y, m, d, hour, min, tz) {
+    var frac = ((hour || 0) + (min || 0) / 60 - (tz === undefined || tz === null ? TZ : tz)) / 24;
     return gregToJD(y, m, d) + frac;
   }
 
@@ -118,7 +119,15 @@
   // All 24 term moments (JD, UT) whose local date falls in Gregorian year y, plus neighbours.
   function termsForYear(y) {
     if (_termCache[y]) return _termCache[y];
-    var out = [];
+    var out = [], T = global.QP_TERMS;
+    // The Swiss Ephemeris table (tools/build-ephemeris.py) covers 1890 to 2110; the formula below serves dates beyond it.
+    if (T && y >= T.from && y <= T.to) {
+      T.sec[y - T.from].forEach(function (s, k) {
+        out.push({ index: k, name: TERM_NAMES[k], en: TERM_PINYIN[k], jd: T.jd0 + s / 86400 });
+      });
+      _termCache[y] = out;
+      return out;
+    }
     for (var i = 0; i < 24; i++) {
       // Lichun ~ Feb 4 of year y; each term ~15.2 days later.
       var guess = gregToJD(y, 2, 4) + i * 15.22;
@@ -130,8 +139,9 @@
   }
 
   // The most recent solar term at or before local datetime; returns {index,name,jd,...}
-  function currentTerm(y, m, d, hour, min) {
-    var jd = localToJD(y, m, d, hour || 0, min || 0);
+  function currentTerm(y, m, d, hour, min, tz) { return termAt(localToJD(y, m, d, hour || 0, min || 0, tz), y); }
+  /** The solar term in force at a moment (JD, UT); y is any civil year within one of it. */
+  function termAt(jd, y) {
     var pool = termsForYear(y - 1).concat(termsForYear(y), termsForYear(y + 1));
     pool.sort(function (a, b) { return a.jd - b.jd; });
     var found = pool[0];
@@ -148,6 +158,15 @@
     pool.sort(function (a, b) { return a.jd - b.jd; });
     for (var i = 0; i < pool.length; i++) if (pool[i].jd > jd) return pool[i];
     return null;
+  }
+
+  /** Equation of time in minutes, apparent minus mean solar time, at a moment (JD, UT). Meeus 28.3. */
+  function equationOfTime(jd) {
+    var T = (jd - 2451545.0) / 36525.0;
+    var L0 = (280.46646 + 36000.76983 * T + 0.0003032 * T * T) * RAD, M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) * RAD;
+    var e = 0.016708634 - 0.000042037 * T, eps = (23.43929111 - 0.0130042 * T) * RAD, y = Math.tan(eps / 2) * Math.tan(eps / 2);
+    var E = y * Math.sin(2 * L0) - 2 * e * Math.sin(M) + 4 * e * y * Math.sin(M) * Math.cos(2 * L0) - 0.5 * y * y * Math.sin(4 * L0) - 1.25 * e * e * Math.sin(2 * M);
+    return E * 4 / RAD;
   }
 
   /* ---------- Lunar phase / new moon ---------- */
@@ -314,7 +333,7 @@
     gregToJD: gregToJD, jdToGreg: jdToGreg, civilJDN: civilJDN,
     localToJD: localToJD, jdToLocal: jdToLocal, weekday: weekday,
     solarLongitude: solarLongitude, solarTermJD: solarTermJD,
-    termsForYear: termsForYear, currentTerm: currentTerm, nextTerm: nextTerm,
+    termsForYear: termsForYear, currentTerm: currentTerm, nextTerm: nextTerm, termAt: termAt, equationOfTime: equationOfTime,
     TERM_NAMES: TERM_NAMES, TERM_PINYIN: TERM_PINYIN,
     newMoonJD: newMoonJD, toLunar: toLunar, lunarMonths: lunarMonths
   };

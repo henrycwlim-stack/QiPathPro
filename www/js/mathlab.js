@@ -670,7 +670,7 @@
   function baziFuzzy(user, opts) {
     opts = opts || {};
     var b = user.birth, dm = C.STEM_ELEM[user.pillars.day.stem];
-    var jdB = A.localToJD(b.y, b.m, b.d, b.hour, b.min);
+    var jdB = A.localToJD(b.y, b.m, b.d, b.hour, b.min, b.tz);
     var atBirth = fuzzyAt(jdB, user.pillars.month.branch);
     var y = opts.year || new Date().getFullYear(), jd0 = A.localToJD(y, 1, 1, 12, 0);
     var xs = [], fz = [], cr = [], notes = [];
@@ -696,7 +696,7 @@
 
   /* What chaos theory can honestly measure here. The engines are discrete maps of time, so the
      butterfly effect shows up at boundaries: a few minutes across a double-hour, a solar term or
-     the 23:00 day change re-cast the whole plate or pillar. We measure (1) that sensitivity
+     the midnight day change re-cast the whole plate or pillar. We measure (1) that sensitivity
      directly, (2) a largest-Lyapunov estimate from the score series (Rosenstein's method on a
      delay embedding) and (3) bifurcations — single-step jumps of two or more verdict bands —
      and regime shifts, by binary segmentation of the series' mean. */
@@ -783,9 +783,9 @@
     var b = user.birth, base = user.pillars;
     var baseDeep = user.deep || global.QPBazi.analyse(base, user.gender);
     function chartAt(mins) {
-      var jd = A.localToJD(b.y, b.m, b.d, b.hour, b.min) + mins / 1440, g = A.jdToLocal(jd);
+      var jd = A.localToJD(b.y, b.m, b.d, b.hour, b.min, b.tz) + mins / 1440, g = A.jdToLocal(jd + ((b.tz === undefined ? A.getTimezone() : b.tz) - A.getTimezone()) / 24);
       if (g.hour >= 24) { g.hour = 23; g.min = 59; }
-      var p = C.fourPillars(g.y, g.m, g.d, g.hour, g.min);
+      var p = C.birthPillars(b, mins);
       return { p: p, g: g };
     }
     var tests = [-120, -60, -30, -10, 10, 30, 60, 120].map(function (mins) {
@@ -800,7 +800,7 @@
     // Minutes to the hour-branch boundaries (odd hours) and to the nearest 節 (month change).
     var minsOfDay = b.hour * 60 + b.min;
     var sinceB = (minsOfDay - 60 + 1440) % 120, toNext = 120 - sinceB;
-    var jdB = A.localToJD(b.y, b.m, b.d, b.hour, b.min);
+    var jdB = A.localToJD(b.y, b.m, b.d, b.hour, b.min, b.tz);
     // Month pillars change only on 節 (even term index): the last one before birth and the next after.
     var pool = A.termsForYear(b.y - 1).concat(A.termsForYear(b.y), A.termsForYear(b.y + 1))
       .filter(function (t) { return t.index % 2 === 0; }).sort(function (x, y) { return x.jd - y.jd; });
@@ -808,7 +808,7 @@
     pool.forEach(function (t) { if (t.jd <= jdB) before = t; else if (!after) after = t; });
     var jieDist = [before, after].filter(Boolean)
       .map(function (t) { return { name: t.name, hours: r1((t.jd - jdB) * 24) }; });
-    var dayEdge = Math.min(Math.abs(minsOfDay - 23 * 60), Math.abs(minsOfDay - 24 * 60), minsOfDay);
+    var dayEdge = Math.min(minsOfDay, 1440 - minsOfDay);
     var structural = tests.filter(function (t) { return t.strongFlip || t.favFlip; });
     var within30 = tests.filter(function (t) { return Math.abs(t.mins) <= 30 && t.flips.length; });
     return {
@@ -997,9 +997,9 @@
   function zwdsChaos(user, zs) {
     var b = user.birth, z0 = user.zwds;
     function boardAt(mins) {
-      var jd = A.localToJD(b.y, b.m, b.d, b.hour, b.min) + mins / 1440, g = A.jdToLocal(jd);
+      var jd = A.localToJD(b.y, b.m, b.d, b.hour, b.min, b.tz) + mins / 1440, g = A.jdToLocal(jd + ((b.tz === undefined ? A.getTimezone() : b.tz) - A.getTimezone()) / 24);
       if (g.hour >= 24) { g.hour = 23; g.min = 59; }
-      var p = C.fourPillars(g.y, g.m, g.d, g.hour, g.min), lun = A.toLunar(g.y, g.m, g.d);
+      var p = C.birthPillars(b, mins), lun = A.toLunar(g.y, g.m, g.d);
       return S.zwds(lun, p.hourBranch, p.year.stem, p.year.branch);
     }
     var tests = [-120, -60, -30, -10, 10, 30, 60, 120].map(function (mins) {

@@ -161,7 +161,7 @@
     var t = opts.today || (function () { var d = new Date();
       return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() }; })();
     var b = user.birth, l = user.luck;
-    var birthJD = A.localToJD(b.y, b.m, b.d, b.hour, b.min);
+    var birthJD = A.localToJD(b.y, b.m, b.d, b.hour, b.min, b.tz);
     var todayJD = A.localToJD(t.y, t.m, t.d, 12, 0);
     var ageNow = (todayJD - birthJD) / YEAR_DAYS;
     function jdAtAge(a) { return birthJD + a * YEAR_DAYS; }

@@ -82,7 +82,9 @@
       var h = b === 0 ? 23 : (b * 2 - 1);
       var probe = { y: dt.y, m: dt.m, d: dt.d, hour: h, min: 30 };
       var r = hourly(probe, profile);
-      out.push({ branch: b, branchCn: C.BRANCHES[b], range: C.HOUR_RANGE[b],
+      // The hour mansion breaks ties in timing; it does not change the hour's own score.
+      var xiu = global.QPXiu && r.pillars ? global.QPXiu.hourMansion(r.pillars) : null;
+      out.push({ branch: b, branchCn: C.BRANCHES[b], range: C.HOUR_RANGE[b], xiu: xiu, timing: r.score + (xiu ? (xiu.auspicious ? 0.5 : -0.5) : 0),
                  score: r.score, gate: r.gate, gateEn: r.gateEn, label: r.label,
                  direction: r.bestDirection });
     }

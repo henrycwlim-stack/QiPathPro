@@ -22,7 +22,7 @@
   var HIDDEN = [[9],[5,9,7],[0,2,4],[1],[4,1,9],[2,4,6],[3,5],[5,3,1],[6,8,4],[7],[4,7,3],[8,0]];
 
   // 24 hour-branch labels
-  var HOUR_RANGE = ['23:00–00:59','01:00–02:59','03:00–04:59','05:00–06:59','07:00–08:59',
+  var HOUR_RANGE = ['23:00–23:59','01:00–02:59','03:00–04:59','05:00–06:59','07:00–08:59',
                     '09:00–10:59','11:00–12:59','13:00–14:59','15:00–16:59','17:00–18:59',
                     '19:00–20:59','21:00–22:59'];
 
@@ -53,18 +53,31 @@
 
   /**
    * Compute the four pillars for a local civil datetime.
-   * opts.lateZi (default true): 23:00-23:59 rolls the DAY pillar to the next day.
+   * The day changes at midnight (Compendium p.181-182). 23:00-23:59 is the Late Rat hour 夜子: still today's day pillar, with the Zi stem of the
+   * next day, so a 庚 day at 23:30 is 戊子 and at 00:30 is 丙子. opts.lateZi false gives today's own Zi stem instead, as the Warcraft book's charts do.
+   * opts.tz: this civil time's UTC offset in hours, for a birth elsewhere or in another era; defaults to the app timezone.
+   * opts.lon: longitude for true solar time; null turns it off; defaults to the setting from setTrueSolar. The year, month and
+   * solar term follow the actual moment. Only the day and hour pillars read the sun's local time.
    */
+  var solarLon = null;
+  /** Turn true solar time on for a longitude, or off with null. Birth charts carry their own setting and ignore this. */
+  function setTrueSolar(lon) { solarLon = lon === undefined ? null : lon; }
+  /** Birth pillars, optionally a number of minutes away from the recorded time. */
+  function birthPillars(b, mins) {
+    var t = new Date(Date.UTC(b.y, b.m - 1, b.d, b.hour, b.min) + (mins || 0) * 60000);
+    return fourPillars(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate(), t.getUTCHours(), t.getUTCMinutes(), { tz: b.tz, lon: b.lon === undefined ? null : b.lon });
+  }
   function fourPillars(y, m, d, hour, min, opts) {
     opts = opts || {};
     var lateZi = opts.lateZi !== false;
     hour = hour || 0; min = min || 0;
 
-    var term = A.currentTerm(y, m, d, hour, min);
+    var tz = opts.tz === undefined || opts.tz === null ? A.getTimezone() : opts.tz;
+    var jd = A.localToJD(y, m, d, hour, min, tz);
+    var term = A.termAt(jd, y);
     var termIndex = term.index;
 
     // Solar year for the year pillar: rolls over at Lichun.
-    var jd = A.localToJD(y, m, d, hour, min);
     var lichunThis = A.termsForYear(y)[0].jd;
     var solarYear = jd >= lichunThis ? y : y - 1;
     var yearIdx = ((solarYear - 1984) % 60 + 60) % 60;
@@ -78,14 +91,20 @@
     var mStem = (yinMonthStem + monthsFromYin) % 10;
     var monthIdx = sbIndex(mStem, mBranch);
 
-    // Day pillar. JDN is constant across the civil day; late-Zi advances it.
+    var lon = opts.lon === undefined ? solarLon : opts.lon, solar = null;
+    if (lon !== null && lon !== undefined) {
+      var shift = (lon - tz * 15) * 4 + A.equationOfTime(jd), sd = new Date(Date.UTC(y, m - 1, d, hour, min) + shift * 60000);
+      y = sd.getUTCFullYear(); m = sd.getUTCMonth() + 1; d = sd.getUTCDate(); hour = sd.getUTCHours(); min = sd.getUTCMinutes();
+      solar = { lon: lon, shift: Math.round(shift * 10) / 10, hour: hour, min: min };
+    }
+
+    // Day pillar. JDN is constant across the civil day.
     var jdn = A.civilJDN(y, m, d);
-    if (lateZi && hour >= 23) jdn += 1;
     var dayIdx = ((jdn + 49) % 60 + 60) % 60;
 
     // Hour pillar
     var hBranch = Math.floor((((hour + 1) % 24) + 24) % 24 / 2);
-    var dStem = dayIdx % 10;
+    var dStem = (dayIdx + (lateZi && hour >= 23 ? 1 : 0)) % 10;
     // 五鼠遁: Zi-hour stem = (dayStem % 5) * 2
     var hStem = (((dStem % 5) * 2) + hBranch) % 10;
     var hourIdx = sbIndex(hStem, hBranch);
@@ -93,9 +112,9 @@
     return {
       year: stemBranch(yearIdx), month: stemBranch(monthIdx),
       day: stemBranch(dayIdx), hour: stemBranch(hourIdx),
-      term: term, termIndex: termIndex, solarYear: solarYear,
+      term: term, termIndex: termIndex, solarYear: solarYear, solar: solar,
       jdn: A.civilJDN(y, m, d), dayJDN: jdn,
-      hourBranch: hBranch, hourRange: HOUR_RANGE[hBranch],
+      hourBranch: hBranch, hourRange: hBranch === 0 && hour < 23 ? '00:00–00:59' : HOUR_RANGE[hBranch],
       zodiac: ZODIAC[yearIdx % 12], zodiacCn: ZODIAC_CN[yearIdx % 12]
     };
   }
@@ -264,13 +283,13 @@
     ZODIAC: ZODIAC, ZODIAC_CN: ZODIAC_CN, ELEM: ELEM, ELEM_EN: ELEM_EN,
     STEM_ELEM: STEM_ELEM, STEM_YIN: STEM_YIN, BRANCH_ELEM: BRANCH_ELEM, BRANCH_YIN: BRANCH_YIN,
     HIDDEN: HIDDEN, HOUR_RANGE: HOUR_RANGE, NAYIN: NAYIN,
-    stemBranch: stemBranch, sbIndex: sbIndex, fourPillars: fourPillars,
+    stemBranch: stemBranch, sbIndex: sbIndex, fourPillars: fourPillars, setTrueSolar: setTrueSolar, birthPillars: birthPillars,
     branchClash: branchClash, branchHarm: branchHarm, THREE_HARMONY: THREE_HARMONY,
     produces: produces, controls: controls, tenGod: tenGod,
     TEN_GODS: TEN_GODS, TEN_GODS_EN: TEN_GODS_EN,
     dayOfficer: dayOfficer, lunarMansion: lunarMansion, dutySpirit: dutySpirit,
     voidBranches: voidBranches, hourQuality: hourQuality,
     activityEn: activityEn, officerActivities: officerActivities,
-    OFFICERS: OFFICERS, XIU: XIU, DUTY: DUTY
+    OFFICERS: OFFICERS, XIU: XIU, XIU_EN: XIU_EN, XIU_AUSPICE: XIU_AUSPICE, DUTY: DUTY
   };
 })(typeof window !== 'undefined' ? window : globalThis);

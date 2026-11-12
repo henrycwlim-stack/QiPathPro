@@ -664,9 +664,9 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "伏吟格",
     nameEn: "Fu Yin (Concealed/Stagnant)",
     category: "hostile",
-    description: "The whole heaven plate sits unmoved — every star and stem in its home palace — energy is stagnant, trapped. Avoid initiating; delays and blockages likely.",
+    description: "The whole heaven plate sits unmoved, with every star and stem in its home palace. On a Noble or 戊 this reads as slow but positive; on other stems it reads as stagnant.",
     detect: function detect(p, meta) {
-      return (meta == null ? void 0 : meta.fuYin) === true ? [0] : null;
+      return (meta == null ? void 0 : meta.fuYin) === true ? p.filter(function (x) { return x.number !== 5; }).map(function (x) { return x.number; }) : null;
     }
   }, {
     id: "fan_yin_2",
@@ -675,12 +675,12 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     category: "hostile",
     description: "The whole heaven plate is turned over — every star and stem in the palace opposite its home — reversal of fortune, instability, sudden changes. High risk for new initiatives.",
     detect: function detect(p, meta) {
-      return (meta == null ? void 0 : meta.fanYin) === true ? [0] : null;
+      return (meta == null ? void 0 : meta.fanYin) === true ? p.filter(function (x) { return x.number !== 5; }).map(function (x) { return x.number; }) : null;
     }
   }, {
     id: "bai_hu",
-    name: "白虎猖狂",
-    nameEn: "White Tiger Rampant",
+    name: "白虎凶门",
+    nameEn: "White Tiger with a Harsh Door",
     category: "hostile",
     description: "White Tiger (白虎) deity with a hostile door (惊死伤) — danger of conflict, injury, regulatory hostility, communication breakdown.",
     detect: function detect(p) {
@@ -707,8 +707,8 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     }
   }, {
     id: "teng_she",
-    name: "腾蛇妖娇",
-    nameEn: "Snake Illusion",
+    name: "腾蛇火星",
+    nameEn: "Snake Deity with a Fire Star",
     category: "hostile",
     description: "Snake deity (腾蛇) with a Fire star — confusion, illusions, false information, unreliable partners.",
     detect: function detect(p) {
@@ -990,10 +990,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     }
   }, {
     id: "wu_jia_xin_ge",
-    name: "玄武华盖",
-    nameEn: "Black Tortoise Canopy (癸加丁)",
+    name: "腾蛇妖娇",
+    nameEn: "Tangling Snake (癸加丁)",
     category: "hostile",
-    description: "癸加丁 — water extinguishes fire under a canopy; secrets exposed, schemes unraveled.",
+    description: "癸加丁 — Gui Water and Ding Fire clash; entangled in heated disputes and disagreements.",
     detect: function detect(p) {
       return p.filter(function (x) {
         return pair(x, "癸", "丁");
@@ -1121,11 +1121,13 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "六仪入墓",
     nameEn: "Six Instruments Enter Tomb",
     category: "hostile",
-    description: "A Six-Instrument stem (戊己庚辛壬癸) lands in its tomb palace — resources locked; funds/influence inaccessible.",
-    detect: function detect(p) {
+    description: "A Six-Instrument stem sits on its grave branch, and that branch is in the date's pillars: loss of direction, stagnation and slowing down.",
+    detect: function detect(p, meta) {
+      // Each stem's grave from the compendium's twelve-phase table (p.27), and the branch must appear in the date (p.163). [branch, palace].
+      var GRAVE = { "戊": [10, 6], "己": [1, 8], "庚": [1, 8], "辛": [4, 4], "壬": [4, 4], "癸": [7, 2] };
       return p.filter(function (x) {
-        var _x$heavenStem27;
-        return ["戊", "己", "庚", "辛", "壬", "癸"].includes(((_x$heavenStem27 = x.heavenStem) == null ? void 0 : _x$heavenStem27.char) || "") && TOMBS[x.heavenStem.element] === x.number;
+        var g = GRAVE[x.heavenStem && x.heavenStem.char];
+        return !!g && g[1] === x.number && !!meta && (meta.pillarBranches || []).indexOf(g[0]) >= 0;
       }).map(function (x) {
         return x.number;
       });
@@ -1135,10 +1137,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     name: "门入墓",
     nameEn: "Door Enters Tomb",
     category: "hostile",
-    description: "A door's element tomb-palace holds a hostile door — the human channel is entombed; action paralyzed.",
+    description: "A door sits in its grave palace: Open and Fear in Gen, Rest, Life and Death in Xun, Harm and Delusion in Kun, Scenery in Qian. This holds back what the door would do.",
     detect: function detect(p) {
       return p.filter(function (x) {
-        return x.door && HOSTILE_DOORS.includes(x.door.char) && TOMBS[x.door.element] === x.number;
+        return x.door && TOMBS[x.door.element] === x.number;
       }).map(function (x) {
         return x.number;
       });
@@ -1407,10 +1409,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     }
   }, {
     id: "ding_gui",
-    name: "丁加癸",
-    nameEn: "Ding over Gui — Fire over Water",
+    name: "朱雀投江",
+    nameEn: "Red Phoenix Diving Water (丁加癸)",
     category: "hostile",
-    description: "丁加癸 — 'Ju Wen' (杜鹃 weeps); sorrow, separation, missed connections.",
+    description: "丁加癸 — communication is blocked and good intentions are misunderstood; little goes smoothly.",
     detect: function detect(p) {
       return p.filter(function (x) {
         return pair(x, "丁", "癸");
@@ -1459,10 +1461,10 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
     }
   }, {
     id: "xin_yi",
-    name: "辛加乙",
-    nameEn: "Xin over Yi — Metal over Wood",
+    name: "白虎猖狂",
+    nameEn: "Ferocious White Tiger (辛加乙)",
     category: "hostile",
-    description: "辛加乙 — metal controls wood; 'Tiger roams'; predatory action, hostile takeover risk.",
+    description: "辛加乙 — Xin Metal clashes with Yi Wood; danger on long journeys, disputes, and loss of confidence.",
     detect: function detect(p) {
       return p.filter(function (x) {
         return pair(x, "辛", "乙");

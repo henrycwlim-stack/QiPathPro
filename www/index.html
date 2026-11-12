@@ -39,6 +39,9 @@
     <div class="hint">If you don't know the hour, leave 12:00. The hour pillar and the Zi Wei chart
       will be approximate, but the day, month and year pillars stay correct.</div>
 
+    <label for="nZone">Time zone at birth</label>
+    <select id="nZone"></select>
+
     <label for="nGender">Gender (used for luck pillars and Eight Mansions)</label>
     <select id="nGender">
       <option value="M">Male</option>
@@ -65,7 +68,14 @@
       <h1>Qi<span>Path</span> <em>Pro</em></h1>
     </div>
     <div class="who" id="who"></div>
+    <div class="topacts" id="topActs">
+      <button data-s="now" aria-label="Now">時</button>
+      <button data-s="learn" aria-label="Learn">學</button>
+      <button data-s="profile" aria-label="Profile">人</button>
+    </div>
   </header>
+
+  <div class="catbar" id="catBar" hidden></div>
 
   <!-- ---- NOW ---- -->
   <main class="screen on" id="s-now">
@@ -91,7 +101,7 @@
 
   <!-- ---- CHART ---- -->
   <main class="screen" id="s-chart">
-    <div class="seg scroll" id="segChart" role="tablist">
+    <div class="seg scroll" id="segChart" role="tablist" hidden>
       <button role="tab" aria-selected="true" data-c="bazi">Bazi</button>
       <button role="tab" aria-selected="false" data-c="elements">Elements</button>
       <button role="tab" aria-selected="false" data-c="relations">Relations</button>
@@ -110,13 +120,19 @@
 
   <!-- ---- CONSULT ---- -->
   <main class="screen" id="s-consult">
-    <div class="seg scroll" id="segConsult" role="tablist">
+    <div class="seg scroll" id="segConsult" role="tablist" hidden>
       <button role="tab" aria-selected="true" data-k="sancai">San Cai</button>
+      <button role="tab" aria-selected="false" data-k="oracle">Oracle</button>
+      <button role="tab" aria-selected="false" data-k="warcraft">Warcraft</button>
+      <button role="tab" aria-selected="false" data-k="execution">Execution</button>
       <button role="tab" aria-selected="false" data-k="forecast">Forecast</button>
+      <button role="tab" aria-selected="false" data-k="planner">Planner</button>
+      <button role="tab" aria-selected="false" data-k="monthly">Monthly</button>
       <button role="tab" aria-selected="false" data-k="search">Formations</button>
       <button role="tab" aria-selected="false" data-k="structures">Structures</button>
       <button role="tab" aria-selected="false" data-k="manifest">Manifest</button>
       <button role="tab" aria-selected="false" data-k="plan">Plan a task</button>
+      <button role="tab" aria-selected="false" data-k="sevenstar">7 Stars</button>
       <button role="tab" aria-selected="false" data-k="strategy">Strategy</button>
       <button role="tab" aria-selected="false" data-k="qimen">Qimen</button>
       <button role="tab" aria-selected="false" data-k="counter">Counter</button>
@@ -130,6 +146,11 @@
     <div id="numbersBody"></div>
   </main>
 
+  <!-- ---- JOURNAL ---- -->
+  <main class="screen" id="s-journal">
+    <div id="journalBody"></div>
+  </main>
+
   <!-- ---- LEARN ---- -->
   <main class="screen" id="s-learn">
     <div id="learnBody"></div>
@@ -140,34 +161,42 @@
     <div id="profileBody"></div>
   </main>
 
-  <nav class="tabs" id="tabs" role="tablist">
-    <button role="tab" aria-selected="true"  data-s="now"><span class="ic">時</span>Now</button>
-    <button role="tab" aria-selected="false" data-s="almanac"><span class="ic">曆</span>Almanac</button>
-    <button role="tab" aria-selected="false" data-s="chart"><span class="ic">命</span>Chart</button>
-    <button role="tab" aria-selected="false" data-s="consult"><span class="ic">占</span>Consult</button>
-    <button role="tab" aria-selected="false" data-s="numbers"><span class="ic">數</span>Numbers</button>
-    <button role="tab" aria-selected="false" data-s="learn"><span class="ic">學</span>Learn</button>
-    <button role="tab" aria-selected="false" data-s="profile"><span class="ic">人</span>Profile</button>
-  </nav>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
 </div>
 <div id="sheetHost"></div>
 
 <script src="js/qpdata.js"></script>
+<script src="js/structures.js"></script>
 <script src="js/records.js"></script>
 <script src="js/library.js"></script>
 <script src="js/property.js"></script>
 <script src="js/draws.js"></script>
+<script src="js/ephem-terms.js"></script>
 <script src="js/astro.js"></script>
+<script src="js/ephem.js"></script>
 <script src="js/core.js"></script>
 <script src="js/systems.js"></script>
 <script src="js/fengshui.js"></script>
 <script src="js/bazi.js"></script>
 <script src="js/guidance.js"></script>
 <script src="js/qmdj.js"></script>
+<script src="js/zodiac.js"></script>
+<script src="js/heluo.js"></script>
+<script src="js/qizheng.js"></script>
+<script src="js/combined-text.js"></script>
+<script src="js/combined.js"></script>
+<script src="js/xiu.js"></script>
+<script src="js/tianwen.js"></script>
 <script src="js/sancai.js"></script>
 <script src="js/fibonacci.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/monthly.js"></script>
+<script src="js/oracle.js"></script>
+<script src="js/warcraft.js"></script>
+<script src="js/execution.js"></script>
 <script src="js/mathlab.js"></script>
 <script src="js/drawmethods.js"></script>
+<script src="js/narrate.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/app.js"></script>
 </body>
