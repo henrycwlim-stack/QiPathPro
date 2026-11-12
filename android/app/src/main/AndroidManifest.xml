@@ -46,6 +46,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Coach voice input: record answers in the web view and use the on-device recogniser. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Daily structures notification (Android 13+ asks the person first) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

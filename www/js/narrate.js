@@ -366,6 +366,8 @@
     VOICES: VOICES, PACES: PACES, hash: hash, prefs: prefs, setPrefs: setPrefs,
     makeSage: makeSage, makeScript: makeScript, store: store, list: list, remove: remove, removeUser: removeUser,
     source: source, sourceInMemory: sourceInMemory, share: share, keepAwake: keepAwake,
+    // Used by voice.js to play a spoken question and to build WAV recordings.
+    CALM: CALM, decode: decode, wav: wav, toB64: toB64,
     // Exposed for the test harness.
     _: { decode: decode, wav: wav, spans: spans, findNumbers: findNumbers, paced: paced, numberWord: numberWord, countText: countText, chunks: chunks, toB64: toB64, fromB64: fromB64 }
   };

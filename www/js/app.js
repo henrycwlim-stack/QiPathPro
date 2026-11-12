@@ -3898,6 +3898,359 @@
     }).catch(function (e) { return 'Could not schedule: ' + (e && e.message || e); });
   }
 
+  /* ================= COACH 教练 =================
+   * A guided coaching session (QPCoach holds the stages, prompts and safety wording). Every message is screened on the device
+   * before it goes to the AI. A safety case stops the session with fixed wording and local helplines. A session in progress is
+   * kept as a draft on this device; a finished one is saved to the Journal. A session stopped for safety is not saved unless
+   * the person chooses to keep it.
+   */
+  var coach = { session: null, profile: null, busy: false, breathe: false };
+  function coachKey(k) { return 'qipath.coach.' + k + '.' + (user && user.id); }
+  function coachGet(k) { try { return JSON.parse(localStorage.getItem(coachKey(k)) || 'null'); } catch (e) { return null; } }
+  function coachSet(k, v) { try { if (v === null) localStorage.removeItem(coachKey(k)); else localStorage.setItem(coachKey(k), JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+  function coachCountry() {
+    var c = null; try { c = localStorage.getItem('qipath.coach.country'); } catch (e) { c = null; }
+    return c && window.QPCoach.HELPLINES[c] ? c : window.QPCoach.detectCountry();
+  }
+
+  function helplineHtml(kind, country) {
+    var CO = window.QPCoach, H = CO.HELPLINES[country] || CO.HELPLINES.OTHER;
+    var lines = (kind === 'abuse' ? H.abuse.concat(H.crisis) : kind === 'self_harm' ? H.crisis.concat(H.abuse.length ? [] : []) : []);
+    var tel = function (n) { var main = n.split(/\s*ext\s*/i)[0]; return 'tel:' + main.replace(/[^\d+]/g, ''); };
+    var opts = Object.keys(CO.HELPLINES).map(function (k) {
+      return '<option value="' + k + '"' + (k === country ? ' selected' : '') + '>' + CO.HELPLINES[k].name + '</option>'; }).join('');
+    return '<label for="coCountry">Helplines for</label><select id="coCountry">' + opts + '</select>' +
+      '<div class="co-lines">' +
+      '<div class="co-line em"><b>Emergency</b><span>' + esc(H.emergency) + '</span></div>' +
+      lines.map(function (l) {
+        return '<a class="co-line" href="' + tel(l[1]) + '"><b>' + esc(l[1]) + '</b><span>' + esc(l[0]) + (l[2] ? '<small>' + esc(l[2]) + '</small>' : '') + '</span></a>';
+      }).join('') +
+      '<a class="co-line" href="https://findahelpline.com" target="_blank" rel="noopener"><b>Other countries</b><span>findahelpline.com lists free, confidential helplines worldwide</span></a>' +
+      '</div>';
+  }
+
+  function coachSafetyHtml(s) {
+    var CO = window.QPCoach, sf = CO.SAFETY[s.safety], country = coachCountry(), crisis = s.safety !== 'health';
+    return '<div class="co-safe ' + (crisis ? 'crisis' : 'health') + '">' +
+      '<h3>' + esc(sf.title) + '</h3>' +
+      '<p>' + esc(sf.message) + '</p>' +
+      '<p class="danger">' + esc(sf.danger) + '</p>' +
+      (crisis ? helplineHtml(s.safety, country) : '<div class="co-lines"><div class="co-line em"><b>Emergency</b><span>' + esc((CO.HELPLINES[country] || CO.HELPLINES.OTHER).emergency) + '</span></div></div>') +
+      '<p>' + esc(sf.also) + '</p>' +
+      '<details class="pp"><summary><span>If you are coaching someone through this</span><small>tips for the coach</small></summary>' +
+        '<ul class="co-tips">' + sf.tips.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></details>' +
+      (crisis
+        ? '<button class="btn" id="coDone">Close the session</button>' +
+          '<button class="btn ghost" id="coKeep">Keep a private copy in the Journal</button>' +
+          '<div class="hint">This session is not saved unless you choose to keep it. Closing removes it from this device.</div>'
+        : '<button class="btn" id="coHealthEnd">End the session</button>' +
+          '<button class="btn ghost" id="coHealthGo">Continue: I already have care, or this isn\'t a medical concern</button>') +
+      '</div>';
+  }
+
+  function renderCoach(host) {
+    var CO = window.QPCoach, s = coach.session, credit = '<div class="hint">Draws on mindfulness, Virginia Satir\'s iceberg model, systemic thinking and the five life principles of Chou Ting Wen (周鼎文). ' +
+      'The Chinese metaphysics chart is used as a mirror for reflection, never as fate.</div>';
+
+    if (!coachGet('consent')) {
+      host.innerHTML = block('Coaching 教练', 'before your first session',
+        '<div class="panel co-intro">' +
+        '<p>A guided session that helps you look beneath a problem, notice what you really want, and choose your next step. Your charts are used as a mirror, and you decide what fits.</p>' +
+        '<ul class="co-tips">' +
+        '<li>This is coaching. It is not therapy, counselling, or medical, legal or financial advice.</li>' +
+        '<li>What you write is sent to your AI provider with your own API key so it can write each question. Sessions stay on this device unless you save them.</li>' +
+        '<li>If you mention a serious health problem, self-harm, suicidal thoughts or abuse, the session pauses and shows where to get help.</li>' +
+        '<li>If you are in crisis right now, please contact a helpline instead of starting a session.</li></ul>' +
+        '<button class="btn" id="coAgree">I understand, continue</button>' +
+        '<button class="btn ghost" id="coHelpNow">Show helplines now</button><div id="coHelpBox"></div></div>' + credit);
+      $('coAgree').onclick = function () { coachSet('consent', { at: new Date().toISOString() }); renderConsult(); };
+      $('coHelpNow').onclick = function () { $('coHelpBox').innerHTML = '<div class="co-safe crisis" style="margin-top:10px">' + helplineHtml('self_harm', coachCountry()) + '</div>'; wireCountry(); };
+      return;
+    }
+
+    if (!s) {
+      var draft = coachGet('draft'), past = R.all(user.id).filter(function (r) { return r.kind === 'coaching'; }).length;
+      host.innerHTML =
+        (draft ? '<div class="panel" style="margin-bottom:12px"><b>You have an unfinished session</b><div class="hint" style="margin-top:4px">Started ' +
+          esc(draft.started.slice(0, 10)) + (draft.topic ? ' &middot; ' + esc(draft.topic.slice(0, 80)) : '') + '</div>' +
+          '<button class="btn" id="coResume">Resume it</button><button class="btn ghost" id="coDiscard">Discard it</button></div>' : '') +
+        block('Coaching 教练', 'one question at a time',
+          '<div class="panel">' +
+          '<p class="co-lead">The session moves through nine stages: arrive, agree the focus, go beneath the surface, see the wider system around you, use your chart as a mirror, ' +
+          'look through the five life principles, name your insight, choose a step, and close. Take your time with each answer.</p>' +
+          '<label for="coTopic">What would you like to work on?</label>' +
+          '<textarea id="coTopic" rows="3" maxlength="600" placeholder="For example: I keep putting off a difficult conversation with my business partner"></textarea>' +
+          '<label for="coHope">What would you like to have by the end of the session?</label>' +
+          '<input id="coHope" maxlength="200" placeholder="For example: clarity on what I actually want to say">' +
+          (aiReady() ? '<button class="btn" id="coStart">Start the session</button>'
+            : '<div class="notice">Coaching needs a Gemini or Claude API key. Add one on the Profile screen.</div><button class="btn ghost" id="coProfile">Open Profile</button>') +
+          (past ? '<div class="hint">' + past + ' saved session' + (past > 1 ? 's' : '') + ' in Journal &rsaquo; Saved Readings.</div>' : '') +
+          '</div>' + credit);
+      if ($('coStart')) $('coStart').onclick = function () {
+        var topic = $('coTopic').value, hit = CO.screen(topic + ' ' + $('coHope').value);
+        coach.session = CO.newSession(topic, $('coHope').value);
+        coach.session.turns.push({ who: 'coach', text: CO.OPENING, stage: 'arrive' });
+        if (topic.trim()) coach.session.turns.push({ who: 'coachee', text: 'What I want to work on: ' + topic.trim() + ($('coHope').value.trim() ? '. By the end I would like: ' + $('coHope').value.trim() : ''), stage: 'arrive', intro: true });
+        if (hit) { coachSafety(hit); return; }
+        coach.profile = null; coachSet('draft', coach.session); renderConsult();
+        coachSpeakLast(false);
+      };
+      if ($('coProfile')) $('coProfile').onclick = function () { show('profile'); };
+      if ($('coResume')) $('coResume').onclick = function () { coach.session = CO.upgrade(draft); coach.profile = null; renderConsult(); };
+      if ($('coDiscard')) $('coDiscard').onclick = function () { coachSet('draft', null); renderConsult(); };
+      return;
+    }
+
+    var st = CO.STAGES[s.stage], layer = s.layer;
+    var stageBar = '<div class="co-stages">' + CO.STAGES.map(function (x, i) {
+      return '<span class="' + (i < s.stage ? 'done' : i === s.stage ? 'on' : '') + '" title="' + x.label + ' ' + x.cn + '">' + x.chip + '</span>'; }).join('') + '</div>';
+    var depth = '<div class="co-depth"><span>Depth</span><i>' + CO.ICEBERG.map(function (l, i) { return '<b class="' + (i <= layer ? 'on' : '') + '"></b>'; }).join('') +
+      '</i><small>' + (layer >= 0 ? CO.ICEBERG[layer].label + ' ' + CO.ICEBERG[layer].cn : 'Surface') + '</small></div>';
+    var sysMap = (s.people && s.people.length) || (s.loops && s.loops.length)
+      ? '<details class="pp co-sys"' + (s.stage === 3 ? ' open' : '') + '><summary><span>Your system 系统</span><small>' + (s.people || []).length + ' people &middot; ' + (s.loops || []).length + ' loop' + ((s.loops || []).length === 1 ? '' : 's') + '</small></summary>' +
+        ((s.people || []).length ? '<div class="co-people">' + s.people.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
+        ((s.loops || []).length ? '<ul class="co-loops">' + s.loops.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+        '</details>' : '';
+    var log = '<div class="co-log" id="coLog">' + s.turns.filter(function (t) { return !t.hidden; }).map(function (t) {
+      return '<div class="co-msg ' + t.who + '">' + (t.who === 'coach' && t.reflection ? '<span class="refl">' + esc(t.reflection) + '</span>' : '') +
+        esc(t.who === 'coach' && t.reflection ? t.question : t.text) +
+        (t.chartLink ? '<small>From your chart: ' + esc(t.chartLink) + '</small>' : '') + '</div>';
+    }).join('') + (coach.busy ? '<div class="co-msg coach typing">…</div>' : '') + '</div>';
+
+    var foot;
+    if (s.safety && s.ended === 'safety') foot = coachSafetyHtml(s);
+    else if (s.ended === 'done') foot = coachSummaryHtml(s);
+    else foot =
+      (coach.breathe ? '<div class="co-breath"><i></i><span>Breathe in as the circle grows, out as it shrinks. Stay as long as you like.</span><button class="btn ghost" id="coBreathDone">I\'m ready</button></div>' : '') +
+      coachVoiceHtml() +
+      '<label for="coIn" class="sr">Your answer</label><textarea id="coIn" rows="3" maxlength="2000" placeholder="Take your time…"' + (coach.busy ? ' disabled' : '') + '></textarea>' +
+      '<div class="co-acts"><button class="btn" id="coSend"' + (coach.busy ? ' disabled' : '') + '>Send</button>' +
+      (ttsKey() ? '<button class="btn ghost" id="coHear">Read the question aloud</button>' : '') +
+      '<button class="btn ghost" id="coBreathe">Pause and breathe</button><button class="btn ghost" id="coEnd">End the session</button></div>' +
+      '<div id="coErr"></div>' + coachVoiceSettingsHtml();
+
+    host.innerHTML = block('Coaching 教练', st.label + ' ' + st.cn, stageBar + depth + sysMap + log + foot);
+    var lg = $('coLog'); if (lg) lg.scrollTop = lg.scrollHeight;
+    wireCountry();
+    if ($('coSend')) $('coSend').onclick = coachSend;
+    wireCoachVoice();
+    if ($('coIn')) $('coIn').focus();
+    if ($('coBreathe')) $('coBreathe').onclick = function () { coach.breathe = true; renderConsult(); };
+    if ($('coBreathDone')) $('coBreathDone').onclick = function () { coach.breathe = false; renderConsult(); };
+    if ($('coEnd')) $('coEnd').onclick = function () { if (window.confirm('End the session now and write the summary?')) coachFinish(); };
+    if ($('coDone')) $('coDone').onclick = function () { coachSet('draft', null); coach.session = null; renderConsult(); };
+    if ($('coKeep')) $('coKeep').onclick = function () { coachSave(s, null); this.textContent = 'Kept in Journal › Saved Readings'; this.disabled = true; };
+    if ($('coHealthEnd')) $('coHealthEnd').onclick = function () {
+      s.turns.push({ who: 'coach', text: 'Thank you for the courage to share this. Please look after your health first. You can come back to coaching whenever you are ready.' });
+      coachFinish();
+    };
+    if ($('coHealthGo')) $('coHealthGo').onclick = function () {
+      s.safety = null; s.ended = null; s.healthNoted = true;
+      s.turns.push({ who: 'coach', text: 'Thank you for letting me know. We can continue, and please do keep your doctor in the loop. What would be most useful for us to look at now?' });
+      coachSet('draft', s); renderConsult();
+    };
+    if ($('coAgain')) $('coAgain').onclick = function () { coach.session = null; renderConsult(); };
+    if ($('coJournal')) $('coJournal').onclick = function () { journalK = 'saved'; show('journal'); };
+    if ($('coSumRetry')) $('coSumRetry').onclick = coachFinish;
+  }
+
+  function wireCountry() {
+    var c = $('coCountry');
+    if (!c) return;
+    c.onchange = function () { try { localStorage.setItem('qipath.coach.country', this.value); } catch (e) { /* storage blocked */ } renderConsult(); };
+  }
+
+  /* ---- voice: push-to-talk answers and spoken questions (QPVoice) ---- */
+  function coachGeminiCfg() {
+    var c = loadAI();
+    return { provider: 'gemini', key: ttsKey(), model: c.provider === 'gemini' && c.model ? c.model : window.QPAI.PROVIDERS.gemini.defaultModel };
+  }
+  function coachEngine() { return window.QPVoice.engine(!!ttsKey()); }
+  function coachVoiceHtml() {
+    var eng = coachEngine();
+    if (!eng) return '<div class="hint">Voice answers need speech recognition on this phone or a Google Gemini key.</div>';
+    return '<div class="co-voice"><button class="co-mic" id="coMic" type="button"' + (coach.busy ? ' disabled' : '') + '><i></i><span id="coMicTx">Hold to speak</span></button>' +
+      '<div class="hint" id="coVoiceMsg">' + (eng === 'gemini' ? 'Gemini turns your recording into text with your key.' : 'Your phone turns your words into text.') +
+      ' The words appear in the box below for you to check before sending.</div></div>';
+  }
+  function coachVoiceSettingsHtml() {
+    var V = window.QPVoice, p = V.prefs(), dev = V.hasDevice(), gem = !!ttsKey() && V.canRecord();
+    var opt = function (v, label, on, ok) { return '<option value="' + v + '"' + (on ? ' selected' : '') + (ok ? '' : ' disabled') + '>' + label + '</option>'; };
+    return '<details class="pp co-vset"><summary><span>Voice settings</span><small>' + (p.speak ? 'questions read aloud' : 'questions on screen') + '</small></summary>' +
+      '<label for="coVMode">Turn speech into text with</label><select id="coVMode">' +
+        opt('auto', 'The best available', p.mode === 'auto', true) + opt('device', 'This phone (works offline)', p.mode === 'device', dev) +
+        opt('gemini', 'Gemini, with your key', p.mode === 'gemini', gem) + '</select>' +
+      '<label for="coVLang">Language you speak</label><select id="coVLang">' + V.LANGS.map(function (l) { return opt(l[0], l[1], l[0] === p.lang, true); }).join('') + '</select>' +
+      '<label class="chk"><input type="checkbox" id="coVSpeak"' + (p.speak ? ' checked' : '') + (ttsKey() ? '' : ' disabled') + '> Read each question aloud</label>' +
+      '<label for="coVPause">Quiet pause after a question is read</label><select id="coVPause">' +
+        [0, 3, 5, 10, 20].map(function (n) { return opt(n, n ? n + ' seconds' : 'No pause', n === p.pause, true); }).join('') + '</select>' +
+      '<div class="hint">Recordings are not stored. With Gemini, your recording goes to Google with your key to be transcribed; on-phone recognition keeps it on the phone. ' +
+      'Questions are read aloud with the narration voice, which uses your Gemini key\'s quota.' + (ttsKey() ? '' : ' Reading aloud needs a Google Gemini key.') + '</div></details>';
+  }
+
+  function wireCoachVoice() {
+    var V = window.QPVoice, b = $('coMic'), box = $('coIn');
+    function setPref(k, v) { var p = V.prefs(); p[k] = v; V.setPrefs(p); }
+    if ($('coVMode')) $('coVMode').onchange = function () { setPref('mode', this.value); renderConsult(); };
+    if ($('coVLang')) $('coVLang').onchange = function () { setPref('lang', this.value); };
+    if ($('coVSpeak')) $('coVSpeak').onchange = function () { setPref('speak', this.checked); if (!this.checked) V.stopSpeaking(); };
+    if ($('coVPause')) $('coVPause').onchange = function () { setPref('pause', parseInt(this.value, 10)); };
+    if ($('coHear')) $('coHear').onclick = function () { coachSpeakLast(true); };
+    if (!b || !box) return;
+    var eng = coachEngine(), active = false, base = '', timer = null;
+    function msg(h) { var m = $('coVoiceMsg'); if (m) m.innerHTML = h; }
+    function label(t) { var x = $('coMicTx'); if (x) x.textContent = t; }
+    var CHECK = 'Check the words, change anything that is wrong, then press Send.';
+    function begin() {
+      if (active || b.disabled) return;
+      active = true; V.stopSpeaking(); base = box.value.trim() ? box.value.trim() + ' ' : '';
+      b.classList.add('on'); label('Listening… release to stop');
+      var started = eng === 'device'
+        ? V.startDevice(V.prefs().lang, function (t) { box.value = base + t; }, function () { if (active) end(); })
+        : V.startRecording();
+      started.catch(function (e) { active = false; clearTimeout(timer); b.classList.remove('on'); label('Hold to speak'); msg('<span class="bad-t">' + esc(e.message || 'The microphone could not start.') + '</span>'); });
+      timer = setTimeout(function () { if (active) end(); }, V.MAX_SECONDS * 1000);
+    }
+    function end() {
+      if (!active) return;
+      active = false; clearTimeout(timer); b.classList.remove('on');
+      if (eng === 'device') {
+        label('Hold to speak');
+        V.stopDevice().then(function (t) { if (t) box.value = base + t; box.focus(); msg(t ? CHECK : 'No words were heard. Try again, holding the button while you speak.'); });
+        return;
+      }
+      b.disabled = true; label('Turning your words into text…');
+      V.stopRecording().then(function (r) { return window.QPAI.transcribe(coachGeminiCfg(), r.b64, V.prefs().lang); }).then(function (res) {
+        var t = String(res && res.text || '').trim();
+        box.value = (base + t).trim();
+        msg(t ? CHECK : 'No speech was heard. Try again, a little closer to the phone.');
+      }).catch(function (e) { msg('<span class="bad-t">' + esc(e.message || 'The recording could not be transcribed.') + '</span>'); })
+        .then(function () { b.disabled = false; label('Hold to speak'); box.focus(); });
+    }
+    b.oncontextmenu = function (e) { e.preventDefault(); };
+    b.onpointerdown = function (e) { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) { /* fine */ } begin(); };
+    b.onpointerup = b.onpointercancel = function () { end(); };
+    b.onkeydown = function (e) { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); if (active) end(); else begin(); } };
+  }
+
+  // Read the latest question aloud, then hold the microphone for a quiet pause before the coachee answers.
+  function coachSpeakLast(force) {
+    var V = window.QPVoice, p = V.prefs(), key = ttsKey(), s = coach.session;
+    if ((!p.speak && !force) || !key || !s || s.ended) return;
+    var last = s.turns.filter(function (t) { return t.who === 'coach' && !t.hidden; }).pop();
+    if (!last) return;
+    var text = last.question ? (last.reflection ? last.reflection + ' ' : '') + last.question : last.text;
+    var b = $('coMic'), hear = $('coHear');
+    function hold(on, t) { if (b) { b.disabled = on; var x = $('coMicTx'); if (x) x.textContent = t || 'Hold to speak'; } }
+    hold(true, 'Preparing the voice…'); if (hear) hear.disabled = true;
+    V.speak(key, text, function () {
+      if (hear) hear.disabled = false;
+      var n = p.pause;
+      if (!n) { hold(false); return; }
+      var stop = Date.now() + n * 1000;
+      (function tick() {
+        var left = Math.ceil((stop - Date.now()) / 1000);
+        if (left <= 0 || !$('coMic')) { hold(false); return; }
+        hold(true, 'Take a moment… ' + left);
+        setTimeout(tick, 250);
+      })();
+    }).then(function () { hold(true, 'Listening to the question…'); }).catch(function (e) {
+      hold(false); if (hear) hear.disabled = false;
+      var m = $('coVoiceMsg'); if (m) m.innerHTML = '<span class="bad-t">The question could not be read aloud: ' + esc(e.message || '') + '</span>';
+    });
+  }
+
+  // A safety case stops the session at once with fixed wording; nothing more goes to the AI.
+  function coachSafety(kind) {
+    var s = coach.session, sf = window.QPCoach.SAFETY[kind];
+    s.safety = kind; s.ended = 'safety';
+    s.turns.push({ who: 'coach', text: sf.message, safetyKind: kind, hidden: true });   // shown in the card, kept in the record
+    coach.busy = false;
+    if (kind === 'health') coachSet('draft', s); else coachSet('draft', null);
+    renderConsult();
+  }
+
+  function coachSend() {
+    var CO = window.QPCoach, s = coach.session, box = $('coIn'), text = box ? box.value.trim() : '';
+    if (!text || coach.busy) return;
+    window.QPVoice.stopSpeaking();
+    s.turns.push({ who: 'coachee', text: text, stage: CO.STAGES[s.stage].key });
+    if (s.stage === 1 && !s.topic) s.topic = text.slice(0, 300);
+    var hit = CO.screen(text);
+    if (hit && !(hit === 'health' && s.healthNoted)) { coachSafety(hit); return; }
+    // The closing question has been answered: write the summary.
+    if (CO.STAGES[s.stage].key === 'close' && s.inStage >= 1) { coachFinish(); return; }
+    coach.busy = true; coachSet('draft', s); renderConsult();
+    if (!coach.profile) coach.profile = CO.profile(user, solarYearNow());
+    window.QPAI.call(loadAI(), CO.turnPrompt(s, coach.profile), CO.TURN_SCHEMA).then(function (r) {
+      coach.busy = false;
+      var safe = String(r.safety || 'none');
+      if (safe === 'self_harm' || safe === 'abuse' || (safe === 'health' && !s.healthNoted)) { coachSafety(safe); return; }
+      var li = CO.ICEBERG.map(function (l) { return l.key; }).indexOf(r.layer), pi = CO.PRINCIPLES.map(function (p) { return p.key; }).indexOf(r.principle);
+      if (li > s.layer) s.layer = li;
+      if (pi >= 0) s.principle = pi;
+      var lk = CO.SYSTEM_LENSES.map(function (l) { return l.key; }).indexOf(r.lens);
+      s.people = s.people || []; s.loops = s.loops || []; s.lensesUsed = s.lensesUsed || [];
+      if (lk >= 0) { s.lens = lk; if (s.lensesUsed.indexOf(lk) < 0) s.lensesUsed.push(lk); }
+      (Array.isArray(r.people) ? r.people : []).forEach(function (x) {
+        x = String(x || '').trim().slice(0, 40);
+        if (x && s.people.length < 14 && !s.people.some(function (y) { return y.toLowerCase() === x.toLowerCase(); })) s.people.push(x);
+      });
+      if (r.loop && String(r.loop).trim() && s.loops.length < 6) s.loops.push(String(r.loop).trim().slice(0, 200));
+      if (r.insight) s.insights.push(String(r.insight).slice(0, 300));
+      var q = String(r.question || '').trim() || 'What feels most important to you right now?';
+      s.turns.push({ who: 'coach', reflection: String(r.reflection || '').trim(), question: q, text: (r.reflection ? r.reflection + ' ' : '') + q,
+        stage: CO.STAGES[s.stage].key, layer: r.layer, principle: r.principle, lens: r.lens, chartLink: r.chartLink || '' });
+      CO.advance(s, !!r.readyToMoveOn);
+      coachSet('draft', s); renderConsult();
+      coachSpeakLast(false);
+    }).catch(function (e) {
+      coach.busy = false; s.turns.pop(); coachSet('draft', s); renderConsult();
+      if ($('coIn')) $('coIn').value = text;
+      if ($('coErr')) $('coErr').innerHTML = '<div class="notice"><b>The coach could not reply.</b><br>' + esc(e.message) + '<br>Your answer is still in the box; press Send to try again.</div>';
+    });
+  }
+
+  function coachFinish() {
+    var CO = window.QPCoach, s = coach.session;
+    s.ended = 'done'; coach.busy = true; renderConsult();
+    window.QPAI.call(loadAI(), CO.summaryPrompt(s), CO.SUMMARY_SCHEMA).then(function (r) {
+      coach.busy = false; s.summary = r; s.summaryFailed = false; coachSave(s, r); coachSet('draft', null); renderConsult();
+    }).catch(function (e) {
+      coach.busy = false; s.summaryFailed = e.message; coachSave(s, null); coachSet('draft', null); renderConsult();
+    });
+  }
+
+  function coachSave(s, sum) {
+    var CO = window.QPCoach;
+    var rec = { kind: 'coaching', title: 'Coaching · ' + (sum && sum.title ? sum.title : (s.topic || 'session').slice(0, 60)),
+      subtitle: s.started.slice(0, 10) + ' · reached ' + CO.STAGES[s.stage].label + (s.layer >= 0 ? ' · depth ' + CO.ICEBERG[s.layer].label : ''),
+      when: { date: s.started.slice(0, 10) },
+      payload: { topic: s.topic, hope: s.hope, stage: CO.STAGES[s.stage].label, depth: s.layer >= 0 ? CO.ICEBERG[s.layer].label + ' ' + CO.ICEBERG[s.layer].cn : '',
+        insights: s.insights, summary: sum, safety: s.safety || null, people: s.people || [], loops: s.loops || [],
+        transcript: s.turns.map(function (t) { return { who: t.who, text: t.text }; }) } };
+    if (s.savedId) { try { R.remove(user.id, s.savedId); } catch (e) { /* replaced below */ } }
+    var saved = R.save(user.id, rec);
+    if (saved) s.savedId = saved.id;
+    return saved;
+  }
+
+  function coachSummaryHtml(s) {
+    if (coach.busy) return '<div class="panel"><div class="empty">Writing your session summary&hellip;</div><div class="meter"><i style="width:40%"></i></div></div>';
+    var m = s.summary;
+    return '<div class="panel co-sum">' +
+      (m ? '<h3>' + esc(m.title) + '</h3><p>' + esc(m.summary) + '</p>' +
+        (m.insights && m.insights.length ? '<b>What you saw</b><ul class="co-tips">' + m.insights.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+        (m.yearning ? '<p><b>Your yearning 渴望</b><br>' + esc(m.yearning) + '</p>' : '') +
+        (m.systemView ? '<p><b>The wider system 系统</b><br>' + esc(m.systemView) + '</p>' : '') +
+        (m.principles ? '<p><b>Through the five principles 五大法则</b><br>' + esc(m.principles) + '</p>' : '') +
+        (m.commitment ? '<p><b>Your step</b><br>' + esc(m.commitment) + '</p>' : '') +
+        (m.followUp ? '<p><b>To reflect on before next time</b><br>' + esc(m.followUp) + '</p>' : '')
+        : '<div class="notice">The summary could not be written' + (s.summaryFailed ? ': ' + esc(s.summaryFailed) : '') + '. The conversation itself is saved.</div><button class="btn ghost" id="coSumRetry">Try the summary again</button>') +
+      '<div class="saved-tick">Saved to Journal &rsaquo; Saved Readings.</div>' +
+      '<button class="btn" id="coAgain">Start a new session</button><button class="btn ghost" id="coJournal">Open the Journal</button></div>';
+  }
+
   function renderConsult() {
     var host = $('consultBody'), dt = now();
     var Q = window.QPQimen;
@@ -4865,6 +5218,9 @@
       }
     }
 
+
+    /* ================= COACH ================= */
+    else if (consultK === 'coach') { renderCoach(host); }
 
     /* ================= PLAN A TASK ================= */
     else if (consultK === 'plan') {
@@ -8352,7 +8708,7 @@
   }
 
   // Saved readings that make a claim about what will happen. Numbers have their own ledger in Numbers Lab.
-  var OUTCOME_KINDS = ['forecast', 'plan', 'manifest', 'sancai', 'yijing', 'annual', 'counter', 'strategy', 'search'];
+  var OUTCOME_KINDS = ['forecast', 'plan', 'manifest', 'sancai', 'yijing', 'annual', 'counter', 'strategy', 'search', 'coaching'];
   var OUTCOME_LABEL = { hit: 'Happened', partly: 'Partly', miss: 'Did not happen' };
 
   function renderJournalOutcomes(host) {
@@ -8718,6 +9074,23 @@
       if (p.note) body += '<div class="notice" style="margin-top:10px">' + esc(p.note) + '</div>';
     }
 
+    if (r.kind === 'coaching') {
+      var cs = p.summary || {};
+      body += kv([['Topic', p.topic || '—'], ['Hoped for', p.hope], ['Reached', p.stage + (p.depth ? ' · depth ' + p.depth : '')]]);
+      if (p.safety) body += '<div class="notice" style="margin-top:10px">This session was paused for your safety. If you need support now, local helplines are listed in Coach › Coaching Session.</div>';
+      if (cs.summary) body += '<div class="block"><h2>' + esc(cs.title || 'Summary') + '</h2><div class="panel" style="font-size:.9rem;line-height:1.7">' + esc(cs.summary) +
+        (cs.insights && cs.insights.length ? '<br><br><b>What you saw</b><br>' + cs.insights.map(esc).join('<br>') : '') +
+        (cs.yearning ? '<br><br><b>Your yearning 渴望</b><br>' + esc(cs.yearning) : '') +
+        (cs.systemView ? '<br><br><b>The wider system 系统</b><br>' + esc(cs.systemView) : '') +
+        (p.people && p.people.length ? '<br><br><b>People in the system</b><br>' + p.people.map(esc).join(', ') : '') +
+        (p.loops && p.loops.length ? '<br><br><b>Loops noticed</b><br>' + p.loops.map(esc).join('<br>') : '') +
+        (cs.principles ? '<br><br><b>Through the five principles 五大法则</b><br>' + esc(cs.principles) : '') +
+        (cs.commitment ? '<br><br><b>Your step</b><br>' + esc(cs.commitment) : '') +
+        (cs.followUp ? '<br><br><b>To reflect on</b><br>' + esc(cs.followUp) : '') + '</div></div>';
+      body += '<div class="block"><h2>The conversation</h2><div class="co-log saved">' + (p.transcript || []).map(function (t) {
+        return '<div class="co-msg ' + (t.who === 'coach' ? 'coach' : 'coachee') + '">' + esc(t.text) + '</div>'; }).join('') + '</div></div>';
+    }
+
     if (r.kind === 'combined') {
       var sg = function (v) { return (v > 0 ? '+' : '') + v; }, lv = { Strong: 'good-t', Steady: '', Weak: 'bad-t' };
       body += kv([['Read in', String(p.year)], ['Strongest', (p.top || []).map(function (a) { return a.label + ' ' + sg(a.score); }).join(', ')],
@@ -8834,6 +9207,7 @@
     { id: 'reports', ic: '报', en: 'Reports', cn: '报告', items: [
       { label: 'Thrive', s: 'consult', k: 'planner' }, { label: 'TribePlus', s: 'consult', k: 'monthly' }] },
     { id: 'numbers', ic: '数', en: 'Numbers Lab', tab: 'Numbers', cn: '数字实验室', items: [{ label: 'Numbers Lab', s: 'numbers', k: '' }] },
+    { id: 'coach', ic: '教', en: 'Coach', cn: '教练', items: [{ label: 'Coaching Session', s: 'consult', k: 'coach' }] },
     { id: 'journal', ic: '志', en: 'Journal', cn: '日志', items: [
       { label: 'Saved Readings', s: 'journal', k: 'saved' }, { label: 'Narrations', s: 'journal', k: 'audio' }, { label: 'Outcomes', s: 'journal', k: 'outcomes' }] }
   ];

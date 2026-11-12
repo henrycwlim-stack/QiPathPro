@@ -49,6 +49,42 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4 — Coach: voice
+Version folder 10.4.0 (versionCode 46), copied from 10.3.0. Adds `@capacitor-community/speech-recognition` 6.0.1 (matches Capacitor 6) and the
+RECORD_AUDIO and MODIFY_AUDIO_SETTINGS permissions. Voice code is in `www/js/voice.js` (`QPVoice`).
+- Push-to-talk: a large "Hold to speak" button records while held (Space or Enter toggles it from a keyboard), up to 2 minutes.
+- Transcription, chosen in Voice settings: on the phone with Android's own recogniser (works offline once the language is downloaded; the Web
+  Speech API stands in when testing in a desktop browser), or by Gemini with the user's own key. For Gemini the recording is turned into a
+  16 kHz mono WAV on the phone and sent with `QPAI.transcribe`; Claude does not accept audio. Recordings are never stored.
+- Languages: English, 普通话 Mandarin, 粵語 Cantonese, Bahasa Melayu.
+- The transcript always lands in the answer box to check and edit; nothing is sent until the person presses Send, and every message still goes
+  through the on-device safety screen.
+- Spoken questions: optional, read with the narration voice (Gemini speech, the voice chosen for Manifest narration), followed by a quiet
+  pause of 0 to 20 seconds during which the microphone stays closed. "Read the question aloud" replays the current question.
+
+### 10.3 — Coach: systemic thinking
+Version folder 10.3.0 (versionCode 45), copied from 10.2.0. Coaching now has nine stages: a new "See the system 系统" stage sits after the
+Satir iceberg and before the chart mirror, so the session looks inward first and then outward. Seven systems lenses (`SYSTEM_LENSES` in
+`www/js/coach.js`), in QiPath's own words: Map the system 系统图, Patterns over events 模式, Loops 循环, Other perspectives 多视角 (circular
+questions), Structures and beliefs 结构与信念 (events, patterns, structures, mental models), What the problem does 问题的功能, and Ripples and
+leverage 杠杆. The prompt treats the problem as part of a living system, prefers circular causality to blame, and lets the system view
+inform the principles and the chosen step. Each AI turn may name people in the coachee's system and a repeating loop; the screen keeps a
+"Your system" map of them (up to 14 people and 6 loops), and the summary adds "The wider system". The coaching profile now also covers Spouse,
+Parents, Colleagues, Bosses and Friends. Drafts from 10.2.0 resume at the right stage (`QPCoach.upgrade`).
+
+### 10.2 — Coach 教练: guided mindset coaching
+Version folder 10.2.0 (versionCode 44), copied from 10.1.0. A new Coach category runs a text coaching session with the user's own AI key
+(`www/js/coach.js`, screen in `renderCoach` in `app.js`). The app holds eight stages (Arrive, Focus, Go deeper, Chart as a mirror, Five principles,
+Insight, Commit, Close); each AI turn returns one short reflection and exactly one open question, the Satir iceberg layer it works on and the principle
+used, and the stage advances within set minimum and maximum turns. Frameworks: mindfulness, Virginia Satir's iceberg (行为 to 自我) and the five life
+principles of Chou Ting Wen 周鼎文 (事实, 序位, 平衡, 整体, 流动), described in QiPath's own words. A coaching profile from the Combined reading and the BaZi
+analysis is offered to the AI as patterns to test, never as fate. Sessions in progress are kept as a device draft; finished ones are saved to the Journal
+with a summary (title, insights, yearning, principles, commitment, follow-up) and appear in Outcomes.
+Safety: every message is screened on the device before it is sent, and the AI also flags self-harm, abuse and serious health problems. A crisis stops
+the session with fixed, tactful wording (never AI text), tap-to-call helplines for the detected country (14 countries, verified 12 Nov 2026), the
+emergency number and tips for a coach on ending gently; it is not saved unless the person keeps it. A health concern shows the medical-care message
+with End and Continue options. Voice input is not in this version.
+
 ### 10.1 — Manifest goals, stages and best-hour search
 Version folder 10.1.0 (versionCode 43), copied from 10.0.0. From this version on, every code change goes into a new, incrementally numbered folder.
 Strategy › Manifest now starts with a stage (Priming, Attunement or Activation) and one of 20 goals, from Intuition and Courage to Find a lost person,

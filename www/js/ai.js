@@ -392,6 +392,18 @@
   var onModelFixed = null;
   function setModelFixedHandler(fn) { onModelFixed = fn; }
 
+  /* Transcribe a spoken answer (16 kHz mono WAV, base64) with Gemini. Claude does not take audio, so the Coach screen only
+   * offers this with a Gemini key. */
+  var TRANSCRIBE_SCHEMA = { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] };
+  function transcribe(cfg, b64wav, lang) {
+    if (!cfg || !cfg.key) return Promise.reject(new Error('Gemini transcription needs a Google Gemini key. Add one on the Profile screen.'));
+    var model = cfg.model || PROVIDERS.gemini.defaultModel;
+    var prompt = 'Transcribe this recording exactly as spoken. The speaker is answering a coaching question' + (lang ? ' (expected language: ' + lang + ')' : '') +
+      '. Keep their own words, including any mix of English and Chinese, and add normal punctuation. Do not summarise, translate, answer or comment. ' +
+      'If there is no speech, return an empty string.\nReturn STRICT JSON: { "text": "the transcript" }';
+    return geminiGenerate(cfg.key, model, [{ inline_data: { mime_type: 'audio/wav', data: b64wav } }, { text: prompt }], TRANSCRIBE_SCHEMA, true);
+  }
+
   function call(cfg, prompt, schema) {
     if (!cfg || !cfg.key) return Promise.reject(new Error('No API key saved. Add one on the Profile screen.'));
     var wrapped = wrapPrompt(prompt, schema);
@@ -2913,7 +2925,7 @@
     analyseStructure: analyseStructure, analyseDraws: analyseDraws,
     callMedia: callMedia, ingestText: ingestText, ingestMedia: ingestMedia,
     setLibraryHook: setLibraryHook, MEDIA_OK: MEDIA_OK,
-    PROVIDERS: PROVIDERS, call: call, testKey: testKey, geminiModels: geminiModels,
+    PROVIDERS: PROVIDERS, call: call, transcribe: transcribe, testKey: testKey, geminiModels: geminiModels,
     upperSchema: upperSchema, pickBest: pickBest, rankOrder: rankOrder,
     setModelFixedHandler: setModelFixedHandler,
     analyseDaily: analyseDaily, analyseBazi: analyseBazi, analyseZwds: analyseZwds,

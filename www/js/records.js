@@ -19,7 +19,8 @@
     sancai:    { label: 'San Cai mandate', cn: '三才', icon: '才' },
     annual:    { label: 'Annual forecast', cn: '流年', icon: '年' },
     counter:   { label: 'Threat check', cn: '反制', icon: '盾' },
-    combined:  { label: 'Combined reading', cn: '合參', icon: '合' }
+    combined:  { label: 'Combined reading', cn: '合參', icon: '合' },
+    coaching:  { label: 'Coaching session', cn: '教练', icon: '教' }
   };
 
   function key(profileId) { return PREFIX + profileId; }
