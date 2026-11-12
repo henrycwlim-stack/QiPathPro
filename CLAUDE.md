@@ -21,10 +21,17 @@ ships as a new, incrementally numbered version. Do all of the following without 
 3. Add a README entry at the top of the version history, in the existing style:
    `### X.Y — <title>` then `Version folder X.Y.Z (versionCode N), copied from <previous>.` and what changed.
 4. Check that the app still parses (`node build-review.js` if it applies) before committing.
-5. Commit with the message `Version X.Y.Z (versionCode N): <summary>`.
-6. Tag the commit `vX.Y.Z` — the tag is the version folder on GitHub; every version stays downloadable from
-   the repository's Tags page.
-7. Push `main` and the tag: `git push origin main && git push origin vX.Y.Z`.
-   Pushing `main` triggers the Build APK workflow.
+5. Save the version folder: a full copy of the new version's code in `versions/X.Y.Z/`.
+   The repo root is always the latest version; `versions/` keeps every version from 10.4.0 on.
 
-Changes that are not app code (this file, docs only) are committed and pushed without a version bump.
+       V=X.Y.Z && mkdir -p versions/$V && \
+       git ls-files -z --cached --others --exclude-standard -- . ':!versions' ':!CLAUDE.md' \
+         | xargs -0 cp --parents -t versions/$V
+
+   Never edit an existing folder under `versions/` — those are frozen snapshots.
+6. Commit everything with the message `Version X.Y.Z (versionCode N): <summary>`.
+7. Push `main`: `git push origin main`. Pushing `main` triggers the Build APK workflow.
+   Never force-push.
+
+Changes that are not app code (this file, docs only) are committed and pushed without a version bump
+or a new version folder.
