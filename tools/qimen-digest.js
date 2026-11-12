@@ -90,8 +90,12 @@ if (env.DRY_RUN) {
   const missing = ['QP_SMTP_USER', 'QP_SMTP_PASS', 'QP_MAIL_TO'].filter((k) => !env[k]);
   if (missing.length) { console.error('Missing secret' + (missing.length > 1 ? 's ' : ' ') + missing.join(', ') + '. See README, "Setting up the 06:00 email".'); process.exit(1); }
   const nodemailer = require('nodemailer');
-  nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: env.QP_SMTP_USER, pass: env.QP_SMTP_PASS } })
+  nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: env.QP_SMTP_USER.trim(), pass: env.QP_SMTP_PASS.replace(/\s+/g, '') } })   // Google shows app passwords in groups of four; the spaces are not part of it
     .sendMail({ from: '"QiPath Pro" <' + env.QP_SMTP_USER + '>', to: env.QP_MAIL_TO, subject, text, html })
     .then((info) => console.log('Sent: ' + subject + ' (' + info.messageId + ')'),
-          (err) => { console.error('Send failed: ' + err.message); process.exit(1); });
+          (err) => {
+            console.error('Send failed: ' + err.message);
+            if (/535|Username and Password not accepted/i.test(err.message)) console.error('Gmail refused the login. QP_SMTP_PASS must be an app password made on the same Google account as QP_SMTP_USER, with 2-Step Verification on; the normal Gmail password is always refused.');
+            process.exit(1);
+          });
 }

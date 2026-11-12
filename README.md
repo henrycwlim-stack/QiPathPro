@@ -49,6 +49,11 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.6 — Daily email login
+Version folder 10.4.6 (versionCode 52), copied from 10.4.5. The first real send was refused by Gmail (535, username and password not
+accepted). The digest now removes the spaces Google shows inside app passwords before logging in, and a refused login explains the usual
+causes: the normal Gmail password used instead of an app password, an app password from a different account, or 2-Step Verification off.
+
 ### 10.4.5 — Daily Qimen email: clear setup and a preview
 Version folder 10.4.5 (versionCode 51), copied from 10.4.4. The Daily Qimen structures email had never sent: all its runs stopped
 because the repository had no email secrets. The engine and email were fine (a local preview built the digest in a second).
