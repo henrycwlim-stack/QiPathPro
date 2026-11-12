@@ -49,6 +49,11 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.7 — "Back to", not "face"
+Version folder 10.4.7 (versionCode 53), copied from 10.4.6. The structure picks are worked with your back to the palace, but the daily
+email said "face South". It now says "back to South, facing North" on every card and in the plain-text part, and the subject reads
+"best 13:00–14:59, back to South". The app's Structures cards and the 06:00 notification say "Back to …" the same way.
+
 ### 10.4.6 — Daily email login
 Version folder 10.4.6 (versionCode 52), copied from 10.4.5. The first real send was refused by Gmail (535, username and password not
 accepted). The digest now removes the spaces Google shows inside app passwords before logging in, and a refused login explains the usual

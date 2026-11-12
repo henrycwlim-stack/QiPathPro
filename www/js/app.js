@@ -3231,7 +3231,7 @@
     var major = s.formations.filter(function (f) { return f.major; });
     return '<div class="panel struct">' +
       '<div class="sh"><b>' + WD[new Date(s.dt.y, s.dt.m - 1, s.dt.d).getDay()].slice(0, 3) + ' ' + s.date + ' &middot; ' + s.range + '</b>' +
-        '<span class="good-t">' + esc(s.palace.dir) + '</span></div>' +
+        '<span class="good-t">Back to ' + esc(s.palace.dir) + '</span></div>' +
       '<div class="plain">' + esc(s.summary) + '</div>' +
       '<div class="st" style="margin:8px 0">' + major.slice(0, 4).map(function (f) { return '<span class="tag on">' + esc(f.name) + '</span>'; }).join('') +
         '<span class="tag">' + esc(s.gate || '') + '</span><span class="tag">' + esc(s.deity || '') + '</span><span class="tag">' +
@@ -3889,7 +3889,7 @@
           if (at.getTime() <= Date.now()) continue;
           var iso = at.getFullYear() + '-' + String(at.getMonth() + 1).padStart(2, '0') + '-' + String(at.getDate()).padStart(2, '0'), s = byDay[iso];
           list.push({ id: NOTIFY_BASE + k, title: 'Today\'s Qimen structures',
-            body: s ? s.range + ' ' + s.palace.dir + ' — ' + (s.formations[0] ? s.formations[0].name + '. ' : '') + s.summary
+            body: s ? s.range + ', back to ' + s.palace.dir + ' — ' + (s.formations[0] ? s.formations[0].name + '. ' : '') + s.summary
                     : 'No strong structure today. Tap to see the next ones.',
             schedule: { at: at, allowWhileIdle: true }, extra: { link: 'qipath://structures' } });
         }

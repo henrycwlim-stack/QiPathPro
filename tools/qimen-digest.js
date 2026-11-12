@@ -42,6 +42,8 @@ function link(s) {
   return env.QP_LINK_BASE ? env.QP_LINK_BASE.replace(/\/?$/, '/') + '?' + q : 'qipath://manifest?' + q.replace(/^to=manifest&/, '');
 }
 const dayName = (s) => WD[new Date(s.dt.y, s.dt.m - 1, s.dt.d).getDay()];
+// You sit with your back to the structure's palace, so it supports you from behind; you face the opposite way.
+const sit = (s) => 'back to ' + s.palace.dir + (Q.OPPOSITE_DIR[s.palace.dir] ? ', facing ' + Q.OPPOSITE_DIR[s.palace.dir] : '');
 
 // The hour's chart as a 3×3 table in Lo Shu order (4 9 2 / 3 5 7 / 8 1 6) — tables, because email clients ignore CSS grid.
 function grid(s) {
@@ -57,7 +59,7 @@ function grid(s) {
 function card(s, full) {
   const major = s.formations.filter((f) => f.major);
   return '<div style="border:1px solid #e3ddd0;border-radius:8px;padding:12px 14px;margin:10px 0;background:#fffdf8">' +
-    '<div style="font-size:15px"><b>' + dayName(s) + ' ' + s.date + ' · ' + s.range + '</b> &nbsp;<span style="color:#3f8a5c">face ' + esc(s.palace.dir) + '</span></div>' +
+    '<div style="font-size:15px"><b>' + dayName(s) + ' ' + s.date + ' · ' + s.range + '</b> &nbsp;<span style="color:#3f8a5c">' + esc(sit(s)) + '</span></div>' +
     '<div style="margin:6px 0;font-size:14px">' + esc(s.summary) + '</div>' +
     '<div style="font-size:13px;color:#555">' + major.map((f) => '<b>' + esc(f.name) + '</b> ' + esc(f.nameEn)).join(' · ') +
       ' · ' + esc(s.gate) + ' · ' + esc(s.deity) + ' · ' + esc(s.heaven + '/' + s.earth) + ' · ' + esc(s.star) + '</div>' +
@@ -69,7 +71,7 @@ function card(s, full) {
 }
 
 const subject = 'Qimen structures — ' + today.y + '-' + String(today.m).padStart(2, '0') + '-' + String(today.d).padStart(2, '0') +
-  (scan.today[0] ? ' · best ' + scan.today[0].range + ' ' + scan.today[0].palace.dir : '');
+  (scan.today[0] ? ' · best ' + scan.today[0].range + ', back to ' + scan.today[0].palace.dir : '');
 const html = '<div style="font-family:Georgia,serif;max-width:640px;margin:auto;color:#222">' +
   '<h2 style="margin:0 0 4px">QiPath Pro · daily Qimen structures</h2>' +
   '<div style="font-size:13px;color:#666">Every hourly chart from today for ' + DAYS + ' days, each palace scored on its auspicious formations ' +
@@ -80,7 +82,7 @@ const html = '<div style="font-family:Georgia,serif;max-width:640px;margin:auto;
   scan.top.map((s, i) => card(s, i < 5)).join('') +
   '<p style="font-size:12px;color:#888;margin-top:20px">Each button opens the structure\'s manifestation script in QiPath Pro on your phone, ' +
     'with its formations, stems, door, deity and star called out and how to activate each. Classical timing, not a guarantee.</p></div>';
-const text = subject + '\n\n' + scan.today.concat(scan.top).map((s) => dayName(s) + ' ' + s.date + ' ' + s.range + ' — face ' + s.palace.dir + ' — ' +
+const text = subject + '\n\n' + scan.today.concat(scan.top).map((s) => dayName(s) + ' ' + s.date + ' ' + s.range + ' — ' + sit(s) + ' — ' +
   s.formations.filter((f) => f.major).map((f) => f.name).join(', ') + '\n  ' + s.summary + '\n  ' + link(s)).join('\n\n');
 
 if (env.DRY_RUN) {
