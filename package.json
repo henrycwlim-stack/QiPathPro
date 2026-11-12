@@ -1,12 +1,13 @@
 {
   "name": "qipath-pro",
-  "version": "10.4.0",
+  "version": "10.4.1",
   "private": true,
   "description": "Chinese metaphysics timing companion — almanac, Bazi, Zi Wei Dou Shu, Qimen, Yijing, Feng Shui",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android",
     "apk": "cd android && ./gradlew assembleDebug",
+    "release": "node tools/release.js",
     "build:es5": "babel www/js/qpdata.js --config-file ./.babelrc.json -o www/js/qpdata.js",
     "verify": "node -e \"require('fs').readdirSync('www/js').filter(f=>f.endsWith('.js')).forEach(f=>{require('child_process').execSync('node --check www/js/'+f);console.log('ok '+f)})\"",
     "setup:sdk": "node tools/setup-sdk.js",

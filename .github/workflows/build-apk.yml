@@ -76,7 +76,8 @@ jobs:
         if: ${{ inputs.release }}
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          # build.gradle refuses an unsigned release unless asked; this job has no signing key.
+          ./gradlew assembleRelease --no-daemon --stacktrace -PQIPATH_ALLOW_UNSIGNED=true
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

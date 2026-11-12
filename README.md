@@ -49,6 +49,22 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.1 — Signed release from any copy
+Version folder 10.4.1 (versionCode 47). Any version folder or fresh GitHub clone can now build a signed release with one command.
+
+**Signed release**
+1. Once per PC, fill in `C:/Users/<you>/.gradle/gradle.properties` (outside every repository, never committed):
+   `QIPATH_STORE_FILE` (path to the key file, forward slashes), `QIPATH_KEY_ALIAS`, `QIPATH_STORE_PASSWORD`, `QIPATH_KEY_PASSWORD`.
+   Environment variables of the same names take precedence, for a CI job.
+2. From the version folder or a clone: `npm run release`. It checks the version numbers match, runs `npm ci`, writes
+   `android/local.properties` if missing (`tools/setup-sdk.js`), runs `npx cap sync android` and `gradlew assembleRelease`, checks the
+   version inside the APK, and checks the APK is signed by the QiPath Pro certificate
+   (SHA-256 e6b8f62998568dc9196a5ddade5d65c45e9226e405ee664766b0d22e2ac16afa, CN=Henry Lim). A different key is refused, because installed
+   copies would not accept it as an update. The APK is copied beside the version folders as `QiPathPro version X.Y.Z_release.apk`.
+   Options: `--dry` (unsigned test build, nothing copied), `--skip-install`, `--out <folder>`, `--force` (replace an existing APK).
+3. `android/app/build.gradle` reads the signing settings and refuses to produce an unsigned release when they are missing.
+Back up the key file somewhere safe and separate from its passwords: if it is lost, installed copies cannot be updated.
+
 ### 10.4 — Coach: voice
 Version folder 10.4.0 (versionCode 46), copied from 10.3.0. Adds `@capacitor-community/speech-recognition` 6.0.1 (matches Capacitor 6) and the
 RECORD_AUDIO and MODIFY_AUDIO_SETTINGS permissions. Voice code is in `www/js/voice.js` (`QPVoice`).
