@@ -36,17 +36,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Capacitor 6 compiles against Java 17 (see build-apk.yml).
-      - name: Set up JDK 17
+      # The Capacitor 8 CLI writes Java 21 compile options into the Android project (see build-apk.yml).
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'   # the Capacitor 8 CLI needs Node 22 or newer
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3

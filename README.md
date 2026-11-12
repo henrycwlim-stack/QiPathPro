@@ -49,6 +49,11 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.4.4 — Cloud builds pass
+Version folder 10.4.4 (versionCode 50), copied from 10.4.3. Both workflows now pass: they use Node 22 (the Capacitor 8 CLI refuses
+older Node) and JDK 21 (`npx cap sync` writes Java 21 compile options into the Android project). Tested on a temporary branch first:
+Build APK produced the debug APK, and the Signed Release APK dry run built and checked a release APK.
+
 ### 10.4.3 — Cloud builds working again
 Version folder 10.4.3 (versionCode 49), copied from 10.4.2. Both workflows (Build APK and Signed Release APK) failed at "Set up Android SDK"
 since at least 10.1.0: `android-actions/setup-android` installs the retired `tools` package by default, which the runner's newer sdkmanager

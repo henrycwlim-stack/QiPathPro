@@ -17,18 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Gradle 8.2.1 (shipped by Capacitor 6) supports up to JDK 20, and Capacitor
-      # compiles against Java 17. JDK 21 fails with "Unsupported class file major version 65".
-      - name: Set up JDK 17
+      # The Capacitor 8 CLI writes Java 21 compile options into the Android project; Gradle 8.9 supports JDK 21.
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'   # the Capacitor 8 CLI needs Node 22 or newer
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3

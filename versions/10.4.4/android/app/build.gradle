@@ -1,0 +1,81 @@
+apply plugin: 'com.android.application'
+
+// Release signing. The key and its passwords never go into the repository: they are read from Gradle properties,
+// normally in your personal C:/Users/<you>/.gradle/gradle.properties; environment variables of the same name take precedence:
+//   QIPATH_STORE_FILE, QIPATH_STORE_PASSWORD, QIPATH_KEY_ALIAS, QIPATH_KEY_PASSWORD
+// A release build stops with a clear message when they are missing, rather than producing an unsigned APK.
+// -PQIPATH_ALLOW_UNSIGNED=true lets a test build compile without them (tools/release.js --dry).
+def qpProp = { String k -> (System.getenv(k) ?: project.findProperty(k) ?: '').toString().trim() }   // environment first, so a CI job or test can override
+def qpSign = [store: qpProp('QIPATH_STORE_FILE'), storePass: qpProp('QIPATH_STORE_PASSWORD'),
+              alias: qpProp('QIPATH_KEY_ALIAS'), keyPass: qpProp('QIPATH_KEY_PASSWORD')]
+def qpCanSign = qpSign.values().every { it } && file(qpSign.store).exists()
+
+android {
+    namespace "com.qipath.pro"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.qipath.pro"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 50
+        versionName "10.4.4"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (qpCanSign) {
+                storeFile file(qpSign.store)
+                storePassword qpSign.storePass
+                keyAlias qpSign.alias
+                keyPassword qpSign.keyPass
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (qpCanSign) signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+// Refuse to make an unsigned release unless a test build asked for one.
+gradle.taskGraph.whenReady { graph ->
+    def wantsRelease = graph.allTasks.any { it.project == project && (it.name == 'assembleRelease' || it.name == 'bundleRelease') }
+    if (wantsRelease && !qpCanSign && qpProp('QIPATH_ALLOW_UNSIGNED') != 'true') {
+        def missing = qpSign.findAll { !it.value }.collect { ['store': 'QIPATH_STORE_FILE', 'storePass': 'QIPATH_STORE_PASSWORD', 'alias': 'QIPATH_KEY_ALIAS', 'keyPass': 'QIPATH_KEY_PASSWORD'][it.key] }
+        def why = missing ? 'missing: ' + missing.join(', ') : 'the key file named in QIPATH_STORE_FILE was not found'
+        throw new GradleException('Release signing is not set up (' + why + '). Fill these in your personal .gradle/gradle.properties; see README "Signed release".')
+    }
+}

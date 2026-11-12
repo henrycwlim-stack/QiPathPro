@@ -1,0 +1,34 @@
+include ':app'
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
+
+// Capacitor resolves ':capacitor-android' out of node_modules. On a fresh clone that folder
+// does not exist yet and Gradle sync fails with an opaque error, so fail early with a fix.
+def capacitorModule = new File(rootDir, '../node_modules/@capacitor/android/capacitor')
+if (!capacitorModule.exists()) {
+    throw new GradleException("Dependencies are not installed. Run 'npm install' in the folder above 'android', then sync again. Expected to find: " + capacitorModule.canonicalPath)
+}
+
+// The Android SDK path lives in local.properties, which is machine-specific and therefore not
+// committed. Android Studio writes it on first sync; a command-line build has nothing to read,
+// and the error from AGP arrives late without saying how to fix it.
+def sdkOk = new File(rootDir, 'local.properties').exists() ||
+            System.getenv('ANDROID_HOME') != null ||
+            System.getenv('ANDROID_SDK_ROOT') != null
+if (!sdkOk) {
+    def guess = System.getProperty('os.name').toLowerCase().contains('win')
+        ? System.getProperty('user.home').replace('\\', '/') + '/AppData/Local/Android/Sdk'
+        : (System.getProperty('os.name').toLowerCase().contains('mac')
+            ? System.getProperty('user.home') + '/Library/Android/sdk'
+            : System.getProperty('user.home') + '/Android/Sdk')
+    throw new GradleException(
+        "\n\n  The Android SDK location is not set.\n\n" +
+        "  Create the file:  ${new File(rootDir, 'local.properties').path}\n" +
+        "  containing:       sdk.dir=${guess}\n\n" +
+        "  Use forward slashes. This is a Java properties file, so a single backslash is an\n" +
+        "  escape character and a Windows path written with \\ will fail silently.\n\n" +
+        "  Alternatives: set the ANDROID_HOME environment variable and open a new terminal,\n" +
+        "  or open this 'android' folder in Android Studio once and let it sync.\n")
+}
+
+apply from: 'capacitor.settings.gradle'
