@@ -1,0 +1,7 @@
+{
+  "appId": "com.qipath.pro",
+  "appName": "QiPath Pro",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "server": { "androidScheme": "https" }
+}
