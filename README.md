@@ -49,6 +49,25 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.8 — BaZi: the Ten Gods layer
+Version folder 10.8.0 (versionCode 64), copied from 10.7.4. A new engine, `baziplus.js` (`window.QPBaziPlus`), with
+`daypillars.js`, adds eight sections to Destiny › BaZi and one to the Luck screen, and feeds all of them to the AI reading.
+- **Ten Gods profile 十神:** every visible and hidden stem scored as a Ten God (month weighted, each element adjusted for its season
+  旺相休囚死) and ranked against the strongest, with the top three explained.
+- **Structure 格局:** the strongest god group (比劫 Companion, 食傷 Output, 財 Wealth, 官殺 Authority, 印 Resource) as primary,
+  the next as secondary, flagged extreme when one group dominates, with missing groups listed.
+- **Hidden talents 月令藏干:** the month branch's main and secondary hidden stems as Ten Gods, and whether each is revealed.
+- **Day pillar 日柱:** an image for each of the 60 day pillars, the Day Master's nature, its growth stage and the partner palace star.
+- **Six houses 六宮:** the four pillars plus the Life Palace 命宮 (month counted from the mid-month term 中氣, classical palm count,
+  stem by 五虎遁) and the Conception Palace 胎元, each with its Ten Gods and Nayin. Checked against two reference charts.
+- **Useful god in your chart 用神:** which favourable elements the chart actually holds, the one to work with daily, those absent
+  and the luck pillar that brings them, plus four levels of how actively it is used.
+- **Family stars 六親:** parents, partner, children (Officer for a man, Output for a woman), siblings and in-laws by Ten God.
+- **Work and wealth:** the best working mode, steady or irregular income, drive and wealth capacity.
+- **The year against your chart** (Luck screen): this year and next, the stem's theme and each combination, clash, punishment,
+  harm or destruction the year branch makes with the natal pillars and the luck pillar.
+All descriptions are QiPath's own wording.
+
 ### 10.7.4 — Arousal zones in the Together reading
 Version folder 10.7.4 (versionCode 63), copied from 10.7.3. When intimacy is switched on, the Together reading now also names each
 person's most responsive body parts (erogenous zones) and why, from the trigram links to the body (坎 genitals and lower back, 離 lips

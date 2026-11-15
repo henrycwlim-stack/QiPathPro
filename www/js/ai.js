@@ -2047,6 +2047,7 @@
     var lines = [];
     lines.push('FOUR PILLARS:\n' + pillarLine(user.pillars));
     lines.push('Day master: ' + D.dayMasterCn + ' (' + D.dayMasterEn + ')');
+    try { if (global.QPBaziPlus) lines.push(global.QPBaziPlus.aiText(user)); } catch (e) {}
     lines.push('Element shares (Wood/Fire/Earth/Metal/Water): ' + D.shares.join('% / ') + '%');
     lines.push('Strength: ' + (D.strong ? 'strong' : 'weak') +
       (D.strength.extreme ? ' — ' + D.strength.extreme : '') +
