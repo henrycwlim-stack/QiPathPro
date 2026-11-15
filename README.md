@@ -49,6 +49,13 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.7.4 — Arousal zones in the Together reading
+Version folder 10.7.4 (versionCode 63), copied from 10.7.3. When intimacy is switched on, the Together reading now also names each
+person's most responsive body parts (erogenous zones) and why, from the trigram links to the body (坎 genitals and lower back, 離 lips
+and chest, 兌 mouth, 巽 inner thighs, 坤 belly, 艮 hands and back, 震 feet, 乾 neck and scalp). It says how to touch and stimulate
+each, and which areas to approach slowly, alongside the sexual activities and organ links added in 10.7.3. The sexual section is now
+300–420 words.
+
 ### 10.7.3 — Complexion and marks in Palm and Face, body and acts in the intimacy reading
 Version folder 10.7.3 (versionCode 62), copied from 10.7.2.
 - **Palm and Face Reading** now read colour and complexion 氣色, blemishes, moles 痣, marks and swelling the traditional way: where

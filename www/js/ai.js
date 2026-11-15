@@ -2217,7 +2217,11 @@
           'and why, from which of their elements are weak or excessive (Water and 坎: the kidneys, the reproductive and urinary system ' +
           'and 腎精, the root of sexual energy; Fire: the heart and circulation, for arousal; Wood: the liver and its channel, which runs ' +
           'through the genital area, for flow and tension; Earth: the spleen and stomach, for stamina; Metal: the lungs and skin, for ' +
-          'breath and sensitivity to touch). Use plain anatomical words for the body parts. ' + HEALTH_RULE +
+          'breath and sensitivity to touch). Also name, for each person, the body parts most responsive to arousal (the erogenous ' +
+          'zones) and why from their charts, using the trigram links to the body: 坎 the genitals, lower back and ears; 離 the eyes, ' +
+          'lips, chest and nipples; 兌 the mouth, lips and tongue; 巽 the inner thighs and buttocks; 震 the feet and legs; 坤 the belly ' +
+          'and lower abdomen; 艮 the hands, fingers and back; 乾 the head, scalp and neck. Say how to touch and stimulate each to build ' +
+          'arousal, and which areas to approach slowly or avoid. Use plain anatomical words for the body parts. ' + HEALTH_RULE +
           'Where a dimension is weak, give detailed ' +
           'counter-measures: Qimen remedies (the direction to activate, objects, colours, scents and words that strengthen it, and ' +
           'those that weaken it), behaviour, and the dates and hours from the data. Never invent a date that is not in the data.\n\n'
@@ -2231,7 +2235,7 @@
       '  "attraction": "' + (withIntimacy ? 'How strong the pull between them is, in the charts and this month; if weak, the counter-measures (90-140 words).' : '') + '",\n' +
       '  "desire": "' + (withIntimacy ? 'Each person\'s desire specifically — level, initiation, pace and build-up, what arouses and what cools them — how the two fit, how to handle any mismatch, and counter-measures if desire is weak. Frank and plain (150-220 words).' : '') + '",\n' +
       '  "intimacy": "' + (withIntimacy ? 'Tenderness and physical closeness specifically — the touch, massage, setting and best hours for each, what to do before, during and after closeness, and counter-measures if intimacy is weak. Frank and plain (150-220 words).' : '') + '",\n' +
-      '  "sexual": "' + (res.sexual ? 'Their sexual compatibility, frankly: chemistry, each person\'s libido and what turns them on and off, foreplay, who leads, how often, how to talk about it, and specific counter-measures where chemistry or libido needs work, then the sexual activities, positions and kinds of touch that suit them and why from the charts, and the organs and body areas each chart points to for sexual vitality and why — frank and plain, as a sex therapist would put it (250-350 words).' : '') + '",\n' +
+      '  "sexual": "' + (res.sexual ? 'Their sexual compatibility, frankly: chemistry, each person\'s libido and what turns them on and off, foreplay, who leads, how often, how to talk about it, and specific counter-measures where chemistry or libido needs work, then the sexual activities, positions and kinds of touch that suit them and why from the charts, the organs and body areas each chart points to for sexual vitality and why, and each person\'s most arousing body parts and how to stimulate them — frank and plain, as a sex therapist would put it (300-420 words).' : '') + '",\n' +
       '  "remedies": "' + (withIntimacy ? 'Qimen for this month: the direction to activate and why, the objects, colours, scents and words that strengthen, those that weaken, the directions to avoid, and the strongest and weakest dates and hours (120-180 words).' : '') + '",\n' +
       '  "timing": "This year for the two of them: the best months together for joint plans, the months to take care, with dates (80-130 words).",\n' +
       '  "steps": ["5 to 7 concrete, everyday steps to strengthen the relationship, most important first, each naming who does what."],\n' +
