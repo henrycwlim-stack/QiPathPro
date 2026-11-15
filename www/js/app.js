@@ -759,7 +759,7 @@
           '<div class="panel" style="margin-top:10px;font-size:.9rem">' +
             y.personal.map(esc).join('<br>') + '</div>') +
         advice(y.do, y.avoid) +
-        block('Annual flying stars', 'holds from Lichun to Lichun', starGrid(y.grid));
+        block('Annual flying stars', 'holds from Lichun to Lichun', starGrid(y.grid)) + yearUseHtml(y.solarYear);
       wireAlmanacPicker();
     }
   }
@@ -2014,6 +2014,8 @@
                   : y.links.map(function (l) { return '<div class="plain"><span class="' + (l.kind === 'union' ? 'good-t' : 'bad-t') + '">' + l.cn + ' ' + l.en + '</span> with ' + esc(l.with) + ': ' + esc(l.text) + '.</div>'; }).join(''))];
             })));
         })() +
+        yearInChartHtml(now().y) +
+        yearHexHtml(now().y) +
         block('Luck pillars', (l.forward ? 'forward' : 'reverse') + ' sequence, starting at age ' + l.startAge,
           '<div class="rows">' + bf.luck.map(function (x) {
             return '<div class="row"' + (x.current ? ' style="background:var(--raised-2)"' : '') + '>' +
@@ -3857,6 +3859,190 @@
             ['<span class="bad-t">Hardest</span>', t.worst.map(day).join(' and ') + '<small>' + esc(t.worstText) + '</small>']]) +
       '</details>';
   }
+  /* ---------------- the year: flying stars by purpose, 24 door sectors, year hexagram, the year in your chart ---------------- */
+  function yrStars(n) { return '★★★★★'.slice(0, n) + '<span style="opacity:.25">' + '★★★★★'.slice(0, 5 - n) + '</span>'; }
+  function yearUseHtml(solarYear) {
+    var Y = window.QPYear, sp = areasSafe(function () { return Y.starPurposes(user, solarYear); }), ds = areasSafe(function () { return Y.doorSectors(solarYear); });
+    var out = '';
+    var toneCls = { good: 'good-t', mixed: '', caution: 'bad-t', avoid: 'bad-t' };
+    if (sp) out += block('Using the year\'s stars', 'each sector by purpose, ' + solarYear,
+      (sp.mine ? '<div class="panel" style="margin-bottom:10px;font-size:.9rem">Your Life Gua is ' + sp.gua + ', so your personal sector is the <b>' + esc(sp.mine.dir) +
+        '</b>, holding star ' + sp.mine.star + ' this year: ' + esc(sp.mine.purpose.toLowerCase()) + '.</div>' : '') +
+      xkRows(sp.list.map(function (x) {
+        return [esc(x.dir) + (x.yours ? ' <b style="color:var(--cinnabar)">yours</b>' : '') + '<small>star ' + x.star + '</small>',
+          '<span class="' + toneCls[x.tone] + '">' + esc(x.purpose) + '</span><div class="plain">' + esc(x.use) + '</div><div class="plain"><b>Set-up:</b> ' + esc(x.activate) + '</div>'];
+      })) +
+      '<h3 style="margin:14px 0 6px;font-size:.9rem">How to use them</h3>' + sp.principles.map(function (t) { return '<div class="plain" style="margin-bottom:6px">' + esc(t) + '</div>'; }).join(''));
+    if (ds) {
+      var best = ds.slice().sort(function (a, b) { return b.stars - a.stars; });
+      out += block('Door location: the 24 sectors', 'where the door sits in the plan, not the way it faces',
+        '<div class="plain" style="margin-bottom:8px">Stand at the centre of the home, take the bearing to the main door, and find its sector. A door in a weak sector is helped by using a strong sector actively: meetings, a window opened, a small water feature or fan to move the air.</div>' +
+        xkRows(best.slice(0, 6).map(function (d) { return [d.label + ' ' + d.char + '<small>' + esc(d.dir) + '</small>', yrStars(d.stars) + '<div class="plain">' + esc(d.theme) + (d.notes.length ? '. ' + esc(d.notes.join('; ')) : '') + '.</div>']; })) +
+        '<details style="margin-top:10px"><summary>All 24 sectors</summary>' +
+        xkRows(ds.map(function (d) { return [d.label + ' ' + d.char + '<small>' + esc(d.dir) + ' · star ' + d.star + '</small>', yrStars(d.stars) + '<div class="plain">' + esc(d.theme) + (d.notes.length ? '. ' + esc(d.notes.join('; ')) : '') + '.</div>']; })) +
+        '</details><div class="hint">Ratings are QiPath\'s own: the year\'s flying star in the palace, adjusted for Tai Sui, the Year Breaker, the Three Killings and the year\'s Nobleman and Prosperity mountains. Other schools rate the sectors differently.</div>');
+    }
+    return out + yearHexHtml(solarYear);
+  }
+  function yearHexHtml(solarYear) {
+    var yh = areasSafe(function () { return window.QPLiuYao.yearHexagramFor(user, solarYear); });
+    if (!yh) return '';
+    return block('The year\'s hexagram 值年卦', yh.hex.name + ' ' + esc(yh.hex.nameEn),
+      '<div class="plain" style="margin-bottom:8px"><b>' + esc(yh.hex.theme) + '</b></div>' +
+      xkRows(yh.lines.slice().reverse().map(function (ln) {
+        return ['Line ' + ln.n + '<small>' + ln.months + '</small>', '<span style="letter-spacing:2px">' + (ln.yang ? '▬▬▬' : '▬ ▬') + '</span> ' + ln.branchCn +
+          ' <small>' + esc(ln.signs.join(' and ')) + '</small><div class="plain">' + esc(ln.stage) + '.</div>' +
+          (ln.yours.length ? '<div class="plain"><span class="good-t">Speaks to you</span> through your ' + esc(ln.yours.join(', ')) + '.</div>' : '') +
+          (ln.caution.length ? '<div class="plain"><span class="bad-t">Clashes</span> your ' + esc(ln.caution.join(', ')) + ' (' + esc(ln.clash) + '): take care in these months.</div>' : '')];
+      })) +
+      '<div class="hint">The year hexagram follows the 皇極經世 round diagram from 鼎 in 1984, a year at a time, skipping 乾 坤 坎 離 (covers 1984–2043). Each line governs two months from December, and speaks to the sign of its Na Jia branch and that sign\'s combining partner. The meanings are QiPath\'s own.</div>');
+  }
+  function yearInChartHtml(solarYear) {
+    var x = areasSafe(function () { return window.QPYear.yearInChart(user, solarYear); });
+    if (!x) return '';
+    var bar = function (v, c) { return '<div class="meter"><i style="width:' + Math.min(100, v * 2) + '%' + (c ? ';background:' + c : '') + '"></i></div>'; };
+    var vcls = { suits: 'good-t', neutral: '', caution: 'bad-t', avoid: 'bad-t' };
+    return block('The year in your chart', solarYear + ' · ' + x.pillars.join(' '),
+      '<div class="rows">' + x.groups.map(function (g) {
+        return '<div class="row"><span class="k">' + esc(g.group) + '<small>' + g.elem + '</small></span><span class="v" style="flex:1">' +
+          bar(g.natal) + bar(g.year, 'var(--cinnabar)') + '<small>you ' + g.natal + '% · year ' + g.year + '%</small></span></div>';
+      }).join('') + '</div>' +
+      '<h3 style="margin:14px 0 6px;font-size:.9rem">Where the year\'s strongest elements land</h3>' +
+      xkRows(x.lands.map(function (l) { return [l.elem + '<small>' + l.share + '% · your ' + esc(l.god) + '</small>', '<div class="plain">' + esc(l.text) + '</div>']; })) +
+      '<h3 style="margin:14px 0 6px;font-size:.9rem">Industries</h3>' +
+      xkRows(x.rising.map(function (r) { return ['<span class="good-t">Rising</span><small>' + r.elem + '</small>', '<div class="plain">' + esc(r.industries) + '</div>']; })
+        .concat(x.fading.map(function (r) { return ['<span class="bad-t">Quieter</span><small>' + r.elem + '</small>', '<div class="plain">' + esc(r.industries) + '</div>']; }))) +
+      '<h3 style="margin:14px 0 6px;font-size:.9rem">Investment elements and your chart</h3>' +
+      xkRows(x.invest.map(function (i) { return [i.elem + '<small>' + i.rel + '% of your strongest</small>', '<span class="' + vcls[i.verdict] + '">' + esc(i.what) + '</span><div class="plain">' + esc(i.text) + '</div>']; })) +
+      '<div class="plain" style="margin-top:10px">' + esc(x.focus) + '</div>' +
+      '<div class="hint">A traditional reading of temperament and timing, not financial advice. Speak to a licensed adviser before investing, and never invest what you cannot afford to lose.</div>');
+  }
+  function monthGlance(r) {
+    var L = window.QPLiuYao, mh = L ? L.monthHexagram(r.pillar.branch) : null, m = r.month, pa = m.res && m.res.chart ? m.res.chart.palacesByNumber[m.seat.num] : null;
+    var god = C.tenGod(user.pillars.day.stem, r.pillar.stem), stars = areasSafe(function () { return window.QPBazi.branchStars(user.pillars, r.pillar.branch); }) || [];
+    var rels = [];
+    [['Year', user.pillars.year], ['Month', user.pillars.month], ['Day', user.pillars.day], ['Hour', user.pillars.hour]].forEach(function (q) {
+      (window.QPBaziPlus ? window.QPBaziPlus.branchRels(r.pillar.branch, q[1].branch) : []).forEach(function (k) { rels.push(window.QPBaziPlus.REL_MEAN[k].en + ' with your ' + q[0] + ' branch'); });
+    });
+    return block('Month at a glance', 'a planner page for ' + r.pillar.cn,
+      xkRows([
+        ['Month hexagram', mh ? mh.name + ' <small>' + esc(mh.nameEn) + '</small><div class="plain">' + esc(mh.theme) + '</div>' : '—'],
+        ['Month pillar', r.pillar.cn + ' <small>' + god.cn + ' ' + god.en + ' to you</small>'],
+        ['Your Qimen palace', pa ? esc(m.seat.dir) + ' <small>' + [pa.spirit, pa.starCn, pa.gate, pa.heavenStemCn].filter(Boolean).join(' · ') + '</small>' : '—'],
+        ['Month stars', stars.length ? stars.map(function (s) { return s.cn + ' <small>' + esc(s.note) + '</small>'; }).join('<br>') : '<small>none of the common stars this month</small>']
+      ]) +
+      '<h3 style="margin:14px 0 6px;font-size:.9rem">Four drivers</h3>' +
+      xkRows([
+        ['Heaven', '<div class="plain">The month stem is your ' + god.en + ': ' + esc((window.QPBaziPlus.GOD_TEXT[god.i] || {}).gift || '') + '.</div>'],
+        ['Earth', '<div class="plain">' + (rels.length ? esc(rels.join('; ')) + '.' : 'The month branch is quiet against your chart.') + '</div>'],
+        ['Man', '<div class="plain">' + (pa ? 'Your seat holds ' + esc(pa.gate || '') + ': let that door set how you act this month.' : '—') + '</div>'],
+        ['Spirit', '<div class="plain">' + (mh ? esc(mh.theme) : '—') + '</div>']
+      ]) + '<div class="hint">The month hexagram is the sovereign (消息) hexagram of the month branch.</div>');
+  }
+
+  /* ---------------- Consult › Six Lines: I Ching divination by coins (六爻) ---------------- */
+  var lyState = { topic: 'money', question: '', values: null, when: null };
+  function renderLiuYao(host) {
+    var L = window.QPLiuYao, st = lyState;
+    var topicOpts = L.TOPICS.map(function (t) { return '<option value="' + t.key + '"' + (t.key === st.topic ? ' selected' : '') + '>' + esc(t.en) + '</option>'; }).join('');
+    var manual = [6, 5, 4, 3, 2, 1].map(function (n) {
+      var v = st.values ? st.values[n - 1] : 7;
+      return '<label>Line ' + n + '</label><select data-ly="' + (n - 1) + '">' + [[6, '6 · old yin, moving'], [7, '7 · young yang'], [8, '8 · young yin'], [9, '9 · old yang, moving']]
+        .map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+    }).join('');
+    var res = st.values ? L.read(st.values, st.when, st.topic) : null;
+    host.innerHTML =
+      block('Six Lines 六爻', 'ask one clear question, then cast',
+        '<label for="lyTopic">What the question is about</label><select id="lyTopic">' + topicOpts + '</select>' +
+        '<label for="lyQ">Your question</label><input id="lyQ" value="' + esc(st.question) + '" placeholder="e.g. Will this deal close by the end of the quarter?">' +
+        '<div class="two"><button class="btn" id="lyCast">Cast six lines</button><button class="btn ghost" id="lyManualBtn">Enter my own coins</button></div>' +
+        '<div id="lyManual" hidden><div class="hint">Toss three coins six times, from the bottom line up. Heads count 3, tails 2.</div>' + manual +
+        '<button class="btn" id="lyUse">Read these lines</button></div>') +
+      (res ? liuYaoHtml(res) + block('Save', '', saveBar('lySave', 'Save this reading')) : '') +
+      '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">A traditional divination for reflection, not a guarantee. Ask once per question; ' +
+        'casting again for a better answer only adds noise.</div>';
+    $('lyTopic').onchange = function () { st.topic = this.value; if (st.values) renderLiuYao(host); };
+    $('lyQ').oninput = function () { st.question = this.value; };
+    $('lyManualBtn').onclick = function () { $('lyManual').hidden = !$('lyManual').hidden; };
+    $('lyCast').onclick = function () { var t = now(); st.when = t; st.values = L.castRandom(); renderLiuYao(host); };
+    $('lyUse').onclick = function () {
+      var v = [0, 0, 0, 0, 0, 0];
+      host.querySelectorAll('[data-ly]').forEach(function (sel) { v[+sel.dataset.ly] = +sel.value; });
+      st.when = now(); st.values = v; renderLiuYao(host);
+    };
+    if (res) wireSave('lySave', function () {
+      return { kind: 'chart', title: 'Six Lines · ' + res.hex.name + (res.changed ? ' → ' + res.changed.name : ''), subtitle: st.question || res.topic.en,
+        when: { date: isoOf(st.when) },
+        payload: { type: 'liuyao', typeLabel: 'Six Lines 六爻', question: st.question, topic: res.topic.en, values: res.values,
+          hexagram: res.hex.name + ' ' + res.hex.nameEn, changed: res.changed ? res.changed.name + ' ' + res.changed.nameEn : null,
+          verdict: res.verdict, notes: res.notes } };
+    });
+  }
+  function liuYaoHtml(r) {
+    var u = r.use;
+    return block(r.hex.name + ' ' + esc(r.hex.nameEn) + (r.changed ? ' → ' + r.changed.name + ' ' + esc(r.changed.nameEn) : ''),
+        r.palace + ' palace · ' + r.palaceElem + ' ' + r.palaceElemEn + ' · ' + r.stage + ' · month ' + r.pillars.month + ' · day ' + r.pillars.day,
+        '<div class="plain" style="margin-bottom:6px"><b>' + esc(r.hex.theme) + '</b></div>' +
+        (r.changed ? '<div class="plain" style="margin-bottom:8px">Turning into: ' + esc(r.changed.theme) + '</div>' : '<div class="plain" style="margin-bottom:8px">No moving lines: the situation is settled as it stands.</div>') +
+        xkRows(r.lines.slice().reverse().map(function (x) {
+          var mark = x.self ? ' <b style="color:var(--cinnabar)">世 you</b>' : x.other ? ' <b>應 other</b>' : '';
+          return ['Line ' + x.n + mark + '<small>' + x.spirit.cn + ' ' + esc(x.spirit.en) + '</small>',
+            '<span style="letter-spacing:2px">' + (x.yang ? '▬▬▬' : '▬ ▬') + '</span>' + (x.moving ? ' <b class="bad-t">' + (x.yang ? '○' : '×') + ' moving</b>' : '') +
+            ' ' + x.branchCn + x.elemCn + ' <small>' + x.relCn + ' ' + esc(x.relEn) + (x.to ? ' → ' + x.to.branchCn + ' ' + x.to.relCn : '') +
+            (x.void ? ' · void' : '') + (x.proper ? '' : ' · out of place') + '</small>'];
+        }))) +
+      block('Reading', r.verdict,
+        xkRows([
+          ['The line you watch', 'Line ' + u.n + ' · ' + u.relCn + ' ' + esc(u.relEn) + ' ' + u.branchCn + (r.useHidden ? '<div class="plain">It does not appear in the hexagram, so the self line is read instead: the matter is not yet in view.</div>' : '') +
+            '<div class="plain">' + esc(r.notes.join('; ')) + '.</div>'],
+          ['You and the matter', '<div class="plain">' + esc(r.link) + '</div>'],
+          ['You and the other side', '<div class="plain">' + esc(r.otherLink) + '</div>'],
+          ['Spirit', '<div class="plain">' + esc(r.spiritNote) + '</div>'],
+          ['Voids today', r.voids.join(' ')]
+        ]) +
+        '<div class="hint">世 is you, the asker; 應 is the other side or the outcome. A yang line sits properly in lines 1, 3 and 5 and a yin line in 2, 4 and 6. The line to watch is chosen by the topic: Wealth for money, Officer for career, Parents for documents, Offspring for children and recovery, Siblings for rivals.</div>');
+  }
+
+  /* ---------------- Consult › Manifest additions: the year's Qimen palaces and your story for the year ---------------- */
+  function storyKey(y) { return 'qipath.story.' + user.id + '.' + y; }
+  function yearPalacesHtml(solarYear) {
+    var q = areasSafe(function () { return window.QPYear.qimenYearPurposes(solarYear); });
+    if (!q) return '';
+    return block('This year\'s palaces', 'the ' + q.pillar + ' year plate, by purpose',
+      xkRows(q.list.map(function (x) {
+        return [esc(x.dir) + '<small>' + [x.deity, x.star, x.door].filter(Boolean).join(' · ') + (x.isVoid ? ' · void' : '') + '</small>',
+          '<b>' + esc(x.purpose) + '</b><div class="plain">Use it to ' + esc(x.text) + '. Choose the matching goal above and search for hours; sit with your back to this direction.</div>'];
+      })) + '<div class="hint">Purposes follow each palace\'s deity on the year plate. Your own destiny palace direction is the strongest place to back for any of them.</div>');
+  }
+  var STORY_PATHS = [['wanderer', 'The Wanderer', 'setting out to find where you belong'], ['rebel', 'The Rebel', 'breaking from what no longer fits'],
+    ['warrior', 'The Warrior', 'reclaiming something you believe you deserve'], ['sage', 'The Sage', 'helping others with what you have learned']];
+  function storyHtml(y) {
+    var d = {}; try { d = JSON.parse(localStorage.getItem(storyKey(y)) || '{}'); } catch (e) { d = {}; }
+    var ta = function (id, label, hint) { return '<label for="' + id + '">' + label + '</label><textarea id="' + id + '" rows="4" placeholder="' + esc(hint) + '">' + esc(d[id] || '') + '</textarea>'; };
+    setTimeout(function () { wireStory(y); }, 0);
+    return block('Your story for ' + y, 'reset, rewrite, and learn one new ability',
+      '<div class="plain" style="margin-bottom:8px">Write in the present tense, as if the year has already gone the way you want. Keep it within reach this year, name no specific person, and write it yourself.</div>' +
+      '<label for="stPath">Your story line</label><select id="stPath">' + STORY_PATHS.map(function (s) { return '<option value="' + s[0] + '"' + (d.stPath === s[0] ? ' selected' : '') + '>' + s[1] + ' · ' + s[2] + '</option>'; }).join('') + '</select>' +
+      ta('stReset', '1. Reset: what I am letting go of', 'Old habits, grudges, a project that is finished…') +
+      ta('stStory', '2. My story this year', 'This year I live…, my work…, my family…, people know me for…') +
+      ta('stAbility', '3. The one new ability I am building', 'A high-income skill, a habit, a way of speaking…') +
+      '<div class="hint" id="stMsg">Saved on this phone as you type. Read it once in a manifestation window from the search above.</div>' + saveBar('stSave', 'Save to Journal'));
+  }
+  function wireStory(y) {
+    if (!$('stStory')) return;
+    var save = function () {
+      var d = { stPath: $('stPath').value, stReset: $('stReset').value, stStory: $('stStory').value, stAbility: $('stAbility').value };
+      try { localStorage.setItem(storyKey(y), JSON.stringify(d)); } catch (e) {}
+      return d;
+    };
+    ['stPath', 'stReset', 'stStory', 'stAbility'].forEach(function (id) { $(id).oninput = save; $(id).onchange = save; });
+    wireSave('stSave', function () {
+      var d = save(), path = STORY_PATHS.filter(function (s) { return s[0] === d.stPath; })[0];
+      return { kind: 'chart', title: 'My story for ' + y, subtitle: path ? path[1] : '', when: { date: isoOf(now()) },
+        payload: { type: 'story', typeLabel: 'Story for the year', storyLine: path ? path[1] : '', letGo: d.stReset, story: d.stStory, ability: d.stAbility } };
+    });
+  }
+
   function renderMonthly(host) {
     var t = now(), opts = window.QPPlanner.startOptions({ y: t.y, m: t.m, d: t.d });
     var st = monthlyState && monthlyState.key === user.id ? monthlyState : null, sel = st ? st.start : opts[0].value;
@@ -3871,6 +4057,7 @@
       var m = r.month, day = function (x) { return x.d + ' ' + MON[x.m - 1].slice(0, 3); };
       var areaRow = function (cls) { return function (a) { return ['<span class="' + cls + '">' + esc(a.label) + '</span>', '<div class="plain">' + esc(a.plain) + '</div><small>' + esc(a.todo) + '</small>']; }; };
       $('mrOut').innerHTML =
+        monthGlance(r) +
         block(r.pillar.cn + ' month', plannerPretty(m.start) + ' to ' + plannerPretty(m.end),
           r.overview.map(function (s) { return '<div class="plain" style="margin-bottom:8px">' + esc(s) + '</div>'; }).join('') +
           '<div class="panel" style="margin-top:8px"><b>' + esc(r.reflect[0]) + '</b><div class="plain">' + esc(r.reflect[1]) + '</div></div>' +
@@ -4357,6 +4544,7 @@
     if (consultK === 'planner') { renderPlanner(host); return; }
     if (consultK === 'monthly') { renderMonthly(host); return; }
     if (consultK === 'oracle') { renderOracle(host); return; }
+    if (consultK === 'liuyao') { renderLiuYao(host); return; }
     if (consultK === 'warcraft') { renderWar(host); return; }
     if (consultK === 'execution') { renderExec(host); return; }
     if (consultK === 'sevenstar') { renderSeven(host); return; }
@@ -5141,6 +5329,7 @@
           'The stage changes the weights: Priming leans on the star and deity, Attunement on harmony and good structures, Activation on a strong, timely door. ' +
           'Five Disharmony hours are left out. Joey Yap times these practices by Seven Stars levels, which QiPath cannot calculate, so this ranking is QiPath\'s own.</div>' +
           '</div><div id="mFound"></div>') +
+        yearPalacesHtml(now().y) + storyHtml(now().y) +
         block('Choose the window', 'the hour chart for any date and hour',
           '<div class="panel">' +
           whenPicker('mDate', 'mHour', pick.dt, 'Date') +
@@ -9583,7 +9772,7 @@
       { label: 'BaZi Luck', s: 'chart', k: 'luck' }, { label: 'Zi Wei Periods', s: 'chart', k: 'zwperiods' },
       { label: 'Qimen Year and Month', s: 'chart', k: 'qmseason' }, { label: 'Cast Qimen', s: 'consult', k: 'qimen' }, { label: 'Zodiac', s: 'chart', k: 'zodiac' }, { label: 'Tong Shu', s: 'almanac', k: '' }] },
     { id: 'strategy', ic: '策', en: 'Strategy', cn: '策略', items: [
-      { label: 'Yijing', s: 'consult', k: 'yijing' }, { label: 'Forecast', s: 'consult', k: 'forecast' }, { label: 'Oracle', s: 'consult', k: 'oracle' },
+      { label: 'Yijing', s: 'consult', k: 'yijing' }, { label: 'Six Lines', s: 'consult', k: 'liuyao' }, { label: 'Forecast', s: 'consult', k: 'forecast' }, { label: 'Oracle', s: 'consult', k: 'oracle' },
       { label: 'Date Selection', s: 'consult', k: 'plan' }, { label: 'Formations', s: 'consult', k: 'search' }, { label: 'Structures', s: 'consult', k: 'structures' },
       { label: 'Windows', s: 'consult', k: 'strategy' }, { label: 'San Cai', s: 'consult', k: 'sancai' }, { label: 'Execution', s: 'consult', k: 'execution' },
       { label: 'Warcraft', s: 'consult', k: 'warcraft' }, { label: 'Counter', s: 'consult', k: 'counter' }, { label: '7 Stars', s: 'consult', k: 'sevenstar' },

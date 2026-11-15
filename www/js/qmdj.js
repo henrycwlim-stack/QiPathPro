@@ -970,6 +970,12 @@
     { key: 'lostPerson', label: 'Find a lost person', cn: '寻人', door: ['休', '开'], door2: ['景', '生'], star: ['天蓬', '天心'], deity: ['六合', '玄武', '九天'], stem: ['乙', '丁'], ask: '开' },
     { key: 'noble', label: 'Noble help', cn: '贵人', door: ['开', '生'], door2: ['休', '景'], star: ['天心', '天辅', '天任'], deity: ['值符', '九天', '太阴'], stem: ['乙', '丙', '丁'], ask: '开' },
     { key: 'opportunity', label: 'Opportunity', cn: '机会', door: ['开', '生'], door2: ['景'], star: ['天冲', '天辅', '天英'], deity: ['九天', '值符', '六合'], stem: ['丙', '戊'], ask: '开' },
+    { key: 'wisdom', label: 'Wisdom and good judgement', cn: '智慧', door: ['休', '开'], door2: ['景', '杜'], star: ['天辅', '天心', '天任'], deity: ['九天', '太阴', '值符'], stem: ['丁', '乙'], ask: '休' },
+    { key: 'obstacles', label: 'Clear an obstacle', cn: '开路', door: ['开', '伤'], door2: ['生'], star: ['天心', '天冲', '天辅'], deity: ['值符', '九天'], stem: ['戊', '丙'], ask: '开', avoid: { door: ['杜'] } },
+    { key: 'charisma', label: 'Charisma and magnetism', cn: '魅力', door: ['景', '休'], door2: ['生', '开'], star: ['天英', '天辅'], deity: ['六合', '太阴', '九天'], stem: ['乙', '丁', '丙'], ask: '景' },
+    { key: 'turnaround', label: 'Turn adversity into advantage', cn: '转危', door: ['生', '开'], door2: ['伤', '休'], star: ['天冲', '天心', '天任'], deity: ['腾蛇', '九天', '值符'], stem: ['丙', '乙'], ask: '生' },
+    { key: 'clarity', label: 'See clearly, read people', cn: '洞察', door: ['景', '惊'], door2: ['开', '休'], star: ['天英', '天心', '天辅'], deity: ['玄武', '太阴', '九天'], stem: ['丁', '丙'], ask: '景' },
+    { key: 'stability', label: 'Stability and grounding', cn: '稳定', door: ['生', '休'], door2: ['杜', '开'], star: ['天任', '天禽', '天心'], deity: ['九地', '值符', '太阴'], stem: ['戊', '己'], ask: '生' },
     { key: 'agreement', label: 'Agreements and contracts', cn: '契约', door: ['开', '生'], door2: ['景', '休'], star: ['天辅', '天任'], deity: ['六合', '朱雀'], stem: ['乙', '庚'], ask: '开' }
   ];
   var CALM_DEITY = { '太阴': 1, '九地': 1, '值符': 1, '六合': 1 };

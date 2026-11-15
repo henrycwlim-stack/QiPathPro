@@ -49,6 +49,30 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.9 — Using the year, Six Lines divination, and the monthly planner page
+Version folder 10.9.0 (versionCode 65), copied from 10.8.0. Two new engines, `yearplus.js` (`window.QPYear`) and `liuyao.js`
+(`window.QPLiuYao`).
+- **Using the year's stars** (Tong Shu › Year): each annual flying star by purpose (advancement, leads, steady growth, mentors,
+  following, attention, efficiency, competition, leave alone), how to use the sector awake, the set-up, and your own Life Gua sector.
+- **Door location: the 24 sectors**: each of the 24 mountains rated 1–5 stars for where the main door sits this year, from the
+  palace's annual star adjusted for Tai Sui, the Year Breaker, the Three Killings and the year's Nobleman and Prosperity mountains.
+  QiPath's own rating.
+- **The year's hexagram 值年卦** (Tong Shu › Year and Luck): the 皇極經世 round-diagram sequence from 鼎 in 1984 (covers 1984–2043;
+  checked 2024 豐, 2025 革, 2026 同人), each line as two months from December, the signs of its Na Jia branch and that branch's
+  combining partner, and which lines speak to or clash your own pillars and luck pillar.
+- **The year in your chart** (Luck): the Lichun chart of the year (2025 = 乙巳 戊寅 癸卯 癸亥) against your five groups, where its
+  strongest elements land in your pillars, rising and quieter industries, and the five investment elements against your chart,
+  with a not-financial-advice note.
+- **Manifest**: six new goals (wisdom, clearing an obstacle, charisma, turning adversity round, seeing clearly, stability), the
+  year plate's palaces by purpose, and **Your story for the year** (let go, rewrite, one new ability), saved on the phone and to
+  the Journal.
+- **Six Lines 六爻** (new Consult tab): cast three coins six times or enter your own; palace and generation (八宮), self and other
+  lines, Na Jia branches, six relatives, six spirits, moving and changed lines, voids; the line to watch is chosen by the topic and
+  judged by month and day. Checked against the classical palace tables.
+- **Month at a glance** (Monthly report): the month's sovereign hexagram, the month pillar's Ten God, your Qimen palace for the
+  month, the month's stars and four drivers.
+All descriptions are QiPath's own wording.
+
 ### 10.8 — BaZi: the Ten Gods layer
 Version folder 10.8.0 (versionCode 64), copied from 10.7.4. A new engine, `baziplus.js` (`window.QPBaziPlus`), with
 `daypillars.js`, adds eight sections to Destiny › BaZi and one to the Luck screen, and feeds all of them to the AI reading.
