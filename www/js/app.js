@@ -7226,7 +7226,8 @@
       block('What the app reads without the photo', isPalm ? 'the tradition’s tables' : '流年部位: your age on the face', known) +
       block('The reading', '', '<div id="aiPhys"></div>' + saveBar('phSave', 'Save this reading')) +
       '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">' + (isPalm ? 'Palm' : 'Face') +
-        ' reading is a traditional art for reflection, not a scientific or medical assessment. It never reads health, ' +
+        ' reading is a traditional art for reflection, not a scientific or medical assessment. ' +
+        (isPalm ? 'It never reads health, ' : 'It reads the Health palace 疾厄宮 only as traditional vitality, never as a diagnosis, ') +
         'and nothing in it is a reason to delay, avoid or stop medical care.</div>';
 
     host.querySelectorAll('input[type=file][data-slot]').forEach(function (inp) {
@@ -7253,7 +7254,8 @@
     ] : [
       { label: 'The photos', path: 'photoCheck' }, { label: 'Face shape', path: 'faceShape' },
       { label: 'Three zones 三停', path: 'zones' }, { label: 'Features', path: 'features', list: 'areas' },
-      { label: 'Palaces', path: 'palaces', list: 'areas' }, { label: 'This year 流年', path: 'thisYear' },
+      { label: 'Palaces', path: 'palaces', list: 'areas' }, { label: 'Health palace 疾厄宮', path: 'health' },
+      { label: 'This year 流年', path: 'thisYear' },
       { label: 'With your BaZi', path: 'withBazi' }, { label: 'Strengths', path: 'strengths' },
       { label: 'To work with', path: 'watch' }, { label: 'Guidance', path: 'guidance' }, { label: 'Confidence', path: 'confidence' }
     ];

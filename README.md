@@ -49,6 +49,12 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.7.1 — Health palace in Face Reading
+Version folder 10.7.1 (versionCode 60), copied from 10.7.0. Face Reading now reads the Health palace 疾厄宮 (山根 down to 年上 壽上
+on the bridge of the nose) in its own section. It is read only as the tradition does: vitality, stamina and resilience under
+pressure, with everyday habits that suit it. The AI is told never to name an organ, disease or symptom, never to read skin marks
+or colour as illness, and to close by saying any health concern belongs with a doctor. Palm Reading still does not read health.
+
 ### 10.7 — Palm and Face Reading
 Version folder 10.7.0 (versionCode 59), copied from 10.6.0. Two new Destiny screens, **Palm Reading** and **Face Reading**, read
 photos the person takes with the phone camera (or picks from the gallery) with their own Gemini or Claude key.

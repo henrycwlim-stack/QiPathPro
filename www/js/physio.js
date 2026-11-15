@@ -64,11 +64,12 @@
     { element: 'Water', cn: '水形', look: 'round and soft, full cheeks, a rounded chin' }
   ];
   var FACE_FEATURES = ['Eyebrows 保壽官', 'Eyes 監察官', 'Nose 審辨官', 'Mouth 出納官', 'Ears 採聽官', 'Forehead 天庭', 'Chin and jaw 地閣'];
-  // The twelve palaces most readers name on the face. 疾厄 is left to a doctor and not read here.
+  // The twelve palaces most readers name on the face. 疾厄 is read only as the tradition's vitality and resilience, never as a diagnosis.
   var FACE_PALACES = ['命宮 Life (between the brows)', '財帛宮 Wealth (the nose)', '官祿宮 Career (centre of the forehead)',
     '兄弟宮 Siblings and friends (the brows)', '田宅宮 Property (between brow and eye)', '夫妻宮 Partner (outer corners of the eyes)',
     '子女宮 Children (below the eyes)', '奴僕宮 Helpers (the chin\'s sides)', '遷移宮 Travel (the temples)',
-    '福德宮 Fortune (above the outer brows)', '父母宮 Parents (above the brows on the forehead)'];
+    '福德宮 Fortune (above the outer brows)', '父母宮 Parents (above the brows on the forehead)',
+    '疾厄宮 Health and vitality (山根, the root of the nose between the eyes, down to 年上 壽上 on the bridge)'];
 
   /* ================= palm ================= */
 

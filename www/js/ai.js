@@ -2918,18 +2918,21 @@
     required:['photoCheck','handShape','lines','mounts','fingers','twoHands','withBazi','strengths','watch','guidance','confidence'] };
   var FACE_SCHEMA = { type:'object', properties:{
     photoCheck:{type:'string'}, faceShape:{type:'string'}, zones:{type:'string'}, features:AREA_ITEMS,
-    palaces:AREA_ITEMS, thisYear:{type:'string'}, withBazi:{type:'string'}, strengths:{type:'string'},
+    palaces:AREA_ITEMS, health:{type:'string'}, thisYear:{type:'string'}, withBazi:{type:'string'}, strengths:{type:'string'},
     watch:{type:'string'}, guidance:{type:'string'}, confidence:{type:'string'} },
-    required:['photoCheck','faceShape','zones','features','palaces','thisYear','withBazi','strengths','watch','guidance','confidence'] };
+    required:['photoCheck','faceShape','zones','features','palaces','health','thisYear','withBazi','strengths','watch','guidance','confidence'] };
 
   // Shared limits for both readings. These photos are of a real person, so the reading stays inside the tradition.
   var PHYSIO_RULES =
     'Rules you must keep:\n' +
     '- Read only what the traditional system reads: shapes, lines, proportions and positions. Describe what you can actually see; ' +
     'where the photo does not show something clearly, say so rather than guess.\n' +
-    '- Never comment on or infer health, illness, medical or skin conditions, weight, attractiveness, ethnicity or race, religion, ' +
+    '- Never diagnose, name or infer any illness, disease, medical or skin condition, and never comment on weight, attractiveness, ethnicity or race, religion, ' +
     'sexual orientation, disability, or any other sensitive trait. Do not estimate age from the photo. Do not try to identify the person.\n' +
     '- Never predict death, lifespan, accidents, illness or disaster. Present cautions as tendencies to work with, each with a practical response.\n' +
+    '- The Health palace 疾厄宮, where asked for, is read only as the tradition reads it: vitality, stamina, resilience and how the person ' +
+    'handles stress, as tendencies, with everyday habits of rest, movement and balance. Never name an organ, a disease or a symptom, never ' +
+    'read skin marks or colour as a sign of illness, and end it by saying that any health concern belongs with a doctor, never with a face reading.\n' +
     '- This is a traditional interpretive art for reflection, not a scientific or medical assessment. Say so once, briefly, in "confidence".\n' +
     '- If the image is not a clear photo of what was asked for (a palm, or a face), say so in "photoCheck", keep every other field short, ' +
     'and do not invent a reading.\n' +
@@ -2976,13 +2979,14 @@
       'REFERENCE:\nThree zones 三停: ' + P.ZONES.map(function (z) { return z.cn + ' ' + z.area + ', ages ' + z.ages + ', ' + z.governs; }).join('; ') + '.\n' +
       'Five face shapes: ' + P.FACE_SHAPES.map(function (f) { return f.cn + ' ' + f.element + ': ' + f.look; }).join('; ') + '.\n' +
       'Five officials and features: ' + P.FACE_FEATURES.join(', ') + '.\n' +
-      'Palaces to read (疾厄 health is deliberately left out): ' + P.FACE_PALACES.join('; ') + '.\n\n' +
+      'Palaces to read: ' + P.FACE_PALACES.join('; ') + '.\n\n' +
       'Return STRICT JSON:\n{\n' +
       '  "photoCheck": "Whether each photo is usable: front-on, even light, hair off the forehead, no filter; what to retake if anything (30-70 words).",\n' +
       '  "faceShape": "Which of the five element face shapes this is, from the proportions you can see, and what that element means for temperament (80-120 words).",\n' +
       '  "zones": "The balance of the three zones 三停 — which is most developed — and what that says about early, middle and later life (90-130 words).",\n' +
       '  "features": [ { "area": "Feature with Chinese term", "outlook": "What you see and what the tradition reads from it (45-80 words)", "advice": "One practical point (15-30 words)" } ] — the eyebrows, eyes, nose, mouth, ears (if visible), forehead and chin,\n' +
-      '  "palaces": [ { "area": "Palace with Chinese term", "outlook": "What the area shows (35-70 words)" } ] — Life, Wealth, Career, Partner and Property at least; others where the photo shows them,\n' +
+      '  "palaces": [ { "area": "Palace with Chinese term", "outlook": "What the area shows (35-70 words)" } ] — Life, Wealth, Career, Partner and Property at least; others where the photo shows them (the Health palace has its own field below),\n' +
+      '  "health": "The Health palace 疾厄宮 at 山根 and 年上 壽上: how full, straight and unbroken the root and bridge of the nose look, and what the tradition reads for vitality, stamina and resilience under pressure, with one or two everyday habits that suit it. Never a diagnosis; close by saying any health concern belongs with a doctor (60-100 words).",\n' +
       '  "thisYear": "Read the 流年 position for age ' + ctx.xu + ' as it appears in the photo, then what the next positions suggest for the coming years (90-140 words).",\n' +
       '  "withBazi": "How the face\'s element sits with the ' + ctx.dmElement + ' Day Master and what that combination suggests (60-100 words).",\n' +
       '  "strengths": "The three clearest strengths this face shows (60-100 words).",\n' +
