@@ -784,6 +784,263 @@
     };
   }
 
+  /* ================= 24 Mountain compass reading (玄空 二十四山) ================= */
+
+  // 替卦 replacement stars, from the classical verse: 子癸甲申貪狼一, 壬卯乙未坤巨門, 乾亥辰巽巳戌武曲,
+  // 酉辛丑艮丙破軍, 寅午庚丁右弼. Used when the facing leans toward a neighbouring mountain (兼向).
+  var REPLACE = {};
+  [['子癸甲申', 1], ['壬卯乙未坤', 2], ['乾亥辰巽巳戌', 6], ['酉辛丑艮丙', 7], ['寅午庚丁', 9]]
+    .forEach(function (g) { g[0].split('').forEach(function (ch) { REPLACE[ch] = g[1]; }); });
+
+  // Line thresholds. Schools differ by a degree or so; these are the commonly taught values.
+  var LINE = { straight: 4.5, voidEdge: 1.5 };
+
+  /** Where in its mountain a bearing sits: 正向, 兼向 (lean), 小空亡 or 大空亡. */
+  function lineOf(deg) {
+    var m = mountainFor(deg);
+    if (!m) return null;
+    var off = norm(norm(deg) - m.centre + 180) - 180;          // −7.5 … +7.5 from the mountain's centre
+    var edge = 7.5 - Math.abs(off);
+    var nb = mountainFor(norm(deg) + (off >= 0 ? 15 : -15));     // the neighbour it leans toward
+    var palaceEdge = nb.palace !== m.palace;
+    var kind, cn, en, note;
+    if (Math.abs(off) <= LINE.straight) {
+      kind = 'straight'; cn = '正向'; en = 'Straight';
+      note = 'Inside the body of ' + m.char + '. The ordinary (下卦) chart applies as cast.';
+    } else if (edge > LINE.voidEdge) {
+      kind = 'lean'; cn = '兼' + nb.char; en = 'Leaning toward ' + nb.char;
+      note = 'The facing leans ' + Math.abs(off).toFixed(1) + '° off centre toward ' + nb.char +
+        '. Xuan Kong reads a leaning facing with the replacement chart (替卦), shown alongside.';
+    } else if (palaceEdge) {
+      kind = 'great-void'; cn = '大空亡'; en = 'Great void line';
+      note = 'Within ' + edge.toFixed(1) + '° of the line between two palaces (' + m.dirFull + ' and ' +
+        nb.dirFull + '). Qi is said to scatter on this line; the classics advise against facing it. ' +
+        'Measure again before relying on any chart.';
+    } else {
+      kind = 'small-void'; cn = '小空亡'; en = 'Small void line';
+      note = 'Within ' + edge.toFixed(1) + '° of the line between ' + m.char + ' and ' + nb.char +
+        ', inside the same palace. Weaker than the great void, but the mountain is ambiguous: measure again.';
+    }
+    return { mountain: m, offset: off, edge: edge, toward: nb, palaceEdge: palaceEdge,
+             kind: kind, cn: cn, en: en, note: note, replace: kind !== 'straight' };
+  }
+
+  /** The replacement chart: each base star swaps for the star named in the verse for its mountain. */
+  function replacementChart(period, facingDeg, fiveMode) {
+    var base = natalChart(period, facingDeg, fiveMode);
+    var f = base.facing;
+    function swap(star) {
+      var pal = star === 5 ? ((fiveMode === 'opposite') ? 10 - period : period) : star;
+      var mm = mountainByPalaceYuan(pal, f.yuan);
+      return { from: star, mountain: mm ? mm[0] : null, to: mm ? REPLACE[mm[0]] : star,
+               forward: mm ? !!mm[3] : true };
+    }
+    var w = swap(base.periodGrid[base.facingPal]), mt = swap(base.periodGrid[base.sittingPal]);
+    var water = fly(w.to, w.forward), mountain = fly(mt.to, mt.forward);
+    var palaces = [1,2,3,4,5,6,7,8,9].map(function (n) {
+      return { palace: n, dir: PAL_DIR[n], dirFull: PAL_FULL[PAL_DIR[n]], trigram: PAL_NAME[n],
+               mountain: mountain[n], water: water[n], period: base.periodGrid[n],
+               isFacing: n === base.facingPal, isSitting: n === base.sittingPal,
+               combo: comboFor(mountain[n], water[n], period) };
+    });
+    var t = chartType(period, mountain, water, base.facingPal, base.sittingPal);
+    return { period: period, facing: f, sitting: base.sitting, facingPal: base.facingPal,
+             sittingPal: base.sittingPal, periodGrid: base.periodGrid, mountainStars: mountain,
+             waterStars: water, swaps: { water: w, mountain: mt },
+             same: w.to === w.from && mt.to === mt.from,
+             type: t.type, typeEn: t.typeEn, palaces: palaces,
+             byPalace: palaces.reduce(function (a, p) { a[p.palace] = p; return a; }, {}) };
+  }
+
+  function chartType(period, mountain, water, fp, sp) {
+    if (mountain[sp] === period && water[fp] === period) return { type: '旺山旺向', typeEn: 'Prosperous mountain and facing' };
+    if (mountain[fp] === period && water[fp] === period) return { type: '雙星到向', typeEn: 'Double star to facing' };
+    if (mountain[sp] === period && water[sp] === period) return { type: '雙星到坐', typeEn: 'Double star to sitting' };
+    if (mountain[fp] === period && water[sp] === period) return { type: '上山下水', typeEn: 'Reversed' };
+    return { type: '其他', typeEn: 'Mixed' };
+  }
+
+  var GROUPS = ['147', '258', '369'];
+  /** Whole-chart structures: 伏吟, 反吟, 合十, 父母三般卦 and 连珠三般卦. */
+  function chartStructures(ch) {
+    var out = [], P = [1,2,3,4,5,6,7,8,9];
+    [['mountain', ch.mountainStars, '山星', 'mountain star'], ['water', ch.waterStars, '向星', 'water star']]
+      .forEach(function (s) {
+        var stars = s[1];
+        if (P.every(function (n) { return stars[n] === n; })) {
+          out.push({ cn: s[2] + '伏吟', en: 'Hidden chant, ' + s[3], tone: 'bad',
+            text: 'The ' + s[3] + 's sit on their own Luo Shu numbers in every palace. The classics read this as stagnation ' +
+              'and repeated setbacks in what the ' + s[3] + ' governs (' + (s[0] === 'water' ? 'money' : 'people and health') + ').' });
+        } else if (P.every(function (n) { return n === 5 || stars[n] === 10 - n; })) {
+          out.push({ cn: s[2] + '反吟', en: 'Opposing chant, ' + s[3], tone: 'bad',
+            text: 'The ' + s[3] + 's sit on the opposite numbers in every palace. Read as reversal and sudden loss in ' +
+              (s[0] === 'water' ? 'money matters' : 'people matters') + '.' });
+        }
+        if (P.every(function (n) { return stars[n] + ch.periodGrid[n] === 10; })) {
+          out.push({ cn: s[2] + '合十', en: 'Combination of Ten, ' + s[3], tone: 'good',
+            text: 'In every palace the ' + s[3] + ' and the period star add to ten. The chart is said to be "connected", ' +
+              'which softens weak stars and strengthens the ' + (s[0] === 'water' ? 'money' : 'people') + ' side.' });
+        }
+      });
+    var trios = P.map(function (n) { return [ch.mountainStars[n], ch.waterStars[n], ch.periodGrid[n]]; });
+    if (trios.every(function (t) { return GROUPS.indexOf(t.slice().sort().join('')) >= 0; })) {
+      out.push({ cn: '父母三般卦', en: 'Parent string', tone: 'good',
+        text: 'Every palace holds one of 1-4-7, 2-5-8 or 3-6-9. A rare structure that links the three eras, read as ' +
+          'lasting support beyond the current period.' });
+    }
+    if (trios.every(function (t) {
+      var s = t.slice().sort(function (a, b) { return a - b; });
+      return (s[1] === s[0] + 1 && s[2] === s[1] + 1) || s.join('') === '189' || s.join('') === '129';
+    })) {
+      out.push({ cn: '连珠三般卦', en: 'Continuous bead string', tone: 'good',
+        text: 'Every palace holds three consecutive numbers. Read as qi flowing through the house without a break.' });
+    }
+    return out;
+  }
+
+  /** The full 24 Mountain reading for a facing bearing. */
+  function mountainReading(period, facingDeg, fiveMode) {
+    var line = lineOf(facingDeg);
+    if (!line) throw new Error('A facing bearing between 0 and 359.9 is needed.');
+    var chart = natalChart(period, facingDeg, fiveMode);
+    var sitDeg = norm(facingDeg + 180), sit = mountainFor(sitDeg);
+    var repl = line.replace ? replacementChart(period, facingDeg, fiveMode) : null;
+    var main = repl && !repl.same ? repl : chart;
+    return {
+      bearing: norm(facingDeg), sittingBearing: sitDeg, line: line,
+      facing: line.mountain, sitting: sit, chart: chart, replacement: repl,
+      structures: chartStructures(main),
+      polarity: line.mountain.yang ? '陽 yang — the stars of this facing fly forward when they borrow it'
+                                   : '陰 yin — the stars of this facing fly backward when they borrow it',
+      yuanNote: { 0: '地元龍 Earth: the first mountain of its palace; pairs with other 地元 mountains',
+                  1: '天元龍 Heaven: the centre mountain; it can lean (兼) only toward 人元',
+                  2: '人元龍 Man: the last mountain of its palace; it can lean (兼) only toward 天元' }[line.mountain.yuan]
+    };
+  }
+
+  /* ================= Luopan reading: Xuan Kong Da Gua (玄空大卦 六十四卦) ================= */
+
+  // The 64-hexagram ring, from 0° (the 坤|復 line in North) clockwise. Each hexagram covers 5.625°.
+  var DG_RING = ('复 颐 屯 益 震 噬嗑 随 无妄 明夷 贲 既济 家人 丰 离 革 同人 临 损 节 中孚 归妹 睽 兑 履 泰 大畜 需 小畜 ' +
+    '大壮 大有 夬 乾 姤 大过 鼎 恒 巽 井 蛊 升 讼 困 未济 解 涣 坎 蒙 师 遁 咸 旅 小过 渐 蹇 艮 谦 否 萃 晋 豫 观 ' +
+    '比 剥 坤').split(' ');
+  // 六十甲子 on the ring (the verse that pairs each pillar with a hexagram).
+  var DG_PILLAR = { '甲子':'坤','甲午':'乾','乙丑':'噬嗑','乙未':'井','丙寅':'家人','丙申':'解','丁卯':'损','丁酉':'咸',
+    '戊辰':'履','戊戌':'谦','己巳':'大壮','己亥':'观','庚午':'恒','庚子':'益','辛未':'讼','辛丑':'明夷',
+    '壬申':'师','壬寅':'同人','癸酉':'渐','癸卯':'归妹','甲戌':'蹇','甲辰':'睽','乙亥':'晋','乙巳':'需',
+    '丙子':'颐','丙午':'大过','丁丑':'随','丁未':'蛊','戊寅':'丰','戊申':'涣','己卯':'节','己酉':'旅',
+    '庚辰':'泰','庚戌':'否','辛巳':'大有','辛亥':'比','壬午':'巽','壬子':'震','癸未':'困','癸丑':'贲',
+    '甲申':'未济','甲寅':'既济','乙酉':'遁','乙卯':'临','丙戌':'艮','丙辰':'兑','丁亥':'豫','丁巳':'小畜',
+    '戊子':'屯','戊午':'鼎','己丑':'无妄','己未':'升','庚寅':'离','庚申':'坎','辛卯':'中孚','辛酉':'小过',
+    '壬辰':'大畜','壬戌':'萃','癸巳':'夬','癸亥':'剥' };
+  var DG_PILLAR_OF = {};
+  Object.keys(DG_PILLAR).forEach(function (k) { DG_PILLAR_OF[DG_PILLAR[k]] = k; });
+  var HETU_ELEM = { 1:'Water', 6:'Water', 2:'Fire', 7:'Fire', 3:'Wood', 8:'Wood', 4:'Metal', 9:'Metal' };
+  var HETU_CN = { Water:'水', Fire:'火', Wood:'木', Metal:'金' };
+  var PAL_DEG = { 1:0, 8:45, 3:90, 4:135, 9:180, 2:225, 7:270, 6:315 };
+
+  var DG_INFO = null;            // name -> hexagram facts, built on first use from QPSystems' tables
+  function dgInfo() {
+    if (DG_INFO) return DG_INFO;
+    var X = S.xk;                 // tables shared with the Qimen rim hexagram
+    DG_INFO = {};
+    for (var u = 0; u < 8; u++) for (var l = 0; l < 8; l++) {
+      var h = X.HEX[u][l], el = X.XK_TRI_NUM[u];
+      DG_INFO[h[1]] = { number: h[0], name: h[1], nameEn: X.HEX_EN[h[0]],
+        upper: X.TRIGRAMS[u], lower: X.TRIGRAMS[l], element: el, elementName: HETU_ELEM[el],
+        period: X.XK_PERIOD[X.TRI_BITS[u] ^ X.TRI_BITS[l]] };
+    }
+    return DG_INFO;
+  }
+  function spiritOf(per) {
+    return per <= 4 ? { cn: '零神', en: 'Indirect Spirit', use: 'water' }
+                    : { cn: '正神', en: 'Direct Spirit', use: 'mountain' };
+  }
+  function hexAt(deg) {
+    deg = norm(deg);
+    var i = Math.floor(deg / 5.625) % 64, info = dgInfo()[DG_RING[i]];
+    var from = i * 5.625, into = deg - from;
+    var r = {}; for (var k in info) r[k] = info[k];
+    r.index = i; r.from = from; r.to = from + 5.625; r.into = into;
+    r.edge = Math.min(into, 5.625 - into);
+    r.yao = Math.min(6, Math.floor(into / 0.9375) + 1);        // 6 lines of 0.9375° each, counted clockwise
+    r.pillar = DG_PILLAR_OF[r.name] || (r.name === '复' ? '甲子' : r.name === '姤' ? '甲午' : null);
+    r.spirit = spiritOf(r.period);
+    return r;
+  }
+  function hexInPalace(pal) {
+    var c = PAL_DEG[pal], out = [];
+    for (var i = 0; i < 64; i++) {
+      var mid = i * 5.625 + 2.8125, d = Math.abs(norm(mid - c + 180) - 180);
+      if (d < 22.5) out.push(hexAt(mid));
+    }
+    return out;
+  }
+  /** How two hexagram numbers relate: 合十, He Tu 生成, or the same number (一卦). */
+  function numberLink(a, b) {
+    if (a + b === 10) return { cn: '合十', en: 'Combination of Ten', tone: 'good' };
+    if (Math.abs(a - b) === 5) return { cn: '合生成', en: 'He Tu pair', tone: 'good' };
+    if (a === b) return { cn: '一卦', en: 'Same number', tone: 'good' };
+    return null;
+  }
+  var OUT_LINE = 0.5;   // degrees from a hexagram edge treated as mixing two hexagrams (出卦 / 差错)
+
+  /** Luopan (Da Gua) reading of a facing bearing, set against the period and the flying star chart. */
+  function luopanReading(period, facingDeg, fiveMode, person) {
+    var f = hexAt(facingDeg), s = hexAt(facingDeg + 180);
+    var chart = natalChart(period, facingDeg, fiveMode);
+    var timely = f.period === period ? 'timely'
+      : (f.period === 1 || f.period === 9) ? 'parent' : null;
+    var waterPal = null;
+    [1,2,3,4,6,7,8,9].forEach(function (n) { if (chart.waterStars[n] === period && waterPal === null) waterPal = n; });
+    var water = waterPal ? hexInPalace(waterPal).map(function (h) {
+      return { hex: h, link: h.period + s.period === 10 ? '合十' : null, ok: h.period <= 4 };
+    }) : [];
+    var waterBest = water.filter(function (w) { return w.ok && w.link; });
+    var waterOk = water.filter(function (w) { return w.ok && !w.link; });
+    var personHex = null;
+    if (person && person.year) personHex = dgInfo()[DG_PILLAR[person.year]] ||
+      (person.year === '甲子' ? dgInfo()['复'] : null);
+    return {
+      bearing: norm(facingDeg), facing: f, sitting: s,
+      samePeriod: f.period === s.period,
+      timely: timely,
+      timelyText: timely === 'timely' ? 'The facing hexagram belongs to Period ' + period + ', the current period: timely (當運).'
+        : timely === 'parent' ? 'The facing hexagram is a Period ' + f.period + ' hexagram, one of the 父母 parent group (1 and 9), ' +
+            'the usual second choice when the current period cannot be had.'
+        : 'The facing hexagram belongs to Period ' + f.period + ', which is not timely in Period ' + period + '.',
+      facingSpirit: f.spirit.use === 'mountain'
+        ? 'Facing sits on a 正神 Direct Spirit hexagram — the right kind for a facing or a dragon (high ground behind).'
+        : 'Facing sits on a 零神 Indirect Spirit hexagram — better used for water than for the facing itself.',
+      sittingSpirit: s.spirit.use === 'water'
+        ? 'Sitting sits on a 零神 Indirect Spirit hexagram.' : 'Sitting sits on a 正神 Direct Spirit hexagram.',
+      edges: [f, s].filter(function (h) { return h.edge < OUT_LINE; }).map(function (h) {
+        return h.name + ' is within ' + h.edge.toFixed(2) + '° of the next hexagram (出卦 risk): a degree of error changes the reading.';
+      }),
+      waterPalace: waterPal, waterPalaceDir: waterPal ? PAL_FULL[PAL_DIR[waterPal]] : null,
+      waterBest: waterBest, waterOk: waterOk,
+      personHex: personHex, personLink: personHex ? numberLink(personHex.element, f.element) : null
+    };
+  }
+
+  /** Days in the next `days` whose day-pillar hexagram links to the house's water or facing hexagram and to the person. */
+  function activationDates(reading, from, days, personYearBranch) {
+    var out = [], target = reading.waterBest.length ? reading.waterBest[0].hex : reading.facing;
+    for (var i = 1; i <= days && out.length < 6; i++) {
+      var t = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
+      var p = C.fourPillars(t.getFullYear(), t.getMonth() + 1, t.getDate(), 12, 0);
+      var hx = dgInfo()[DG_PILLAR[p.day.cn]] || (p.day.cn === '甲子' ? dgInfo()['复'] : null);
+      if (!hx) continue;
+      if (personYearBranch !== undefined && personYearBranch !== null && (p.day.branch + 6) % 12 === personYearBranch) continue;
+      var a = numberLink(hx.element, target.element), b = reading.personHex ? numberLink(hx.element, reading.personHex.element) : null;
+      var c = hx.period + target.period === 10 ? { cn: '合十', en: 'period Combination of Ten' } : null;
+      if (!(a || c)) continue;
+      out.push({ date: t, pillar: p.day.cn, hex: hx, toHouse: a || c, toPerson: b, both: !!b });
+    }
+    out.sort(function (x, y) { return (y.both ? 1 : 0) - (x.both ? 1 : 0) || x.date - y.date; });
+    return { target: target, dates: out.slice(0, 5) };
+  }
+
   global.QPFengShui = {
     auditProperty: auditProperty, cureFor: cureFor, classifyRoom: classifyRoom,
     PERIOD_INFO: PERIOD_INFO, MOUNTAINS: MOUNTAINS, STAR: STAR, COMBOS: COMBOS,
@@ -794,6 +1051,9 @@
     afflictions: afflictions, sectorLayers: sectorLayers, remedyFor: remedyFor,
     bearingOf: bearingOf, sectorOf: sectorOf, centroid: centroid, pointInPoly: pointInPoly,
     gridCoverage: gridCoverage, analyseShape: analyseShape, deficiencyOf: deficiencyOf,
-    placementFor: placementFor, scoreSector: scoreSector, norm: norm
+    placementFor: placementFor, scoreSector: scoreSector, norm: norm,
+    lineOf: lineOf, replacementChart: replacementChart, chartStructures: chartStructures, mountainReading: mountainReading,
+    REPLACE: REPLACE, DG_RING: DG_RING, DG_PILLAR: DG_PILLAR, hexAt: hexAt, hexInPalace: hexInPalace,
+    luopanReading: luopanReading, activationDates: activationDates, numberLink: numberLink
   };
 })(typeof window !== 'undefined' ? window : globalThis);

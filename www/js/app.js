@@ -2305,6 +2305,12 @@
       }
 
       var layers = FS.sectorLayers(natal, sy, pN.month.branch);
+      var xkM = null, xkL = null, xkD = null;
+      try {
+        xkM = FS.mountainReading(natal.period, prop.facingDegrees, prop.fiveMode || 'period');
+        xkL = FS.luopanReading(natal.period, prop.facingDegrees, prop.fiveMode || 'period', { year: user.pillars.year.cn });
+        xkD = FS.activationDates(xkL, new Date(), 60, user.pillars.year.branch);
+      } catch (e) { xkM = xkL = xkD = null; }
       var byDir = {}; layers.forEach(function (l) { byDir[l.dir] = l; });
       var shape = (prop.plan && prop.plan.outline && prop.plan.outline.length >= 3)
         ? FS.analyseShape(prop.plan.outline, prop.plan.planNorth) : null;
@@ -2361,6 +2367,14 @@
           'Right number in gold is the water star (向星) — money and opportunity. ' +
           '\u5411 marks the facing palace, \u5750 the sitting palace.</div>' +
           saveBar('fsSave', 'Save this chart')) +
+
+        (xkM ? block('24 Mountain reading 二十四山', 'Xuan Kong: line, dragon, replacement chart, structures',
+          xkMountainHtml(xkM)) : '') +
+        (xkL ? block('Luopan reading 玄空大卦', 'the 64-hexagram ring: timeliness, spirit, water, dates',
+          xkLuopanHtml(xkL, xkD, natal.period, natal.sittingPal) +
+          '<div class="panel" style="margin-top:10px;font-size:.8rem;line-height:1.6;color:var(--muted)">Line thresholds ' +
+          '(±4.5° straight, 1.5° void) and the yao count vary a little between schools. A phone compass is good ' +
+          'to a few degrees, and a hexagram is under 6° wide: confirm the bearing with a real luopan before acting on it.</div>') : '') +
 
         block('This year', sy + ' \u00b7 ' + aff.zodiac + ' \u00b7 annual star ' + aff.annualStar,
           rows([
@@ -2432,7 +2446,13 @@
                        afflictions: l.afflictions.map(function (f) { return f.cn; }) }; }),
             afflictions: { taiSui: aff.taiSui.dirFull, yearBreaker: aff.yearBreaker.dirFull,
                            threeKillings: aff.threeKillings.dirs, fiveYellow: aff.fiveYellow.dirFull },
-            shape: shape ? shape.coverage : null } };
+            shape: shape ? shape.coverage : null,
+            mountainLine: xkM ? xkM.line.cn + ' ' + xkM.line.en : null,
+            replacementType: xkM && xkM.replacement && !xkM.replacement.same ? xkM.replacement.type : null,
+            structures: xkM ? xkM.structures.map(function (x) { return x.cn; }) : [],
+            luopan: xkL ? { facing: xkL.facing.name, facingPeriod: xkL.facing.period, facingElement: xkL.facing.element,
+              sitting: xkL.sitting.name, spirit: xkL.facing.spirit.cn, timely: xkL.timely,
+              water: xkL.waterBest.concat(xkL.waterOk).map(function (w) { return w.hex.name; }) } : null } };
       });
       var fsCt = mountCounter('aiFS', 'fengshui', { focus: ['upheaval', 'health', 'financial'],
         subtitle: 'this year\'s threats on the plate of this double-hour — the directions bear on the home' });
@@ -6779,6 +6799,128 @@
     catch (e) { return null; }
   }
 
+  /* ---------------- Xuan Kong: 24 Mountain and Luopan (Da Gua) readings ---------------- */
+
+  function xkGrid(ch) {
+    var order = [['NW','N','NE'],['W','C','E'],['SW','S','SE']], pal = { N:1, SW:2, E:3, SE:4, C:5, NW:6, W:7, NE:8, S:9 };
+    return '<div class="fsgrid">' + order.map(function (row) {
+      return row.map(function (d) {
+        var c = ch.byPalace[pal[d]];
+        var cls = d === 'C' ? 'centre' : (c.combo.tone === 'good' ? 'good' : c.combo.tone === 'bad' ? 'bad' : '') +
+          (c.isFacing ? ' facing' : '') + (c.isSitting ? ' sitting' : '');
+        return '<div class="fscell ' + cls + '"><div class="d">' + (d === 'C' ? 'Centre' : d) +
+          (c.isFacing ? ' 向' : c.isSitting ? ' 坐' : '') + '</div>' +
+          '<div class="pair">' + c.mountain + '-<b>' + c.water + '</b></div>' +
+          '<div class="per">period ' + c.period + '</div></div>';
+      }).join('');
+    }).join('') + '</div>';
+  }
+
+  // Rows whose labels keep their width: the readings' values are long and would otherwise squeeze 'Line' to 'Lin/e'.
+  function xkRows(pairs) { return rows(pairs).replace('class="rows"', 'class="rows xk"'); }
+  function xkLineColour(kind) {
+    return kind === 'straight' ? 'var(--celadon)' : kind === 'lean' ? 'var(--brass)' : 'var(--cinnabar)';
+  }
+
+  function xkHexLine(h) {
+    return h.name + ' <small>' + h.number + ' ' + esc(h.nameEn) + ' &middot; ' + h.upper + '/' + h.lower +
+      (h.pillar ? ' &middot; ' + h.pillar : '') + '</small>';
+  }
+
+  function xkMountainHtml(mr) {
+    var L = mr.line, rp = mr.replacement;
+    var html = xkRows([
+      ['Facing', mr.facing.char + ' ' + mr.bearing.toFixed(1) + '° <small>' + mr.facing.dirFull + ' · ' +
+        mr.facing.trigram + ' · ' + mr.facing.yuanName + ' · ' + (mr.facing.yang ? '陽 yang' : '陰 yin') + '</small>'],
+      ['Sitting', mr.sitting.char + ' ' + mr.sittingBearing.toFixed(1) + '° <small>' + mr.sitting.dirFull + '</small>'],
+      ['Line', '<b style="color:' + xkLineColour(L.kind) + '">' + L.cn + '</b> <small>' + L.en + ' · ' +
+        (L.offset >= 0 ? '+' : '') + L.offset.toFixed(1) + '° from centre · ' + L.edge.toFixed(1) + '° from the edge</small>'],
+      ['Dragon', mr.facing.yuanName + '<small>' + esc(mr.yuanNote.replace(/^\S+ /, '')) + '</small>'],
+      ['Polarity', esc(mr.polarity.split(' — ')[0]) + '<small>' + esc(mr.polarity.split(' — ')[1] || '') + '</small>']
+    ]) +
+    '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.7">' + esc(L.note) + '</div>';
+    if (rp) {
+      html += rp.same
+        ? '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.7">The replacement stars here are the ' +
+          'same as the base stars, so the 替卦 chart is the same as the ordinary chart.</div>'
+        : '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.7"><b>Replacement chart 替卦</b> — ' +
+          '<b style="color:var(--brass)">' + rp.type + '</b> <small>' + rp.typeEn + '</small><br>' +
+          'Water star ' + rp.swaps.water.from + ' sits on ' + rp.swaps.water.mountain + ', so ' + rp.swaps.water.to +
+          ' flies in its place; mountain star ' + rp.swaps.mountain.from + ' sits on ' + rp.swaps.mountain.mountain +
+          ', so ' + rp.swaps.mountain.to + ' flies in its place.</div>' + xkGrid(rp);
+    }
+    if (mr.structures.length) {
+      html += '<div class="rows" style="margin-top:10px">' + mr.structures.map(function (s) {
+        return '<div class="row"><span class="k">' + s.cn + '<small>' + esc(s.en) + '</small></span><span class="v">' +
+          '<b style="color:' + (s.tone === 'good' ? 'var(--celadon)' : 'var(--cinnabar)') + '">' +
+          (s.tone === 'good' ? 'Supportive' : 'Take care') + '</b><small>' + esc(s.text) + '</small></span></div>';
+      }).join('') + '</div>';
+    } else {
+      html += '<div class="panel" style="margin-top:10px;font-size:.84rem;color:var(--muted)">No whole-chart structure ' +
+        '(伏吟, 反吟, 合十, 父母三般, 連珠) in ' +
+        (rp && !rp.same ? 'the replacement chart' : 'this chart') + '.</div>';
+    }
+    return html;
+  }
+
+  function xkLuopanHtml(lp, ad, period, sittingPal) {
+    var f = lp.facing, s = lp.sitting;
+    var spCol = function (h) { return h.spirit.use === 'mountain' ? 'var(--brass)' : 'var(--celadon)'; };
+    var html = xkRows([
+      ['Facing hexagram', xkHexLine(f)],
+      ['', 'element ' + f.element + ' ' + f.elementName + ' · period ' + f.period + ' · <b style="color:' + spCol(f) + '">' +
+        f.spirit.cn + '</b> <small>' + f.spirit.en + ' · line ' + f.yao + ' of 6</small>'],
+      ['Sitting hexagram', xkHexLine(s)],
+      ['', 'element ' + s.element + ' ' + s.elementName + ' · period ' + s.period + ' · <b style="color:' + spCol(s) + '">' +
+        s.spirit.cn + '</b> <small>' + s.spirit.en + '</small>'],
+      ['Timeliness', '<b style="color:' + (lp.timely === 'timely' ? 'var(--celadon)' : lp.timely ? 'var(--brass)' : 'var(--cinnabar)') + '">' +
+        (lp.timely === 'timely' ? '當運 Timely' : lp.timely ? '父母 Parent group' : '失運 Out of time') +
+        '</b><small>' + esc(lp.timelyText) + '</small>']
+    ]) +
+    '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.7">' + esc(lp.facingSpirit) + ' ' +
+      esc(lp.sittingSpirit) + ' Facing and sitting hexagrams always share a period and their element numbers add to ten.' +
+      (lp.edges.length ? '<br><b style="color:var(--cinnabar)">' + esc(lp.edges.join(' ')) + '</b>' : '') + '</div>';
+
+    html += '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.7"><b>Where water goes</b><br>';
+    if (!lp.waterPalace) {
+      html += 'No palace carries the period ' + period + ' water star, so there is no prosperous water palace to activate.';
+    } else {
+      html += 'The period ' + period + ' water star sits in the <b>' + lp.waterPalaceDir + '</b>. Within it, water belongs on a ' +
+        '零神 Indirect Spirit hexagram, best one whose period makes ten (合十) with the sitting hexagram (period ' +
+        s.period + ').' +
+        (lp.waterPalace === sittingPal ? ' <b style="color:var(--cinnabar)">This is also the sitting palace, where the period mountain ' +
+          'star is: keep water small and to the side, or leave it to a garden or path outside.</b>' : '') + '</div>' +
+        '<div class="rows">' +
+        lp.waterBest.map(function (w) {
+          return '<div class="row"><span class="k">' + w.hex.name + '<small>' + w.hex.from.toFixed(1) + '–' + w.hex.to.toFixed(1) +
+            '°</small></span><span class="v"><b style="color:var(--celadon)">Best</b><small>period ' + w.hex.period +
+            ' 合十 with the sitting hexagram · ' + esc(w.hex.nameEn) + '</small></span></div>';
+        }).join('') +
+        lp.waterOk.map(function (w) {
+          return '<div class="row"><span class="k">' + w.hex.name + '<small>' + w.hex.from.toFixed(1) + '–' + w.hex.to.toFixed(1) +
+            '°</small></span><span class="v"><b style="color:var(--brass)">Workable</b><small>period ' + w.hex.period +
+            ' 零神 · ' + esc(w.hex.nameEn) + '</small></span></div>';
+        }).join('') + '</div>';
+    }
+
+    if (lp.personHex) {
+      html += xkRows([['Your year hexagram', xkHexLine(lp.personHex) + '<small>element ' + lp.personHex.element + ' ' +
+        lp.personHex.elementName + (lp.personLink ? ' · ' + lp.personLink.cn + ' ' + lp.personLink.en + ' with the facing hexagram'
+          : ' · no number link with the facing hexagram') + '</small>']]);
+    }
+    if (ad && ad.dates.length) {
+      html += '<div class="panel" style="margin-top:10px;font-size:.86rem;line-height:1.6">Activation dates for ' + ad.target.name +
+        ' (element ' + ad.target.element + ', period ' + ad.target.period + '): the day’s hexagram links by number to the house' +
+        (lp.personHex ? ' and, where marked, to you' : '') + '. Days that clash your year branch are left out.</div>' +
+        '<div class="rows">' + ad.dates.map(function (d) {
+          return '<div class="row"><span class="k">' + d.date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) +
+            '<small>' + d.pillar + ' ' + d.hex.name + '</small></span><span class="v"><b style="color:var(--celadon)">' + d.toHouse.cn +
+            '</b>' + (d.toPerson ? ' + ' + d.toPerson.cn + ' <small>to you as well</small>' : '') + '</span></div>';
+        }).join('') + '</div>';
+    }
+    return html;
+  }
+
   /* ---------------- compass ---------------- */
 
   function compassSvg(heading, aff, period) {
@@ -6880,6 +7022,7 @@
     } else attach();
   }
 
+  var compassTyped = null;   // the last bearing typed in, read on the luopan when the sensor is off
   function paintCompass() {
     var host = $('fsCompass');
     if (!host) return;
@@ -6914,6 +7057,21 @@
           'recalibrate. Above a few degrees of drift the number is not trustworthy.</div>'
         : st ? '<div class="warnbar okbar">Steady to about ' + st.spread +
                '&deg; over the last few seconds.</div>' : '') +
+
+      (h !== null || compassTyped !== null ? (function () {
+        var hb = h !== null ? h : compassTyped, m = FS.mountainFor(hb), L = FS.lineOf(hb), hx = FS.hexAt(hb);
+        return block('On the luopan', hb.toFixed(1) + '° ' + (h !== null ? 'live' : 'typed') + ' · 24 mountains and the 64-hexagram ring',
+          xkRows([
+            ['Mountain', m.char + ' <small>' + m.dirFull + ' · ' + m.yuanName + ' · ' + (m.yang ? '陽 yang' : '陰 yin') + '</small>'],
+            ['Line', '<b style="color:' + xkLineColour(L.kind) + '">' + L.cn + '</b> <small>' + L.en + ' · ' +
+              (L.offset >= 0 ? '+' : '') + L.offset.toFixed(1) + '° from centre</small>'],
+            ['Hexagram', xkHexLine(hx)],
+            ['', 'element ' + hx.element + ' ' + hx.elementName + ' · period ' + hx.period + ' · ' + hx.spirit.cn +
+              ' <small>' + hx.spirit.en + ' · line ' + hx.yao + ' of 6' + (hx.edge < 0.5 ? ' · on a hexagram edge' : '') + '</small>']
+          ]) +
+          '<div class="panel" style="margin-top:10px;font-size:.84rem;line-height:1.6;color:var(--muted)">Use this bearing on a ' +
+          'property to see the full 24 Mountain and Luopan readings on the Feng Shui tab.</div>');
+      })() : '') +
 
       block('Take the reading', 'stand at the main door, facing out',
         '<div class="panel" style="font-size:.88rem;line-height:1.7">' +
@@ -6954,7 +7112,11 @@
         $('cpMsg').style.color = 'var(--cinnabar)';
         $('cpMsg').textContent = 'Enter a bearing between 0 and 359.9.'; return;
       }
+      compassTyped = v;
       adoptBearing(v);
+      var keep = $('cpMsg').innerHTML, col = $('cpMsg').style.color;
+      paintCompass();
+      $('cpMsg').innerHTML = keep; $('cpMsg').style.color = col;
     };
   }
 

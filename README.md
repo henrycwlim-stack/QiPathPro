@@ -49,6 +49,21 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.6 — Xuan Kong 24 Mountain and Luopan readings
+Version folder 10.6.0 (versionCode 58), copied from 10.5.3. Two new readings on the Feng Shui tab for a property with a facing
+bearing, and a live readout on the Compass tab (`www/js/fengshui.js`: `mountainReading`, `luopanReading`, `activationDates`).
+- **24 Mountain reading 二十四山:** facing and sitting mountain, dragon (地元 / 天元 / 人元), yin or yang, and where the bearing sits in
+  its mountain: 正向 straight (within 4.5° of centre), 兼 leaning, 小空亡 small void or 大空亡 great void (within 1.5° of a mountain or
+  palace line). A leaning facing also gets the 替卦 replacement chart from the classical verse. Whole-chart structures are named:
+  伏吟, 反吟, 合十, 父母三般卦 and 连珠三般卦.
+- **Luopan reading 玄空大卦:** the 64-hexagram ring (5.625° each, from the San Yuan Qi Men Xuan Kong Da Gua Compendium's luopan) for the
+  facing and sitting: hexagram, element number, period, 60 Jia Zi pillar and line. Timeliness against the current period, 正神 Direct
+  or 零神 Indirect Spirit, water placement in the palace of the period water star on Indirect Spirit hexagrams that make 合十 with the
+  sitting hexagram, the person's year-pillar hexagram, and activation dates in the next 60 days whose day hexagram links by number
+  to the house (and to the person), leaving out days that clash the year branch. Hexagram-edge (出卦) bearings are flagged.
+- **Compass:** a live or typed bearing now shows its mountain, line, hexagram, element, period and spirit.
+- The saved Feng Shui chart keeps the line, replacement chart type, structures and Luopan summary.
+
 ### 10.5.3 — Both emails: 10.5.0 layout folded, full width unfolded
 Version folder 10.5.3 (versionCode 57), copied from 10.5.2. Both daily emails return to the 10.5.0 layout, which reads best on a
 folded phone or a 6.5-inch screen, and their column may now widen to 760px instead of stopping at 640px, so they fill an unfolded

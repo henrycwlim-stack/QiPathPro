@@ -1469,7 +1469,7 @@
     zwdsPeriod: zwdsPeriod, zwdsDecades: zwdsDecades, SIHUA: SIHUA, HUA: HUA, STAR_TONE: STAR_TONE,
     brightness: brightness, BRIGHT: BRIGHT, BRIGHT_EN: BRIGHT_EN, starEffect: starEffect,
     placeMinors: placeMinors, MINOR_EN: MINOR_EN, MINOR_ABBR: MINOR_ABBR, MINOR_TONE: MINOR_TONE,
-    qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber,
+    qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
     TRIGRAMS: TRIGRAMS, TRI_EN: TRI_EN,
     strengthOf: strengthOf, STRENGTH: STRENGTH, starSeason: starSeason, STAR_STAGE: STAR_STAGE, hostGuest: hostGuest, hostGuestRead: hostGuestRead, doorSeason: doorSeason, doorPalace: doorVsPalace, disharmony: disharmony, nobleGrave: nobleGrave, horsePalace: horsePalace, forecastRules: forecastRules, HEALTH_CARE: HEALTH_CARE,
     annualStar: annualStar, monthStar: monthStar, flyingStars: flyingStars,
