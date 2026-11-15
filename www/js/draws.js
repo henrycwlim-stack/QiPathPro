@@ -35,6 +35,83 @@
     toto:  'https://www.singaporepools.com.sg/en/product/Pages/toto_results.aspx'
   };
 
+
+  /* ---------------- exact statistics and game facts ---------------- */
+
+  // TOTO moved from 6/45 to 6/49 with the draw of 9 October 2014 (first draw after 7 October).
+  var TOTO_49_FROM = '2014-10-07';
+  function totoPool(date) { return date >= TOTO_49_FROM ? 49 : 45; }
+  function comb(n, k) { if (k < 0 || k > n) return 0; var r = 1; for (var i = 0; i < k; i++) r = r * (n - i) / (i + 1); return r; }
+  /** Two-sided exact binomial p-value: the chance of a hit count at least as unlikely as k in n tries at rate p. */
+  function binomP(k, n, p) {
+    if (!n || p <= 0 || p >= 1) return 1;
+    var logC = function (nn, kk) { var s = 0; for (var i = 0; i < kk; i++) s += Math.log((nn - i) / (i + 1)); return s; };
+    var pmf = function (kk) { return Math.exp(logC(n, kk) + kk * Math.log(p) + (n - kk) * Math.log(1 - p)); };
+    var obs = pmf(k), tot = 0;
+    for (var i = 0; i <= n; i++) { var v = pmf(i); if (v <= obs * (1 + 1e-9)) tot += v; }
+    return Math.min(1, tot);
+  }
+  /** Chance that `picks` numbers chosen from `pool` include at least `need` of the 6 drawn. */
+  function totoAtLeast(picks, pool, need) {
+    var t = 0; for (var m = need; m <= 6; m++) t += comb(6, m) * comb(pool - 6, picks - m) / comb(pool, picks);
+    return t;
+  }
+
+  // Official prize structures (GRA-approved game rules: 4D effective 30 Dec 2024, TOTO effective 2 Mar 2026).
+  var GAME_FACTS = {
+    source: 'Singapore Pools game rules approved by the Gambling Regulatory Authority: 4D effective 30 December 2024, TOTO effective 2 March 2026.',
+    totoPoolShare: 0.54,
+    toto: [
+      { group: 1, match: '6 numbers', prize: '38% of the prize pool, at least $1,000,000', ways: function () { return 1; } },
+      { group: 2, match: '5 + additional', prize: '8% of the prize pool', ways: function () { return comb(6, 5); } },
+      { group: 3, match: '5 numbers', prize: '5.5% of the prize pool', ways: function () { return comb(6, 5) * comb(42, 1); } },
+      { group: 4, match: '4 + additional', prize: '3% of the prize pool', ways: function () { return comb(6, 4) * comb(42, 1); } },
+      { group: 5, match: '4 numbers', prize: '$50 fixed', ways: function () { return comb(6, 4) * comb(42, 2); } },
+      { group: 6, match: '3 + additional', prize: '$25 fixed', ways: function () { return comb(6, 3) * comb(42, 2); } },
+      { group: 7, match: '3 numbers', prize: '$10 fixed', ways: function () { return comb(6, 3) * comb(42, 3); } }
+    ],
+    fourDBig: [['1st', 1, 2000], ['2nd', 1, 1000], ['3rd', 1, 490], ['Starter', 10, 250], ['Consolation', 10, 60]],
+    fourDSmall: [['1st', 1, 3000], ['2nd', 1, 2000], ['3rd', 1, 800]]
+  };
+  function odds() {
+    var total = comb(49, 6), groups = GAME_FACTS.toto.map(function (g) { var w = g.ways(); return { group: g.group, match: g.match, prize: g.prize, oneIn: total / w }; });
+    var anyWays = GAME_FACTS.toto.reduce(function (a, g) { return a + g.ways(); }, 0);
+    var big = GAME_FACTS.fourDBig.reduce(function (a, x) { return a + x[1] * x[2]; }, 0) / 10000;
+    var small = GAME_FACTS.fourDSmall.reduce(function (a, x) { return a + x[1] * x[2]; }, 0) / 10000;
+    return { toto: groups, totoAnyOneIn: total / anyWays, totoReturn: GAME_FACTS.totoPoolShare,
+      fourDBig: GAME_FACTS.fourDBig, fourDSmall: GAME_FACTS.fourDSmall, fourDBigReturn: big, fourDSmallReturn: small,
+      fourDBigAnyOneIn: 10000 / 23, fourDSmallAnyOneIn: 10000 / 3, source: GAME_FACTS.source };
+  }
+
+  /**
+   * How likely a TOTO set is to be shared if it wins. Odds never change; only Groups 1 to 4 are split between winners,
+   * and popular patterns (birthdays, runs, lines, past results) are picked by more people.
+   */
+  function sharing(numbers) {
+    var ns = (numbers || []).map(Number).filter(function (n) { return n >= 1 && n <= 49; }).sort(function (a, b) { return a - b; });
+    if (!ns.length) return null;
+    var notes = [], score = 0;
+    var low = ns.filter(function (n) { return n <= 31; }).length;
+    if (low === ns.length) { score += 2; notes.push('every number is 31 or under, like a birthday, which many players choose'); }
+    else if (low >= ns.length - 1) { score += 1; notes.push('almost every number is 31 or under'); }
+    var run = 1, best = 1;
+    for (var i = 1; i < ns.length; i++) { run = ns[i] === ns[i - 1] + 1 ? run + 1 : 1; best = Math.max(best, run); }
+    if (best >= 3) { score += 2; notes.push('it has a run of ' + best + ' consecutive numbers'); }
+    var gaps = ns.slice(1).map(function (n, i) { return n - ns[i]; });
+    if (gaps.length >= 3 && gaps.every(function (g) { return g === gaps[0]; })) { score += 2; notes.push('the numbers are evenly spaced, a pattern people like'); }
+    var decades = {}; ns.forEach(function (n) { decades[Math.floor(n / 10)] = 1; });
+    if (Object.keys(decades).length <= 2) { score += 1; notes.push('the numbers bunch into one or two decades'); }
+    var lucky = ns.filter(function (n) { return [8, 18, 28, 38, 48, 6, 9, 3].indexOf(n) >= 0; }).length;
+    if (lucky >= 3) { score += 1; notes.push('several are commonly chosen "lucky" numbers'); }
+    var past = drawsToto().filter(function (r) { return r.numbers.every(function (n) { return ns.indexOf(n) >= 0; }); });
+    if (past.length) { score += 1; notes.push('it contains a past winning combination (' + past[0].date + '), which some players replay'); }
+    var level = score >= 4 ? 'High' : score >= 2 ? 'Medium' : 'Low';
+    return { level: level, score: score, notes: notes,
+      text: level === 'Low' ? 'Few common patterns: if it won a shared prize, it would likely be split between fewer people.'
+        : level === 'Medium' ? 'Some popular patterns: a shared prize could be split more than average.'
+        : 'Very popular patterns: a shared prize would likely be split between many winners.' };
+  }
+
   /* ---------------- storage ---------------- */
 
   function load(k) {
@@ -147,12 +224,12 @@
     var head = splitRow(lines[0] || '').map(function (h) { return h.trim().toLowerCase(); });
     var iDraw = head.indexOf('draw_number'), iNum = head.indexOf('number'), iDate = head.indexOf('date');
     if (iNum < 0 || iDate < 0) return [];
-    var out = [];
+    var out = [], undated = 0;
     for (var i = 1; i < lines.length; i++) {
       if (!lines[i]) continue;
       var c = splitRow(lines[i]);
       var date = normDate(c[iDate]);
-      if (!date) continue;                       // drops the year-0001 block and NaN rows
+      if (!date) { undated++; continue; }        // drops the year-0001 block and NaN rows
       var nums = ((c[iNum] || '').match(/\d{1,2}/g) || []).map(Number)
                    .filter(function (n) { return n >= 1 && n <= 49; });
       if (nums.length < 7) continue;
@@ -161,6 +238,7 @@
       out.push({ d: date, n: iDraw >= 0 ? (c[iDraw] || '').trim() : '',
                  w: win.slice(0).sort(function (a, b) { return a - b; }), a: nums[6] });
     }
+    out.undated = undated;
     return out;
   }
 
@@ -197,7 +275,9 @@
       if (!rows.length) throw new Error('The file downloaded but no draws could be read from it. ' +
         'The dataset format may have changed.');
       if (onStage) onStage('Storing ' + rows.length + ' draws…');
+      var undatedRows = rows.undated || 0;
       var res = mergeInto(kind === 'toto' ? KEY_TOTO : KEY_4D, rows);
+      res.undated = undatedRows;
       setMeta(kind === 'toto' ? { totoSynced: new Date().toISOString(), totoSource: 'GitHub dataset' }
                               : { fourDSynced: new Date().toISOString(), fourDSource: 'GitHub dataset' });
       res.parsed = rows.length;
@@ -217,7 +297,9 @@
         'draw_number,number,date — which is what the bundled scraper writes — or a results ' +
         'table copied from the Singapore Pools page.' };
     }
+    var undatedRows = rows.undated || 0;
     var res = mergeInto(kind === 'toto' ? KEY_TOTO : KEY_4D, rows);
+    res.undated = undatedRows;
     setMeta(kind === 'toto' ? { totoSynced: new Date().toISOString(), totoSource: 'manual import' }
                             : { fourDSynced: new Date().toISOString(), fourDSource: 'manual import' });
     res.parsed = rows.length;
@@ -289,10 +371,14 @@
       }
     });
     var oldest = list[list.length - 1].date, newest = list[0].date;
-    if (!firstHigh) return [{ id: '45', pool: 45, from: oldest, to: newest, label: '6 from 45' }];
+    // The change date is known; the data is only trusted over it if a 46-49 appears earlier (an upstream error).
+    var cut = firstHigh && firstHigh < TOTO_49_FROM ? firstHigh : TOTO_49_FROM;
+    if (newest < cut) return [{ id: '45', pool: 45, from: oldest, to: newest, label: '6 from 45' }];
+    if (oldest >= cut) return [{ id: '49', pool: 49, from: oldest, to: newest, label: '6 from 49 (current format)' }];
+    var before = list.filter(function (r) { return r.date < cut; })[0];
     return [
-      { id: '45', pool: 45, from: oldest, to: firstHigh, label: '6 from 45 (until Oct 2014)' },
-      { id: '49', pool: 49, from: firstHigh, to: newest, label: '6 from 49 (current format)' }
+      { id: '45', pool: 45, from: oldest, to: before ? before.date : oldest, label: '6 from 45 (until Oct 2014)' },
+      { id: '49', pool: 49, from: cut, to: newest, label: '6 from 49 (current format)' }
     ];
   }
 
@@ -321,8 +407,11 @@
                   z: sd > 0 ? (counts[i] - expected) / sd : 0 });
     }
     var sorted = rows.slice(0).sort(function (a, b) { return b.count - a.count; });
-    var chi = 0;
-    if (expected > 0) rows.forEach(function (r) { chi += Math.pow(r.count - expected, 2) / expected; });
+    var chiRaw = 0;
+    if (expected > 0) rows.forEach(function (r) { chiRaw += Math.pow(r.count - expected, 2) / expected; });
+    // Six numbers are drawn without replacement, so the plain statistic averages pool - 6, not pool - 1, for a fair draw.
+    // Scaling by (pool - 1) / (pool - 6) restores the chi-square reference distribution.
+    var chi = chiRaw * (pool - 1) / (pool - 6);
     var df = pool - 1;
     // Wilson-Hilferty normal approximation to the chi-square upper tail.
     var crit5 = df * Math.pow(1 - 2 / (9 * df) + 1.645 * Math.sqrt(2 / (9 * df)), 3);
@@ -332,7 +421,7 @@
       draws: draws, expected: expected, sd: sd, rows: rows,
       hot: sorted.slice(0, 8), cold: sorted.slice(-8).reverse(),
       maxZ: draws ? Math.max.apply(null, rows.map(function (r) { return Math.abs(r.z); })) : 0,
-      chiSquare: chi, chiDf: df,
+      chiSquare: chi, chiRaw: chiRaw, chiDf: df,
       chiCrit5: crit5, chiCrit1: crit1,
       chiVerdict: !draws ? 'no data'
                 : chi < crit5 ? 'consistent with a fair draw'
@@ -357,7 +446,12 @@
     });
     var repeats = Object.keys(top3).map(function (k) { return { n: k, count: top3[k] }; })
       .sort(function (a, b) { return b.count - a.count; }).slice(0, 10);
-    return { draws: list.length, numbers: numbers, positions: pos, overall: all,
+    var crit5 = 16.92, crit1 = 21.67;   // chi-square, 9 degrees of freedom
+    var posChi = pos.map(function (row) {
+      var e = numbers / 10, c = 0; row.forEach(function (v) { c += e > 0 ? Math.pow(v - e, 2) / e : 0; });
+      return { chi: c, verdict: !numbers ? 'no data' : c < crit5 ? 'consistent with chance' : c < crit1 ? 'mildly unusual' : 'unusual for a fair draw' };
+    });
+    return { draws: list.length, numbers: numbers, positions: pos, overall: all, positionChi: posChi, chiCrit5: crit5,
              expectedPerDigit: numbers / 10, topPrizeRepeats: repeats,
              span: list.length ? { from: list[list.length - 1].date, to: list[0].date } : null };
   }
@@ -480,7 +574,7 @@
   function ledger(generatorFn, kind, limit) {
     var list = kind === 'toto' ? drawsToto() : draws4D();
     if (!list.length) return null;
-    var rows = [], dist = {}, checked = 0, hits = 0;
+    var rows = [], dist = {}, checked = 0, hits = 0, sumP = 0, sumMatch = 0;
 
     list.slice(0, limit || 60).forEach(function (r) {
       var parts = r.date.split('-').map(Number);
@@ -490,7 +584,8 @@
 
       if (kind === 'toto' && gen.toto) {
         checked++;
-        var pred = gen.toto.numbers;
+        var pred = gen.toto.numbers, pool = totoPool(r.date);
+        sumP += totoAtLeast(pred.length, pool, 3); sumMatch += 6 * pred.length / pool;
         var overlap = pred.filter(function (n) { return r.numbers.indexOf(n) >= 0; });
         var addHit = pred.indexOf(r.additional) >= 0;
         dist[overlap.length] = (dist[overlap.length] || 0) + 1;
@@ -500,6 +595,10 @@
       } else if (kind === '4d' && gen.fourD) {
         checked++;
         var won = gen.fourD.sets.filter(function (x) { return r.prizes.indexOf(x) >= 0; });
+        // The chance for this draw, from its own distinct prize numbers and the distinct sets held.
+        var uP = {}, uS = {}; r.prizes.forEach(function (x) { uP[x] = 1; }); gen.fourD.sets.forEach(function (x) { uS[x] = 1; });
+        var nP = Object.keys(uP).length, nS = Object.keys(uS).length;
+        sumP += 1 - comb(10000 - nP, nS) / comb(10000, nS);
         var top = gen.fourD.sets.filter(function (x) {
           return x === r.first || x === r.second || x === r.third; });
         if (won.length) hits++;
@@ -510,14 +609,14 @@
     });
 
     var stats = kind === 'toto'
-      ? totoBaseline(checked, dist, hits)
-      : fourDBaseline(checked, hits, rows);
+      ? totoBaseline(checked, dist, hits, sumP, sumMatch)
+      : fourDBaseline(checked, hits, rows, sumP);
 
     return { kind: kind, checked: checked, hits: hits, rows: rows, dist: dist, stats: stats };
   }
 
   // Hypergeometric: choosing 7 of 49, how many of the 6 drawn do we expect to hit?
-  function totoBaseline(checked, dist, hits) {
+  function totoBaseline(checked, dist, hits, sumP, sumMatch) {
     function C(n, k) {
       if (k < 0 || k > n) return 0;
       var r = 1;
@@ -531,36 +630,36 @@
       if (m >= 3) expected3plus += p;
     }
     var obs = checked ? hits / checked : 0;
-    // Binomial standard error on the observed rate, for judging the gap honestly.
-    var se = checked ? Math.sqrt(expected3plus * (1 - expected3plus) / checked) : 0;
-    var z = se > 0 ? (obs - expected3plus) / se : 0;
+    // Chance worked out draw by draw (6/45 before October 2014, 6/49 after), then judged with the exact binomial test.
+    var chance = checked && sumP ? sumP / checked : expected3plus;
+    var se = checked ? Math.sqrt(chance * (1 - chance) / checked) : 0;
+    var z = se > 0 ? (obs - chance) / se : 0, p = checked ? binomP(hits, checked, chance) : 1;
     return {
-      label: 'Toto, 7 numbers against 6 drawn from 49',
-      expectedMatch: 6 * 7 / 49,
-      chanceRate: expected3plus, observedRate: obs, z: z,
+      label: 'Toto, 7 numbers against the 6 drawn',
+      expectedMatch: checked && sumMatch ? sumMatch / checked : 6 * 7 / 49,
+      chanceRate: chance, observedRate: obs, z: z, p: p,
       probs: probs,
       verdict: !checked ? 'no data'
-             : Math.abs(z) < 2 ? 'indistinguishable from chance'
-             : z >= 2 ? 'above chance in this sample — needs a far larger sample before it means anything'
-             : 'below chance in this sample, which is also just noise'
+             : p >= 0.05 ? 'indistinguishable from chance'
+             : obs > chance ? 'above chance in this sample (exact p ' + p.toFixed(3) + ') — needs a far larger sample before it means anything'
+             : 'below chance in this sample (exact p ' + p.toFixed(3) + '), which is also just noise'
     };
   }
 
-  function fourDBaseline(checked, hits, rows) {
-    // 4 sets against 23 prize numbers out of 10,000 possibilities.
-    var perSet = 23 / 10000;
-    var chanceRate = 1 - Math.pow(1 - perSet, 4);
+  function fourDBaseline(checked, hits, rows, sumP) {
+    // Chance from each draw's own prize numbers (usually 23, fewer or more in some early draws).
+    var chanceRate = checked && sumP ? sumP / checked : 1 - Math.pow(1 - 23 / 10000, 4);
     var obs = checked ? hits / checked : 0;
     var se = checked ? Math.sqrt(chanceRate * (1 - chanceRate) / checked) : 0;
-    var z = se > 0 ? (obs - chanceRate) / se : 0;
+    var z = se > 0 ? (obs - chanceRate) / se : 0, p = checked ? binomP(hits, checked, chanceRate) : 1;
     var topHits = rows.filter(function (r) { return (r.topMatched || []).length; }).length;
     return {
-      label: '4D, 4 sets against the 23 prize numbers per draw',
-      chanceRate: chanceRate, observedRate: obs, z: z, topHits: topHits,
+      label: '4D, 4 sets against each draw\'s prize numbers',
+      chanceRate: chanceRate, observedRate: obs, z: z, p: p, topHits: topHits,
       verdict: !checked ? 'no data'
-             : Math.abs(z) < 2 ? 'indistinguishable from chance'
-             : z >= 2 ? 'above chance in this sample — treat with heavy scepticism until replicated'
-             : 'below chance in this sample, which is also just noise'
+             : p >= 0.05 ? 'indistinguishable from chance'
+             : obs > chanceRate ? 'above chance in this sample (exact p ' + p.toFixed(3) + ') — treat with heavy scepticism until replicated'
+             : 'below chance in this sample (exact p ' + p.toFixed(3) + '), which is also just noise'
     };
   }
 
@@ -577,7 +676,7 @@
     fetchDataset: fetchDataset, importText: importText, clear: clear,
     parse4DCsv: parse4DCsv, parseTotoCsv: parseTotoCsv,
     totoFrequency: totoFrequency, fourDFrequency: fourDFrequency, backtest: backtest,
-    detectEras: detectEras,
+    detectEras: detectEras, binomP: binomP, totoPool: totoPool, odds: odds, sharing: sharing, GAME_FACTS: GAME_FACTS,
     REPO_URL: REPO_URL, OFFICIAL: OFFICIAL, GH_BASE: GH_BASE, DATASET: DATASET
   };
 })(typeof window !== 'undefined' ? window : globalThis);

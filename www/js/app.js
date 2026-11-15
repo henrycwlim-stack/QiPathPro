@@ -6458,6 +6458,64 @@
     };
   }
 
+
+  /* ---------------- Numbers: odds, sharing and a personal budget ---------------- */
+  function spendKey() { return 'qipath.spend.' + user.id; }
+  function spendLoad() { try { return JSON.parse(localStorage.getItem(spendKey()) || '{}'); } catch (e) { return {}; } }
+  function spendSave(d) { try { localStorage.setItem(spendKey(), JSON.stringify(d)); } catch (e) {} }
+  function spendMonth(d) {
+    var t = now(), ym = t.y + '-' + String(t.m).padStart(2, '0');
+    var list = (d.entries || []).filter(function (e) { return e.date.slice(0, 7) === ym; });
+    return { ym: ym, list: list, total: list.reduce(function (a, e) { return a + e.amount; }, 0) };
+  }
+  function budgetHtml() {
+    var d = spendLoad(), m = spendMonth(d), lim = +d.limit || 0, pct = lim ? Math.min(100, Math.round(m.total / lim * 100)) : 0;
+    var over = lim && m.total > lim;
+    return block('Your play budget', 'optional, kept only on this phone',
+      (lim ? '<div class="rows"><div class="row"><span class="k">This month</span><span class="v" style="flex:1"><div class="meter' + (over ? ' bad' : '') + '"><i style="width:' + pct + '%"></i></div>' +
+        '<small>$' + m.total.toFixed(2) + ' of $' + lim.toFixed(2) + (over ? ' · over your limit' : '') + '</small></span></div></div>' : '') +
+      (over ? '<div class="notice" style="margin-top:8px">You have gone past the limit you set for this month. It may be a good time to stop until next month. ' +
+        'If it feels hard to stop, the National Problem Gambling Helpline is free and confidential: <a href="tel:18006668668">1800-6-668-668</a>.</div>' : '') +
+      '<div class="two" style="margin-top:10px"><div><label for="bdLimit">Monthly limit ($)</label><input id="bdLimit" type="number" min="0" step="1" inputmode="decimal" value="' + (lim || '') + '" placeholder="e.g. 20"></div>' +
+      '<div><label for="bdSpend">Add what you spent ($)</label><input id="bdSpend" type="number" min="0" step="0.5" inputmode="decimal" placeholder="e.g. 7"></div></div>' +
+      '<div class="two"><button class="btn ghost" id="bdSetLimit">Save limit</button><button class="btn ghost" id="bdAdd">Add spend</button></div>' +
+      (m.list.length ? '<div class="hint">' + m.list.length + ' entr' + (m.list.length > 1 ? 'ies' : 'y') + ' this month. <a href="#" id="bdClear">Clear this month</a></div>' : ''));
+  }
+  function wireBudget() {
+    if (!$('bdSetLimit')) return;
+    $('bdSetLimit').onclick = function () { var d = spendLoad(); d.limit = Math.max(0, +$('bdLimit').value || 0); spendSave(d); renderNumbers(); };
+    $('bdAdd').onclick = function () {
+      var v = +$('bdSpend').value; if (!(v > 0)) return;
+      var d = spendLoad(); d.entries = (d.entries || []).concat([{ date: isoOf(now()), amount: Math.round(v * 100) / 100 }]).slice(-400); spendSave(d); renderNumbers();
+    };
+    if ($('bdClear')) $('bdClear').onclick = function (e) {
+      e.preventDefault(); var d = spendLoad(), ym = spendMonth(d).ym;
+      d.entries = (d.entries || []).filter(function (x) { return x.date.slice(0, 7) !== ym; }); spendSave(d); renderNumbers();
+    };
+  }
+  function oddsHtml(DR) {
+    var o = DR.odds(), f = function (x) { return '1 in ' + Math.round(x).toLocaleString(); };
+    return block('The odds and what comes back', 'from the official game rules',
+      '<h3 style="margin:0 0 6px;font-size:.9rem">TOTO, one ordinary entry of 6 numbers</h3>' +
+      xkRows(o.toto.map(function (g) { return ['Group ' + g.group + '<small>' + esc(g.match) + '</small>', f(g.oneIn) + ' <small>' + esc(g.prize) + '</small>']; })) +
+      '<div class="plain" style="margin:8px 0">Any prize: ' + f(o.totoAnyOneIn) + '. The seven numbers shown here are a System 7 entry, which is seven ordinary entries and costs seven times as much. ' +
+        'On average about ' + Math.round(o.totoReturn * 100) + '¢ of every dollar staked (after GST) goes back as prizes; Groups 1 to 4 are shared between winners.</div>' +
+      '<h3 style="margin:12px 0 6px;font-size:.9rem">4D, per $1 bet</h3>' +
+      xkRows([
+        ['Big', 'any prize ' + f(o.fourDBigAnyOneIn) + '<small>' + o.fourDBig.map(function (x) { return x[0] + ' $' + x[2].toLocaleString() + (x[1] > 1 ? ' (×' + x[1] + ')' : ''); }).join(' · ') + '</small>'],
+        ['Small', 'any prize ' + f(o.fourDSmallAnyOneIn) + '<small>' + o.fourDSmall.map(function (x) { return x[0] + ' $' + x[2].toLocaleString(); }).join(' · ') + '</small>']
+      ]) +
+      '<div class="plain" style="margin-top:8px">Average return: ' + Math.round(o.fourDBigReturn * 100) + '¢ per $1 on Big and ' + Math.round(o.fourDSmallReturn * 100) + '¢ on Small. ' +
+        '4D prizes are fixed, so they are never shared. Over time every game returns less than it takes in.</div>' +
+      '<div class="hint">' + esc(o.source) + '</div>');
+  }
+  function sharingHtml(DR, numbers) {
+    var s = DR.sharing(numbers); if (!s) return '';
+    var cls = { Low: 'good-t', Medium: '', High: 'bad-t' }[s.level];
+    return '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.6"><b>Chance of sharing a prize: <span class="' + cls + '">' + s.level + '</span></b><br>' + esc(s.text) +
+      (s.notes.length ? '<br><small>' + esc(s.notes.join('; ')) + '.</small>' : '') +
+      '<br><small style="color:var(--muted)">This never changes the odds of winning. It only affects how many people would split Groups 1 to 4.</small></div>';
+  }
   function renderNumbers() {
     var dt = now(), host = $('numbersBody');
     var DR = window.QPDraws;
@@ -6500,18 +6558,20 @@
       if (n.toto) {
         out += block('Toto · ' + n.toto.drawDay, 'seven numbers, chart-derived',
           '<div class="balls">' + n.toto.numbers.map(function (x) {
-            return '<div class="ball">' + x + '</div>'; }).join('') + '</div>');
+            return '<div class="ball">' + x + '</div>'; }).join('') + '</div>' + sharingHtml(DR, n.toto.numbers));
       } else {
         out += block('Toto', 'draws Monday and Thursday',
           '<div class="locked"><span class="big">' + nx.toto + '</span>' +
           (nx.toto === 1 ? 'day' : 'days') + ' until the next Toto draw morning.</div>');
       }
+      out += oddsHtml(DR) + budgetHtml();
       out += block('How these were derived', 'so you can see there is no hidden claim',
         '<div class="rows">' + n.derivation.map(function (dv) {
           return '<div class="row"><span class="k">·</span><span class="v">' + esc(dv) + '</span></div>';
         }).join('') + '</div>' +
         ((n.fourD || n.toto) ? saveBar('numSave', 'Save these numbers') : ''));
       body.innerHTML = out;
+      wireBudget();
 
       if (n.fourD || n.toto) wireSave('numSave', function () {
         return { kind:'numbers',
@@ -6599,7 +6659,8 @@
         DR.fetchDataset(kind, stage).then(function (r) {
           var m = $('ghMsg'); m.style.color = 'var(--celadon)';
           m.textContent = 'Read ' + r.parsed + ' draws, ' + r.added + ' new. ' + r.total + ' stored.' +
-            (r.trimmed ? ' Storage was full so only the most recent were kept.' : '');
+            (r.trimmed ? ' Storage was full so only the most recent were kept.' : '') +
+            (r.undated ? ' ' + r.undated + ' draws in the file have no date and were left out.' : '');
           btn.textContent = label; btn.disabled = false;
           paintDraws(); renderNumbers();
         }).catch(function (e) {
@@ -6615,7 +6676,8 @@
         var m = $('impMsg');
         if (r.error) { m.style.color = 'var(--cinnabar)'; m.textContent = r.error; return; }
         m.style.color = 'var(--celadon)';
-        m.textContent = 'Read ' + r.parsed + ' draws, ' + r.added + ' new. ' + r.total + ' stored.';
+        m.textContent = 'Read ' + r.parsed + ' draws, ' + r.added + ' new. ' + r.total + ' stored.' +
+          (r.undated ? ' ' + r.undated + ' rows have no date and were left out.' : '');
         paintDraws();
       };
       $('impClear').onclick = function () {
@@ -6689,7 +6751,7 @@
                'large, but expected somewhere across 49 numbers') + '</small>'],
             ['Chi-square test', freq.chiSquare.toFixed(1) + ' on ' + freq.chiDf +
               ' df <small>5% threshold ' + freq.chiCrit5.toFixed(1) + ' · ' +
-              freq.chiVerdict + '</small>']
+              freq.chiVerdict + ' · adjusted for six numbers drawn without replacement</small>']
           ])) +
         block('Most and least seen', 'observed counts, not predictions',
           '<div class="rows">' + freq.hot.map(function (r) {
@@ -6719,7 +6781,8 @@
               '<small>' + row.map(function (c, dg) {
                 return dg + ':' + c; }).join('  ') + '</small>' +
               '<small style="color:var(--muted)">expected ' +
-              Math.round(four.expectedPerDigit).toLocaleString() + ' each</small></span></div>';
+              Math.round(four.expectedPerDigit).toLocaleString() + ' each' +
+              (four.positionChi ? ' · chi-square ' + four.positionChi[pos].chi.toFixed(1) + ' (5% threshold ' + four.chiCrit5 + '), ' + four.positionChi[pos].verdict : '') + '</small></span></div>';
           }).join('') + '</div>' +
           (four.topPrizeRepeats && four.topPrizeRepeats.length ?
             '<div class="panel" style="margin-top:10px;font-size:.86rem;line-height:1.7">' +
@@ -6743,7 +6806,7 @@
         if (!L || !L.checked) return '';
         var st = L.stats;
         var gap = st.observedRate - st.chanceRate;
-        var cls = Math.abs(st.z) < 2 ? '' : st.z > 0 ? 'good' : 'bad';
+        var cls = (st.p !== undefined ? st.p >= 0.05 : Math.abs(st.z) < 2) ? '' : st.observedRate > st.chanceRate ? 'good' : 'bad';
         return block(title, note,
           rows([
             ['Draws replayed', L.checked],
@@ -6753,7 +6816,7 @@
             ['What the app achieved', (st.observedRate * 100).toFixed(2) + '%' +
               ' <small>' + L.hits + ' of ' + L.checked + '</small>'],
             ['Difference', (gap >= 0 ? '+' : '') + (gap * 100).toFixed(2) +
-              ' points <small>z = ' + st.z.toFixed(2) + '</small>'],
+              ' points <small>exact p = ' + (st.p === undefined ? '—' : st.p < 0.001 ? '&lt;0.001' : st.p.toFixed(3)) + ' · z = ' + st.z.toFixed(2) + '</small>'],
             ['Verdict', '<b style="color:' + (cls === 'good' ? 'var(--brass)'
               : cls === 'bad' ? 'var(--cinnabar)' : 'var(--muted)') + '">' +
               st.verdict + '</b>']

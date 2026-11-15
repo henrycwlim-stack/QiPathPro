@@ -49,6 +49,22 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.13 — Numbers: exact statistics, official odds, sharing check and a play budget
+Version folder 10.13.0 (versionCode 69), copied from 10.12.0. Checked against the full public archive (3,034 TOTO and 5,557 4D draws).
+- **Chi-square** on the TOTO analysis is adjusted for six numbers drawn without replacement (it averaged pool - 6, not pool - 1).
+- **Past results ledger** judges hits with the exact binomial test, not a z-score that fails at small counts, and works out chance
+  draw by draw: 6/45 or 6/49 for TOTO, and each 4D draw's own distinct prize numbers (17 to 27 in some early draws, not always 23).
+  The Method trial uses the same per-draw chance.
+- **TOTO eras** split at the known change date, 7 October 2014, instead of the first number above 45.
+- **Imports** say how many rows had no date and were left out (198 early TOTO draws in the public dataset).
+- **4D digit frequency** gives a chi-square verdict for each position.
+- **Chance of sharing a prize** for the TOTO numbers: birthdays, runs, even spacing, bunching, popular numbers and past winning
+  combinations, with a note that it never changes the odds.
+- **The odds and what comes back**: every TOTO group's odds and prize, any-prize odds, the 54% prize pool, 4D Big and Small prizes
+  and their 65.9¢ and 58¢ average return, from the GRA-approved game rules (4D effective 30 Dec 2024, TOTO effective 2 Mar 2026).
+- **Your play budget**: an optional monthly limit and spend log, kept only on the phone, with a stop reminder and the helpline
+  when the limit is passed.
+
 ### 10.12 — Coach: fresher questions, in line with the ICF core competencies
 Version folder 10.12.0 (versionCode 68), copied from 10.11.0.
 - **No more paraphrasing:** the reflection is optional, must add something new (an unnamed feeling, a link between two answers, a
