@@ -2208,8 +2208,17 @@
           'and what cools each of them, the kind of touch, massage and setting that suits each, the best times of day, stamina, and how ' +
           'to handle a mismatch in desire. Where SEXUAL COMPATIBILITY is given, write frankly about sex itself — sexual chemistry, ' +
           'libido, arousal and turn-offs, foreplay, sexual style, who leads, how often, and talking about sex — using plain words ' +
-          'such as sex, libido and arousal. Keep it non-graphic: no description of sexual acts or anatomy. For health or ' +
-          'fertility, mention ordinary habits only and suggest a doctor; never diagnose. Where a dimension is weak, give detailed ' +
+          'such as sex, libido and arousal. They have also asked for sexual acts to be described: say frankly and specifically which ' +
+          'sexual activities suit each person and the pair, and why from the charts: positions, kinds of touch, manual and oral ' +
+          'stimulation, pace and rhythm, and how to build to and through climax. Write as an experienced sex therapist guiding a couple, ' +
+          'in plain adult language, not as erotic storytelling. Everything is mutual and agreed between them; mention talking first, ' +
+          'safer sex, and that either of them can slow down or stop at any time. Do read the body: for ' +
+          'each person, name the organs and body systems the tradition links to their sexual vitality, desire, stamina and fertility, ' +
+          'and why, from which of their elements are weak or excessive (Water and 坎: the kidneys, the reproductive and urinary system ' +
+          'and 腎精, the root of sexual energy; Fire: the heart and circulation, for arousal; Wood: the liver and its channel, which runs ' +
+          'through the genital area, for flow and tension; Earth: the spleen and stomach, for stamina; Metal: the lungs and skin, for ' +
+          'breath and sensitivity to touch). Use plain anatomical words for the body parts. ' + HEALTH_RULE +
+          'Where a dimension is weak, give detailed ' +
           'counter-measures: Qimen remedies (the direction to activate, objects, colours, scents and words that strengthen it, and ' +
           'those that weaken it), behaviour, and the dates and hours from the data. Never invent a date that is not in the data.\n\n'
         : 'Do not discuss attraction, desire or intimacy; return "attraction", "desire", "intimacy" and "remedies" as empty strings.\n\n') +
@@ -2220,9 +2229,9 @@
       '  "frictions": "Where friction comes from, which chart signal causes it, and the practical response to each (100-150 words).",\n' +
       '  "communication": "How each person takes in difficult news and affection, and how the other should approach them (80-120 words).",\n' +
       '  "attraction": "' + (withIntimacy ? 'How strong the pull between them is, in the charts and this month; if weak, the counter-measures (90-140 words).' : '') + '",\n' +
-      '  "desire": "' + (withIntimacy ? 'Each person\'s desire specifically — level, initiation, pace and build-up, what arouses and what cools them — how the two fit, how to handle any mismatch, and counter-measures if desire is weak. Frank but non-graphic (150-220 words).' : '') + '",\n' +
-      '  "intimacy": "' + (withIntimacy ? 'Tenderness and physical closeness specifically — the touch, massage, setting and best hours for each, what to do before, during and after closeness, and counter-measures if intimacy is weak. Frank but non-graphic (150-220 words).' : '') + '",\n' +
-      '  "sexual": "' + (res.sexual ? 'Their sexual compatibility, frankly: chemistry, each person\'s libido and what turns them on and off, foreplay, who leads, how often, how to talk about it, and specific counter-measures where chemistry or libido needs work — non-graphic (150-230 words).' : '') + '",\n' +
+      '  "desire": "' + (withIntimacy ? 'Each person\'s desire specifically — level, initiation, pace and build-up, what arouses and what cools them — how the two fit, how to handle any mismatch, and counter-measures if desire is weak. Frank and plain (150-220 words).' : '') + '",\n' +
+      '  "intimacy": "' + (withIntimacy ? 'Tenderness and physical closeness specifically — the touch, massage, setting and best hours for each, what to do before, during and after closeness, and counter-measures if intimacy is weak. Frank and plain (150-220 words).' : '') + '",\n' +
+      '  "sexual": "' + (res.sexual ? 'Their sexual compatibility, frankly: chemistry, each person\'s libido and what turns them on and off, foreplay, who leads, how often, how to talk about it, and specific counter-measures where chemistry or libido needs work, then the sexual activities, positions and kinds of touch that suit them and why from the charts, and the organs and body areas each chart points to for sexual vitality and why — frank and plain, as a sex therapist would put it (250-350 words).' : '') + '",\n' +
       '  "remedies": "' + (withIntimacy ? 'Qimen for this month: the direction to activate and why, the objects, colours, scents and words that strengthen, those that weaken, the directions to avoid, and the strongest and weakest dates and hours (120-180 words).' : '') + '",\n' +
       '  "timing": "This year for the two of them: the best months together for joint plans, the months to take care, with dates (80-130 words).",\n' +
       '  "steps": ["5 to 7 concrete, everyday steps to strengthen the relationship, most important first, each naming who does what."],\n' +
@@ -2943,8 +2952,12 @@
     '- The Health palace 疾厄 follows this rule. ' + HEALTH_RULE +
     '  On a photo, read health from the shape, fullness and position of the features and lines, using their traditional organ links ' +
     '(face: eyes liver, nose lungs, mouth and lips spleen and stomach, ears kidneys, 山根 and 年上 壽上 the chest, heart and lungs; palm: ' +
-    '地紋 and 震 overall vitality, 健康紋 digestion, liver and nerves, and each palm palace by its trigram). Do not read blemishes, skin ' +
-    'colour, swelling or other visible signs as illness: those are for a doctor to look at, not features to read.\n' +
+    '地紋 and 震 overall vitality, 健康紋 digestion, liver and nerves, and each palm palace by its trigram).\n' +
+    '- Also read colour and complexion 氣色, blemishes, moles 痣, marks and swelling the traditional way: where each sits, which palace, ' +
+    'feature, line or mound that is, which organs or body areas the tradition links to it, and why. Describe them neutrally and never ' +
+    'name a skin or medical condition. Never call a visible sign harmless or nothing to worry about. For any mark, mole, swelling or ' +
+    'colour change that looks new, changing, raised, sore, bleeding, irregular, or unusual in colour (yellowing of the skin or eyes, ' +
+    'bluish lips or nails, a spreading rash), say first and plainly that it should be shown to a doctor soon, then read it.\n' +
     '- This is a traditional interpretive art for reflection, not a scientific or medical assessment. Say so once, briefly, in "confidence".\n' +
     '- If the image is not a clear photo of what was asked for (a palm, or a face), say so in "photoCheck", keep every other field short, ' +
     'and do not invent a reading.\n' +
@@ -2971,7 +2984,7 @@
       '  "handShape": "Which of the five element hand shapes this is and why, from the proportions you can see, and what that element means for temperament (90-130 words).",\n' +
       '  "lines": [ { "area": "Line name with Chinese term", "outlook": "What you see — length, depth, shape, breaks, branches — and what the tradition reads from it (50-90 words)", "advice": "One practical point (15-35 words)" } ] — one item for each of the Heart, Head, Life lines, then the Fate and Sun lines only if visible,\n' +
       '  "mounts": "The palm palaces 掌中八卦 and the centre 明堂: which are full or firm and which are flat, and what each indicates (90-140 words).",\n' +
-      '  "health": "The Health palace 疾厄 of the palm: the Life line 地紋, the thumb mound 震 and the Health line 健康紋 if one shows, and which organs or body areas they point to and why, what the tradition reads for vitality and resilience, and everyday habits that support those areas. Never a diagnosis or a named disease; close by saying any symptom belongs with a doctor (90-140 words).",\n' +
+      '  "health": "The Health palace 疾厄 of the palm: the Life line 地紋, the thumb mound 震 and the Health line 健康紋 if one shows, the colour of the palm and any marks, moles or swelling and where they sit, and which organs or body areas they point to and why, what the tradition reads for vitality and resilience, and everyday habits that support those areas. Never a diagnosis or a named disease; close by saying any symptom belongs with a doctor (90-140 words).",\n' +
       '  "fingers": "Finger length and proportions, the thumb, and what they show about will, thinking and expression (70-110 words).",\n' +
       '  "twoHands": "If both hands are shown, the difference between inborn and developed; otherwise say which hand was read and what the other would add (50-90 words).",\n' +
       '  "withBazi": "How the hand\'s element sits with the ' + ctx.dmElement + ' Day Master (same, producing, produced, controlling or controlled) and what that combination suggests (70-110 words).",\n' +
@@ -3000,7 +3013,7 @@
       '  "zones": "The balance of the three zones 三停 — which is most developed — and what that says about early, middle and later life (90-130 words).",\n' +
       '  "features": [ { "area": "Feature with Chinese term", "outlook": "What you see and what the tradition reads from it (45-80 words)", "advice": "One practical point (15-30 words)" } ] — the eyebrows, eyes, nose, mouth, ears (if visible), forehead and chin,\n' +
       '  "palaces": [ { "area": "Palace with Chinese term", "outlook": "What the area shows (35-70 words)" } ] — Life, Wealth, Career, Partner and Property at least; others where the photo shows them (the Health palace has its own field below),\n' +
-      '  "health": "The Health palace 疾厄宮 at 山根 and 年上 壽上: how full, straight and unbroken the root and bridge of the nose look, together with the organ links of the five officials: which organs or body areas the features point to and why, what the tradition reads for vitality and resilience, and everyday habits that support those areas. Never a diagnosis or a named disease; close by saying any symptom belongs with a doctor (90-140 words).",\n' +
+      '  "health": "The Health palace 疾厄宮 at 山根 and 年上 壽上: how full, straight and unbroken the root and bridge of the nose look, the complexion 氣色 and any blemishes, moles or swelling and where they sit, together with the organ links of the five officials: which organs or body areas the features point to and why, what the tradition reads for vitality and resilience, and everyday habits that support those areas. Never a diagnosis or a named disease; close by saying any symptom belongs with a doctor (90-140 words).",\n' +
       '  "thisYear": "Read the 流年 position for age ' + ctx.xu + ' as it appears in the photo, then what the next positions suggest for the coming years (90-140 words).",\n' +
       '  "withBazi": "How the face\'s element sits with the ' + ctx.dmElement + ' Day Master and what that combination suggests (60-100 words).",\n' +
       '  "strengths": "The three clearest strengths this face shows (60-100 words).",\n' +

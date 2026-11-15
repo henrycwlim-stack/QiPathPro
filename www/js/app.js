@@ -7227,7 +7227,7 @@
       block('The reading', '', '<div id="aiPhys"></div>' + saveBar('phSave', 'Save this reading')) +
       '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">' + (isPalm ? 'Palm' : 'Face') +
         ' reading is a traditional art for reflection, not a scientific or medical assessment. ' +
-        'Its Health palace 疾厄 names the organs and body areas the tradition links to what it sees, as areas to look after, never as a diagnosis, ' +
+        'Its Health palace 疾厄 names the organs and body areas the tradition links to what it sees, as areas to look after, never as a diagnosis. It reads skin colour, marks and swelling the traditional way: show any that are new or changing to a doctor, ' +
         'and nothing in it is a reason to delay, avoid or stop medical care.</div>';
 
     host.querySelectorAll('input[type=file][data-slot]').forEach(function (inp) {

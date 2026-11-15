@@ -49,6 +49,17 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.7.3 — Complexion and marks in Palm and Face, body and acts in the intimacy reading
+Version folder 10.7.3 (versionCode 62), copied from 10.7.2.
+- **Palm and Face Reading** now read colour and complexion 氣色, blemishes, moles 痣, marks and swelling the traditional way: where
+  each sits, which palace, feature or line that is, and which organs or body areas it links to, and why. The AI never names a skin
+  or medical condition and never calls a sign harmless. Anything new, changing, raised, sore, bleeding or unusual in colour is
+  flagged first, with advice to show it to a doctor soon.
+- **Intimacy compatibility** (adults who have asked for it) now names the organs and body systems each chart links to sexual
+  vitality, desire, stamina and fertility, and why. It also describes the sexual activities, positions and kinds of touch that
+  suit each person and the pair, in plain therapist-style language rather than erotic storytelling, with consent, talking first
+  and safer sex mentioned.
+
 ### 10.7.2 — Health palace on the palm, and organ-level health readings
 Version folder 10.7.2 (versionCode 61), copied from 10.7.1.
 - **Palm Reading** now has a Health palace 疾厄 section, read from the Life line 地紋, the thumb mound 震 and the Health line 健康紋 where
