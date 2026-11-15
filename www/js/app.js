@@ -4202,7 +4202,7 @@
     }
     return null;
   }
-  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1 };
+  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1, coach: 1 };
   function plainOpening(screen) {
     if (!user) return;
     var host = $(screen === 'chart' ? 'chartBody' : 'consultBody'), key = screen === 'chart' ? chartK : consultK;
@@ -4500,13 +4500,17 @@
       '<label for="coIn" class="sr">Your answer</label><textarea id="coIn" rows="3" maxlength="2000" placeholder="Take your time…"' + (coach.busy ? ' disabled' : '') + '></textarea>' +
       '<div class="co-acts"><button class="btn" id="coSend"' + (coach.busy ? ' disabled' : '') + '>Send</button>' +
       (ttsKey() ? '<button class="btn ghost" id="coHear">Read the question aloud</button>' : '') +
+      (s.stage >= 1 && s.stage < window.QPCoach.STAGES.length - 2 && !coach.busy ? '<button class="btn ghost" id="coMove">Move on</button><button class="btn ghost" id="coWrap">Wrap up</button>' : '') +
       '<button class="btn ghost" id="coBreathe">Pause and breathe</button><button class="btn ghost" id="coEnd">End the session</button></div>' +
       '<div id="coErr"></div>' + coachVoiceSettingsHtml();
 
     host.innerHTML = block('Coaching 教练', st.label + ' ' + st.cn, stageBar + depth + sysMap + log + foot);
     var lg = $('coLog'); if (lg) lg.scrollTop = lg.scrollHeight;
     wireCountry();
-    if ($('coSend')) $('coSend').onclick = coachSend;
+    if ($('coSend')) $('coSend').onclick = function () { coachSend(); };
+    if ($('coMove')) $('coMove').onclick = function () { var CO = window.QPCoach; coachSend({ text: '(I would like to move on to the next part.)', stage: Math.min(s.stage + 1, CO.STAGES.length - 2) }); };
+    if ($('coWrap')) $('coWrap').onclick = function () { var CO = window.QPCoach, ci = CO.STAGES.map(function (x) { return x.key; }).indexOf('commit');
+      coachSend({ text: '(I would like to wrap up and choose a step.)', stage: Math.max(ci, s.stage) }); };
     wireCoachVoice();
     if ($('coIn')) $('coIn').focus();
     if ($('coBreathe')) $('coBreathe').onclick = function () { coach.breathe = true; renderConsult(); };
@@ -4644,9 +4648,10 @@
     renderConsult();
   }
 
-  function coachSend() {
-    var CO = window.QPCoach, s = coach.session, box = $('coIn'), text = box ? box.value.trim() : '';
+  function coachSend(steer) {
+    var CO = window.QPCoach, s = coach.session, box = $('coIn'), text = steer ? steer.text : (box ? box.value.trim() : '');
     if (!text || coach.busy) return;
+    if (steer && steer.stage !== undefined && s.stage < steer.stage) { s.stage = steer.stage; s.inStage = 0; }
     window.QPVoice.stopSpeaking();
     s.turns.push({ who: 'coachee', text: text, stage: CO.STAGES[s.stage].key });
     if (s.stage === 1 && !s.topic) s.topic = text.slice(0, 300);
@@ -4656,7 +4661,15 @@
     if (CO.STAGES[s.stage].key === 'close' && s.inStage >= 1) { coachFinish(); return; }
     coach.busy = true; coachSet('draft', s); renderConsult();
     if (!coach.profile) coach.profile = CO.profile(user, solarYearNow());
-    window.QPAI.call(loadAI(), CO.turnPrompt(s, coach.profile), CO.TURN_SCHEMA).then(function (r) {
+    var plan = CO.planTurn(s), asked = s.turns.filter(function (t) { return t.who === 'coach' && t.question; }).map(function (t) { return t.question; });
+    var repeatOf = function (q) { var best = null; asked.forEach(function (a) { var x = CO.similarity(q, a); if (x >= 0.6 && (!best || x > best.x)) best = { q: a, x: x }; }); return best; };
+    // Ask once; if the question repeats an earlier one, send it back once with the earlier question named.
+    window.QPAI.call(loadAI(), CO.turnPrompt(s, coach.profile, plan), CO.TURN_SCHEMA).then(function (r) {
+      var rep = r && r.question ? repeatOf(r.question) : null;
+      if (!rep || String(r.safety || 'none') !== 'none') return r;
+      return window.QPAI.call(loadAI(), CO.turnPrompt(s, coach.profile, plan, 'Your draft question "' + r.question + '" repeats an earlier one ("' + rep.q +
+        '"). Ask something different that follows this turn\'s move.'), CO.TURN_SCHEMA).then(function (r2) { r2.repeatRetried = true; return r2; }, function () { return r; });
+    }).then(function (r) {
       coach.busy = false;
       var safe = String(r.safety || 'none');
       if (safe === 'self_harm' || safe === 'abuse' || (safe === 'health' && !s.healthNoted)) { coachSafety(safe); return; }
@@ -4672,10 +4685,24 @@
       });
       if (r.loop && String(r.loop).trim() && s.loops.length < 6) s.loops.push(String(r.loop).trim().slice(0, 200));
       if (r.insight) s.insights.push(String(r.insight).slice(0, 300));
+      s.known = s.known || []; s.moves = s.moves || [];
+      if (r.known && String(r.known).trim() && s.known.length < 16) s.known.push(String(r.known).trim().slice(0, 160));
       var q = String(r.question || '').trim() || 'What feels most important to you right now?';
-      s.turns.push({ who: 'coach', reflection: String(r.reflection || '').trim(), question: q, text: (r.reflection ? r.reflection + ' ' : '') + q,
+      // A reflection that only echoes the last answer is dropped.
+      var refl = String(r.reflection || '').trim();
+      if (refl && CO.similarity(refl, text) >= 0.45) refl = '';
+      s.circles = r.progress === 'circling' ? (s.circles || 0) + 1 : 0;
+      var stuck = s.circles >= 2 || !!(r.repeatRetried && repeatOf(q));
+      if (stuck) s.circles = 0;
+      s.moves.push(plan.move);
+      if (plan.move === 'checkin') s.checkedIn = true;
+      // The agreement, kept in the coachee's own words: their answer to the outcome and measure questions.
+      var prevQ = s.turns.filter(function (t) { return t.who === 'coach' && t.question; }).slice(-1)[0];
+      if (prevQ && prevQ.move === 'outcome' && !s.outcome) s.outcome = text.slice(0, 240);
+      if (prevQ && prevQ.move === 'measure' && !s.measure) s.measure = text.slice(0, 240);
+      s.turns.push({ who: 'coach', reflection: refl, question: q, text: (refl ? refl + ' ' : '') + q, move: plan.move,
         stage: CO.STAGES[s.stage].key, layer: r.layer, principle: r.principle, lens: r.lens, chartLink: r.chartLink || '' });
-      CO.advance(s, !!r.readyToMoveOn);
+      CO.advance(s, !!r.readyToMoveOn, stuck);
       coachSet('draft', s); renderConsult();
       coachSpeakLast(false);
     }).catch(function (e) {
@@ -4717,7 +4744,9 @@
         (m.insights && m.insights.length ? '<b>What you saw</b><ul class="co-tips">' + m.insights.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
         (m.yearning ? '<p><b>Your yearning 渴望</b><br>' + esc(m.yearning) + '</p>' : '') +
         (m.systemView ? '<p><b>The wider system 系统</b><br>' + esc(m.systemView) + '</p>' : '') +
+        (m.outcome ? '<p><b>Your outcome</b><br>' + esc(m.outcome) + '</p>' : '') +
         (m.principles ? '<p><b>Through the five principles 五大法则</b><br>' + esc(m.principles) + '</p>' : '') +
+        (m.accountability ? '<p><b>Staying on track</b><br>' + esc(m.accountability) + '</p>' : '') +
         (m.commitment ? '<p><b>Your step</b><br>' + esc(m.commitment) + '</p>' : '') +
         (m.followUp ? '<p><b>To reflect on before next time</b><br>' + esc(m.followUp) + '</p>' : '')
         : '<div class="notice">The summary could not be written' + (s.summaryFailed ? ': ' + esc(s.summaryFailed) : '') + '. The conversation itself is saved.</div><button class="btn ghost" id="coSumRetry">Try the summary again</button>') +

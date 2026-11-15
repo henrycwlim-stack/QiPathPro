@@ -49,6 +49,22 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.12 — Coach: fresher questions, in line with the ICF core competencies
+Version folder 10.12.0 (versionCode 68), copied from 10.11.0.
+- **No more paraphrasing:** the reflection is optional, must add something new (an unnamed feeling, a link between two answers, a
+  shift), and is dropped automatically if it only echoes the last answer.
+- **Questions keep moving:** each turn the app picks the move and its target: the next iceberg layer, the next unused systems lens,
+  the next principle, or a change of angle (what you have tried, what is in your control, an exception, a contrast, a metaphor, a
+  shared observation, a value, a scale). The same move never runs three times; the AI sees every question already asked and every
+  fact already learned; a question that repeats an earlier one is sent back once to be rewritten.
+- **Circling ends the stage:** two answers in a row that add nothing new move the session on. Stages are shorter (Go deeper up to 5
+  turns, See the system up to 3, Five principles up to 4), and new Move on and Wrap up buttons let the coachee steer.
+- **ICF core competencies:** the session agrees an outcome, a measure of success and what needs addressing; a mid-session
+  check-in plays back the thread and asks whether to continue or change direction; questions explore thinking, values and
+  beliefs, notice words the coachee keeps using, and stay in the present and future rather than consulting; the Commit stage
+  asks for the step, when, accountability, and support and barriers; the close celebrates progress and lets the coachee sum up.
+  The opening confirms privacy and a safe place. The summary adds the outcome reached and how the coachee will stay on track.
+
 ### 10.11 — Plain English everywhere, and the Life Areas page
 Version folder 10.11.0 (versionCode 67), copied from 10.10.0. A new engine, `lifeareas.js` (`window.QPLifeAreas`).
 - **Life Areas** (new first tab under Destiny): all twelve areas in plain English. A summary of your strongest and weakest areas
