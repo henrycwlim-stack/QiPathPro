@@ -49,6 +49,12 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.10 — Six Lines coin toss
+Version folder 10.10.0 (versionCode 66), copied from 10.9.0. Casting in Six Lines now tosses three coins on screen for each line:
+the coins jump and flip, land heads (字, 3) or tails (背, 2), and the result shows straight away (for example tails, tails, heads
+= 7, young yang) while the hexagram builds from the bottom line up. "Toss the rest at once" finishes the cast without the animation,
+and phones set to reduce motion skip the flip. Entering your own coins still works as before.
+
 ### 10.9 — Using the year, Six Lines divination, and the monthly planner page
 Version folder 10.9.0 (versionCode 65), copied from 10.8.0. Two new engines, `yearplus.js` (`window.QPYear`) and `liuyao.js`
 (`window.QPLiuYao`).

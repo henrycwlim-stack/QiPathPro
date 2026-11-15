@@ -82,6 +82,7 @@
     return c ? 3 : 2;   // heads 3, tails 2
   }
   function tossLine() { return coin() + coin() + coin(); }   // 6, 7, 8 or 9
+  function tossCoins() { return [coin(), coin(), coin()]; }   // each 3 (heads) or 2 (tails)
   function castRandom() { var v = []; for (var i = 0; i < 6; i++) v.push(tossLine()); return v; }
 
   function strengthIn(elem, monthBranch, dayBranch) {
@@ -251,6 +252,6 @@
     return found;
   }
 
-  global.QPLiuYao = { TOPICS: TOPICS, RELATIVES: RELATIVES, SPIRITS: SPIRITS, HEX_THEME: HEX_THEME, castRandom: castRandom, tossLine: tossLine,
+  global.QPLiuYao = { TOPICS: TOPICS, RELATIVES: RELATIVES, SPIRITS: SPIRITS, HEX_THEME: HEX_THEME, castRandom: castRandom, tossLine: tossLine, tossCoins: tossCoins,
     read: read, yearHexagram: yearHexagram, yearHexagramFor: yearHexagramFor, monthHexagram: monthHexagram, PALACE: PALACE };
 })(typeof window !== 'undefined' ? window : globalThis);

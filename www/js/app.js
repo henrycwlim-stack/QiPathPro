@@ -3941,7 +3941,66 @@
   }
 
   /* ---------------- Consult › Six Lines: I Ching divination by coins (六爻) ---------------- */
-  var lyState = { topic: 'money', question: '', values: null, when: null };
+  var lyState = { topic: 'money', question: '', values: null, when: null, tossing: null, coins: null };
+  var LY_LABEL = { 6: 'old yin, moving', 7: 'young yang', 8: 'young yin', 9: 'old yang, moving' };
+  function lyLineGlyph(v) { return '<span style="letter-spacing:2px">' + (v === 7 || v === 9 ? '▬▬▬' : '▬ ▬') + '</span>' + (v === 6 ? ' <b class="bad-t">×</b>' : v === 9 ? ' <b class="bad-t">○</b>' : ''); }
+  function lyCoinHtml(i) {
+    return '<div class="ly-cw" id="lyCw' + i + '"><div class="ly-coin" id="lyCoin' + i + '">' +
+      '<div class="f front"><b>字</b><small>heads · 3</small></div><div class="f back"><b>背</b><small>tails · 2</small></div></div></div>';
+  }
+  function lyTossHtml(t) {
+    var n = t.values.length;
+    return block('Tossing the coins', 'six tosses, from the bottom line up',
+      '<div class="ly-coins">' + [0, 1, 2].map(lyCoinHtml).join('') + '</div>' +
+      '<div class="ly-res" id="lyRes" aria-live="polite">Hold the question in mind, then tap Toss.</div>' +
+      '<div class="two"><button class="btn" id="lyToss">Toss line ' + (n + 1) + '</button><button class="btn ghost" id="lySkip">Toss the rest at once</button></div>' +
+      '<div id="lyBuilt" class="ly-built"></div>');
+  }
+  function lyBuiltHtml(t) {
+    if (!t.values.length) return '';
+    return rows(t.values.map(function (v, i) {
+      var c = t.coins[i];
+      return ['Line ' + (i + 1), lyLineGlyph(v) + ' <small>' + c.map(function (x) { return x === 3 ? '字' : '背'; }).join(' ') + ' = ' + v + ' · ' + LY_LABEL[v] + '</small>'];
+    }).reverse());
+  }
+  function wireToss(host) {
+    var st = lyState, t = st.tossing, L = window.QPLiuYao, busy = false, angle = [0, 0, 0];
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('lyBuilt').innerHTML = lyBuiltHtml(t);
+    function finish() {
+      $('lyRes').textContent = 'All six lines are cast. Reading them…';
+      setTimeout(function () { st.values = t.values.slice(); st.coins = t.coins.slice(); st.when = now(); st.tossing = null; renderLiuYao(host); }, reduce ? 100 : 700);
+    }
+    $('lyToss').onclick = function () {
+      if (busy || t.values.length >= 6) return;
+      busy = true; $('lyToss').disabled = true; $('lySkip').disabled = true;
+      var coins = L.tossCoins();
+      $('lyRes').textContent = 'Tossing…';
+      coins.forEach(function (c, i) {
+        var base = Math.ceil((angle[i] + 1080 + i * 360) / 360) * 360;
+        angle[i] = base + (c === 3 ? 0 : 180);
+        var cw = $('lyCw' + i), coin = $('lyCoin' + i);
+        cw.classList.remove('jump'); void cw.offsetWidth; if (!reduce) cw.classList.add('jump');
+        coin.style.transform = 'rotateY(' + angle[i] + 'deg)';
+      });
+      setTimeout(function () {
+        var v = coins[0] + coins[1] + coins[2];
+        t.values.push(v); t.coins.push(coins);
+        $('lyRes').innerHTML = coins.map(function (x) { return x === 3 ? 'heads' : 'tails'; }).join(', ') + ' = <b>' + v + '</b>, ' + LY_LABEL[v] + ' &nbsp;' + lyLineGlyph(v);
+        $('lyBuilt').innerHTML = lyBuiltHtml(t);
+        busy = false;
+        if (t.values.length >= 6) { finish(); return; }
+        $('lyToss').disabled = false; $('lySkip').disabled = false;
+        $('lyToss').textContent = 'Toss line ' + (t.values.length + 1);
+      }, reduce ? 150 : 1250);
+    };
+    $('lySkip').onclick = function () {
+      if (busy) return;
+      while (t.values.length < 6) { var c = L.tossCoins(); t.values.push(c[0] + c[1] + c[2]); t.coins.push(c); }
+      $('lyBuilt').innerHTML = lyBuiltHtml(t); finish();
+    };
+  }
+
   function renderLiuYao(host) {
     var L = window.QPLiuYao, st = lyState;
     var topicOpts = L.TOPICS.map(function (t) { return '<option value="' + t.key + '"' + (t.key === st.topic ? ' selected' : '') + '>' + esc(t.en) + '</option>'; }).join('');
@@ -3958,17 +4017,20 @@
         '<div class="two"><button class="btn" id="lyCast">Cast six lines</button><button class="btn ghost" id="lyManualBtn">Enter my own coins</button></div>' +
         '<div id="lyManual" hidden><div class="hint">Toss three coins six times, from the bottom line up. Heads count 3, tails 2.</div>' + manual +
         '<button class="btn" id="lyUse">Read these lines</button></div>') +
+      (st.tossing ? lyTossHtml(st.tossing) : '') +
       (res ? liuYaoHtml(res) + block('Save', '', saveBar('lySave', 'Save this reading')) : '') +
       '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">A traditional divination for reflection, not a guarantee. Ask once per question; ' +
         'casting again for a better answer only adds noise.</div>';
     $('lyTopic').onchange = function () { st.topic = this.value; if (st.values) renderLiuYao(host); };
     $('lyQ').oninput = function () { st.question = this.value; };
     $('lyManualBtn').onclick = function () { $('lyManual').hidden = !$('lyManual').hidden; };
-    $('lyCast').onclick = function () { var t = now(); st.when = t; st.values = L.castRandom(); renderLiuYao(host); };
+    $('lyCast').onclick = function () { st.values = null; st.coins = null; st.tossing = { values: [], coins: [] }; renderLiuYao(host);
+      var tb = $('lyToss'); if (tb) tb.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    if (st.tossing) wireToss(host);
     $('lyUse').onclick = function () {
       var v = [0, 0, 0, 0, 0, 0];
       host.querySelectorAll('[data-ly]').forEach(function (sel) { v[+sel.dataset.ly] = +sel.value; });
-      st.when = now(); st.values = v; renderLiuYao(host);
+      st.when = now(); st.values = v; st.coins = null; st.tossing = null; renderLiuYao(host);
     };
     if (res) wireSave('lySave', function () {
       return { kind: 'chart', title: 'Six Lines · ' + res.hex.name + (res.changed ? ' → ' + res.changed.name : ''), subtitle: st.question || res.topic.en,
