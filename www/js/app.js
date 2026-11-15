@@ -2138,6 +2138,7 @@
     else if (chartK === 'heluo') { renderHeLuo(host); }
     else if (chartK === 'combined') { renderCombined(host); }
     else if (chartK === 'mobility') { renderMobility(host); }
+    else if (chartK === 'palm' || chartK === 'face') { renderPhysio(host, chartK); }
     else if (chartK === 'qmseason') {
       host.innerHTML = block('Annual forecast 年盘', 'your Day Stem on each year\'s and month\'s plate', '<div id="qmAnnualHost" class="stack-sm"></div>');
       renderQimenAnnual(yearSel.qimen);
@@ -7149,6 +7150,149 @@
     paintNav();
   }
 
+  /* ---------------- Destiny › Palm and Face: readings from the person's own photos ---------------- */
+  // Photos live only in memory for this visit: they are shrunk, shown, sent to the AI provider on request, and dropped.
+  // The written reading is kept like any other, under a stamp remembered per profile so it can be reopened later.
+  var physio = {
+    palm: { slots: { left: null, right: null }, dominant: 'right', consent: false, stamp: null },
+    face: { slots: { front: null, side: null }, consent: false, stamp: null }
+  };
+  var PHYSIO_SLOTS = {
+    palm: [{ id: 'left', label: 'Left palm', cn: '左手', capture: 'environment',
+             tip: 'Open the left hand flat, palm to the camera, fingers relaxed and slightly apart, with the wrist crease in frame.' },
+           { id: 'right', label: 'Right palm', cn: '右手', capture: 'environment',
+             tip: 'The same for the right hand. Both hands give the fuller reading: one shows the inborn pattern, the other what you made of it.' }],
+    face: [{ id: 'front', label: 'Face, front', cn: '正面', capture: 'user',
+             tip: 'Look straight at the camera at eye level, neutral expression, hair off the forehead and ears, no glasses or filter.' },
+           { id: 'side', label: 'Face, side (optional)', cn: '側面', capture: 'user',
+             tip: 'A side profile helps the nose, chin and ears. Optional.' }]
+  };
+  function physioLastKey(kind) { return 'qipath.physio.' + kind + '.' + user.id; }
+
+  function renderPhysio(host, kind) {
+    var st = physio[kind], P = window.QPPhysio, isPalm = kind === 'palm';
+    var ctx = P.context(user, new Date());
+    lastSavedId = null; currentAI = null;
+    if (!st.stamp) { try { st.stamp = localStorage.getItem(physioLastKey(kind)); } catch (e) { st.stamp = null; } }
+    var have = PHYSIO_SLOTS[kind].filter(function (s) { return st.slots[s.id]; });
+
+    var slotsHtml = '<div class="phys-slots">' + PHYSIO_SLOTS[kind].map(function (s) {
+      var ph = st.slots[s.id];
+      return '<div class="phys-slot">' +
+        '<div class="phys-img">' + (ph ? '<img src="' + ph.preview + '" alt="' + s.label + '">'
+          : '<span>' + s.cn + '<br><small>' + s.label + '</small></span>') + '</div>' +
+        '<div class="phys-tip">' + esc(s.tip) + '</div>' +
+        '<div class="two">' +
+          '<label class="btn" for="ph-cam-' + s.id + '">Take photo</label>' +
+          '<label class="btn ghost" for="ph-pick-' + s.id + '">Gallery</label></div>' +
+        '<input type="file" id="ph-cam-' + s.id + '" accept="image/*" capture="' + s.capture + '" hidden data-slot="' + s.id + '">' +
+        '<input type="file" id="ph-pick-' + s.id + '" accept="image/*" hidden data-slot="' + s.id + '">' +
+        (ph ? '<button class="btn ghost" data-drop="' + s.id + '">Remove</button>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+
+    var known = isPalm
+      ? xkRows([
+          ['Day Master', ctx.dayMaster + ' <small>' + ctx.dmElement + '</small>'],
+          ['Hand shapes', '<small>' + P.HAND_SHAPES.map(function (h) { return h.cn + ' ' + h.element + ': ' + esc(h.look); }).join('<br>') + '</small>'],
+          ['Lines read', '<small>' + P.PALM_LINES.map(function (l) { return l.en + ' ' + l.cn; }).join(' · ') + '</small>']
+        ])
+      : xkRows([
+          ['This year', ctx.age ? ctx.age.cn + '<small>age ' + ctx.xu + ' (虚岁) · ' + esc(ctx.age.en) +
+            (ctx.age.zone ? ' · ' + ctx.age.zone.cn + ' ' + ctx.age.zone.en : '') + '</small>' : '—'],
+          ['Coming next', '<small>' + (ctx.ahead.map(function (x) { return 'age ' + x.age + ' ' + x.cn + ' · ' + esc(x.en); }).join('<br>') || 'the ring around the chin and jaw') + '</small>'],
+          ['Day Master', ctx.dayMaster + ' <small>' + ctx.dmElement + '</small>'],
+          ['Three zones', '<small>' + P.ZONES.map(function (z) { return z.cn + ' ' + z.area + ' · ages ' + z.ages; }).join('<br>') + '</small>']
+        ]);
+
+    host.innerHTML =
+      block(isPalm ? 'Palm reading 手相' : 'Face reading 面相',
+        isPalm ? 'photos of your palms, read in the Chinese tradition' : 'a photo of your face, read in the Chinese tradition',
+        '<div class="panel" style="font-size:.88rem;line-height:1.7">' +
+          (isPalm ? 'Use bright, even daylight with no flash glare, and hold the phone square over the palm.'
+                  : 'Use soft, even light from the front, with no shadows across the face.') +
+          ' Photos stay on this phone for this visit only. They are sent to your own AI provider when you tap ' +
+          '<b>Read</b>, and are not saved; the written reading is.</div>' +
+        slotsHtml +
+        (isPalm ? '<label for="phDom">Dominant hand</label><select id="phDom">' +
+          '<option value="right"' + (st.dominant === 'right' ? ' selected' : '') + '>Right-handed</option>' +
+          '<option value="left"' + (st.dominant === 'left' ? ' selected' : '') + '>Left-handed</option></select>' : '') +
+        '<label class="phys-ok">' +
+          '<input type="checkbox" id="phOk"' + (st.consent ? ' checked' : '') + '> <span>' +
+          (isPalm ? 'These are my hands' : 'This is my face') + ', or the person in the photo has agreed to this reading.</span></label>' +
+        '<button class="btn" id="phRead"' + (have.length && st.consent ? '' : ' disabled style="opacity:.45"') + '>Read ' +
+          (have.length ? have.length + ' photo' + (have.length > 1 ? 's' : '') : 'the photos') + '</button>' +
+        '<div class="err" id="phMsg"></div>') +
+      block('What the app reads without the photo', isPalm ? 'the tradition’s tables' : '流年部位: your age on the face', known) +
+      block('The reading', '', '<div id="aiPhys"></div>' + saveBar('phSave', 'Save this reading')) +
+      '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">' + (isPalm ? 'Palm' : 'Face') +
+        ' reading is a traditional art for reflection, not a scientific or medical assessment. It never reads health, ' +
+        'and nothing in it is a reason to delay, avoid or stop medical care.</div>';
+
+    host.querySelectorAll('input[type=file][data-slot]').forEach(function (inp) {
+      inp.onchange = function () {
+        var f = inp.files && inp.files[0]; if (!f) return;
+        $('phMsg').style.color = 'var(--muted)'; $('phMsg').textContent = 'Preparing the photo…';
+        P.prepareImage(f, 1280).then(function (img) {
+          st.slots[inp.dataset.slot] = img; st.stamp = null; renderPhysio(host, kind);
+        }).catch(function (e) { $('phMsg').style.color = 'var(--cinnabar)'; $('phMsg').textContent = e.message; });
+      };
+    });
+    host.querySelectorAll('[data-drop]').forEach(function (b) {
+      b.onclick = function () { st.slots[b.dataset.drop] = null; st.stamp = null; renderPhysio(host, kind); };
+    });
+    if ($('phDom')) $('phDom').onchange = function () { st.dominant = this.value; };
+    $('phOk').onchange = function () { st.consent = this.checked; renderPhysio(host, kind); };
+
+    var sections = isPalm ? [
+      { label: 'The photos', path: 'photoCheck' }, { label: 'Hand shape', path: 'handShape' },
+      { label: 'The lines', path: 'lines', list: 'areas' }, { label: 'Palm palaces 掌中八卦', path: 'mounts' },
+      { label: 'Fingers and thumb', path: 'fingers' }, { label: 'Two hands', path: 'twoHands' },
+      { label: 'With your BaZi', path: 'withBazi' }, { label: 'Strengths', path: 'strengths' },
+      { label: 'To work with', path: 'watch' }, { label: 'Guidance', path: 'guidance' }, { label: 'Confidence', path: 'confidence' }
+    ] : [
+      { label: 'The photos', path: 'photoCheck' }, { label: 'Face shape', path: 'faceShape' },
+      { label: 'Three zones 三停', path: 'zones' }, { label: 'Features', path: 'features', list: 'areas' },
+      { label: 'Palaces', path: 'palaces', list: 'areas' }, { label: 'This year 流年', path: 'thisYear' },
+      { label: 'With your BaZi', path: 'withBazi' }, { label: 'Strengths', path: 'strengths' },
+      { label: 'To work with', path: 'watch' }, { label: 'Guidance', path: 'guidance' }, { label: 'Confidence', path: 'confidence' }
+    ];
+    function mount(stamp) {
+      aiPanelSaving('aiPhys', kind, stamp, function (cfg) {
+        var photos = PHYSIO_SLOTS[kind].filter(function (s) { return st.slots[s.id]; }).map(function (s) {
+          return { mime: st.slots[s.id].mime, data: st.slots[s.id].data, label: s.label.replace(' (optional)', '') };
+        });
+        if (!photos.length) return Promise.reject(new Error('Add a photo first.'));
+        var c = P.context(user, new Date()); c.dominant = isPalm ? st.dominant + '-handed' : null;
+        return window.QPAI[isPalm ? 'analysePalm' : 'analyseFace'](cfg, photos, c);
+      }, sections);
+    }
+    if (st.stamp) mount(st.stamp);
+    else $('aiPhys').innerHTML = '<div class="panel"><div class="empty">' +
+      (have.length ? 'Tick the box above, then tap Read.' : 'Add ' + (isPalm ? 'a palm photo' : 'a face photo') + ' to begin.') + '</div></div>';
+
+    $('phRead').onclick = function () {
+      if (!have.length || !st.consent) return;
+      st.stamp = 'p' + Date.now().toString(36);
+      try { localStorage.setItem(physioLastKey(kind), st.stamp); } catch (e) {}
+      mount(st.stamp);
+      var run = $('aiPhys-run'); if (run) run.click();
+      $('aiPhys').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    wireSave('phSave', function () {
+      return { kind: 'chart',
+        title: (isPalm ? 'Palm reading' : 'Face reading') + ' · ' + user.name,
+        subtitle: isPalm ? 'from ' + have.map(function (s) { return s.label.toLowerCase(); }).join(' and ')
+                         : 'age ' + ctx.xu + (ctx.age ? ' · ' + ctx.age.cn : ''),
+        when: { date: isoOf(now()) },
+        payload: { type: kind, typeLabel: isPalm ? 'Palm reading 手相' : 'Face reading 面相',
+          photos: have.map(function (s) { return s.label; }), dayMaster: ctx.dayMaster + ' ' + ctx.dmElement,
+          nominalAge: ctx.xu, agePosition: ctx.age ? ctx.age.cn + ' ' + ctx.age.en : null,
+          dominant: isPalm ? st.dominant : null, photosStored: false } };
+    });
+  }
+
   /* ---------------- Destiny › Together: two charts read side by side (合婚) ---------------- */
   // The other people are stored inside the signed-in profile, so their birth details stay with the person who entered
   // them. Another profile on this device can be copied in only with that profile's PIN.
@@ -9354,7 +9498,7 @@
     { id: 'destiny', ic: '命', en: 'Destiny', cn: '命運', items: [
       { label: 'BaZi', s: 'chart', k: 'bazi' }, { label: 'Elements', s: 'chart', k: 'elements' }, { label: 'Relations', s: 'chart', k: 'relations' },
       { label: 'Together', s: 'chart', k: 'together', when: function () { return tgPrefs().show; } },
-      { label: 'Zi Wei', s: 'chart', k: 'zwds' }, { label: 'Qimen Destiny', s: 'chart', k: 'destiny' }, { label: 'Qi Zheng', s: 'chart', k: 'qizheng' }, { label: 'He Luo', s: 'chart', k: 'heluo' }, { label: 'Combined', s: 'chart', k: 'combined' }, { label: 'Ask', s: 'chart', k: 'ask' }] },
+      { label: 'Zi Wei', s: 'chart', k: 'zwds' }, { label: 'Qimen Destiny', s: 'chart', k: 'destiny' }, { label: 'Qi Zheng', s: 'chart', k: 'qizheng' }, { label: 'He Luo', s: 'chart', k: 'heluo' }, { label: 'Combined', s: 'chart', k: 'combined' }, { label: 'Palm Reading', s: 'chart', k: 'palm' }, { label: 'Face Reading', s: 'chart', k: 'face' }, { label: 'Ask', s: 'chart', k: 'ask' }] },
     { id: 'seasons', ic: '時', en: 'Seasons', cn: '時運', items: [
       { label: 'BaZi Luck', s: 'chart', k: 'luck' }, { label: 'Zi Wei Periods', s: 'chart', k: 'zwperiods' },
       { label: 'Qimen Year and Month', s: 'chart', k: 'qmseason' }, { label: 'Cast Qimen', s: 'consult', k: 'qimen' }, { label: 'Zodiac', s: 'chart', k: 'zodiac' }, { label: 'Tong Shu', s: 'almanac', k: '' }] },

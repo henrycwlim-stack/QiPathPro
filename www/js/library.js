@@ -25,6 +25,7 @@
     qimen:    { label: 'Qimen Dunjia 奇門', cn: '奇门' },
     fengshui: { label: 'Feng Shui 風水', cn: '风水' },
     yijing:   { label: 'Yijing 易經', cn: '易经' },
+    physio:   { label: 'Palm and Face 手相面相', cn: '手相' },
     general:  { label: 'General', cn: '通用' }
   };
 

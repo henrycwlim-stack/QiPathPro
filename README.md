@@ -49,6 +49,21 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.7 — Palm and Face Reading
+Version folder 10.7.0 (versionCode 59), copied from 10.6.0. Two new Destiny screens, **Palm Reading** and **Face Reading**, read
+photos the person takes with the phone camera (or picks from the gallery) with their own Gemini or Claude key.
+- **Palm 手相:** left and right palm slots and the dominant hand. The AI reads the five-element hand shape, the Heart 天紋, Head 人紋,
+  Life 地紋, Fate 玉柱紋 and Sun lines, the palm palaces 掌中八卦 and 明堂, fingers and thumb, inborn against developed hand, and how
+  the hand's element sits with the Day Master.
+- **Face 面相:** front photo and an optional side profile. The app works out the 流年部位 position for the nominal age and the next ones
+  (`www/js/physio.js`), and the AI reads the face shape, the three zones 三停, the features, the palaces (疾厄 is left out on purpose)
+  and this year's position.
+- **Photos stay on the phone:** shrunk to 1280 px in the browser, held in memory for the visit only, sent to the person's own AI
+  provider only when they tap Read, and never saved. A consent box must be ticked ("my hands / face, or the person has agreed").
+- **Limits in every prompt:** no health, medical, weight, attractiveness, ethnicity or other sensitive readings, no age guessing or
+  identification, no predictions of death, illness or disaster; a photo that is not a palm or face is reported, not read.
+- Readings save to the Journal (text only) and can be regenerated; a "Palm and Face 手相面相" library module feeds notes into them.
+
 ### 10.6 — Xuan Kong 24 Mountain and Luopan readings
 Version folder 10.6.0 (versionCode 58), copied from 10.5.3. Two new readings on the Feng Shui tab for a property with a facing
 bearing, and a live readout on the Compass tab (`www/js/fengshui.js`: `mountainReading`, `luopanReading`, `activationDates`).

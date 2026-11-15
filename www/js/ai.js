@@ -2907,6 +2907,93 @@
       '[ … the reading\'s own field list … ]';
   }
 
+  /* ---------- palm reading (手相) and face reading (面相), from the person's own photos ---------- */
+
+  var AREA_ITEMS = { type:'array', items:{ type:'object', properties:{
+    area:{type:'string'}, outlook:{type:'string'}, advice:{type:'string'} }, required:['area','outlook'] } };
+  var PALM_SCHEMA = { type:'object', properties:{
+    photoCheck:{type:'string'}, handShape:{type:'string'}, lines:AREA_ITEMS, mounts:{type:'string'},
+    fingers:{type:'string'}, twoHands:{type:'string'}, withBazi:{type:'string'}, strengths:{type:'string'},
+    watch:{type:'string'}, guidance:{type:'string'}, confidence:{type:'string'} },
+    required:['photoCheck','handShape','lines','mounts','fingers','twoHands','withBazi','strengths','watch','guidance','confidence'] };
+  var FACE_SCHEMA = { type:'object', properties:{
+    photoCheck:{type:'string'}, faceShape:{type:'string'}, zones:{type:'string'}, features:AREA_ITEMS,
+    palaces:AREA_ITEMS, thisYear:{type:'string'}, withBazi:{type:'string'}, strengths:{type:'string'},
+    watch:{type:'string'}, guidance:{type:'string'}, confidence:{type:'string'} },
+    required:['photoCheck','faceShape','zones','features','palaces','thisYear','withBazi','strengths','watch','guidance','confidence'] };
+
+  // Shared limits for both readings. These photos are of a real person, so the reading stays inside the tradition.
+  var PHYSIO_RULES =
+    'Rules you must keep:\n' +
+    '- Read only what the traditional system reads: shapes, lines, proportions and positions. Describe what you can actually see; ' +
+    'where the photo does not show something clearly, say so rather than guess.\n' +
+    '- Never comment on or infer health, illness, medical or skin conditions, weight, attractiveness, ethnicity or race, religion, ' +
+    'sexual orientation, disability, or any other sensitive trait. Do not estimate age from the photo. Do not try to identify the person.\n' +
+    '- Never predict death, lifespan, accidents, illness or disaster. Present cautions as tendencies to work with, each with a practical response.\n' +
+    '- This is a traditional interpretive art for reflection, not a scientific or medical assessment. Say so once, briefly, in "confidence".\n' +
+    '- If the image is not a clear photo of what was asked for (a palm, or a face), say so in "photoCheck", keep every other field short, ' +
+    'and do not invent a reading.\n' +
+    '- Use English with the Chinese term alongside, e.g. Head line (人紋). Warm and plain, never fatalistic.\n\n';
+
+  function bodyCtx(ctx) {
+    return 'PERSON: ' + ctx.gender + ', nominal age (虚岁) ' + ctx.xu + ', Day Master ' + ctx.dayMaster + ' (' + ctx.dmElement + ').\n';
+  }
+
+  function palmPrompt(ctx, photos) {
+    var P = global.QPPhysio;
+    return lib('physio', 'palm reading hand lines mounts') +
+      'You are a master of Chinese palm reading (手相), at home with both the Chinese tradition and the Western line names. ' +
+      'Read the palm photo(s) attached, in this order: ' + photos.map(function (p) { return p.label; }).join(', ') + '.\n\n' +
+      PHYSIO_RULES + bodyCtx(ctx) +
+      'Dominant hand: ' + (ctx.dominant || 'not given') + '. In the Chinese reading the non-dominant hand shows the inborn pattern and the ' +
+      'dominant hand what has been made of it.\n\n' +
+      'REFERENCE (the app\'s own tables):\nFive hand shapes: ' + P.HAND_SHAPES.map(function (h) { return h.cn + ' ' + h.element + ': ' + h.look; }).join('; ') + '.\n' +
+      'Lines: ' + P.PALM_LINES.map(function (l) { return l.en + ' ' + l.cn + ' — ' + l.where; }).join('; ') + '.\n' +
+      'Palm palaces 掌中八卦: ' + P.PALM_BAGUA.join('; ') + '.\n\n' +
+      'Return STRICT JSON:\n{\n' +
+      '  "photoCheck": "Whether each photo is usable: lighting, focus, how much of the palm and fingers show, and what to retake if anything (30-70 words).",\n' +
+      '  "handShape": "Which of the five element hand shapes this is and why, from the proportions you can see, and what that element means for temperament (90-130 words).",\n' +
+      '  "lines": [ { "area": "Line name with Chinese term", "outlook": "What you see — length, depth, shape, breaks, branches — and what the tradition reads from it (50-90 words)", "advice": "One practical point (15-35 words)" } ] — one item for each of the Heart, Head, Life lines, then the Fate and Sun lines only if visible,\n' +
+      '  "mounts": "The palm palaces 掌中八卦 and the centre 明堂: which are full or firm and which are flat, and what each indicates (90-140 words).",\n' +
+      '  "fingers": "Finger length and proportions, the thumb, and what they show about will, thinking and expression (70-110 words).",\n' +
+      '  "twoHands": "If both hands are shown, the difference between inborn and developed; otherwise say which hand was read and what the other would add (50-90 words).",\n' +
+      '  "withBazi": "How the hand\'s element sits with the ' + ctx.dmElement + ' Day Master (same, producing, produced, controlling or controlled) and what that combination suggests (70-110 words).",\n' +
+      '  "strengths": "The three clearest strengths this hand shows (60-100 words).",\n' +
+      '  "watch": "Two or three tendencies to work with, each with a response. No health or disaster predictions (60-100 words).",\n' +
+      '  "guidance": "What to do with this reading in the next year: work, money, relationships (80-120 words).",\n' +
+      '  "confidence": "How much the photo supported the reading, and a one-line reminder that palm reading is a traditional art for reflection (25-50 words)."\n}';
+  }
+
+  function facePrompt(ctx, photos) {
+    var P = global.QPPhysio, a = ctx.age;
+    return lib('physio', 'face reading physiognomy mian xiang') +
+      'You are a master of Chinese face reading (面相). Read the face photo(s) attached, in this order: ' +
+      photos.map(function (p) { return p.label; }).join(', ') + '.\n\n' +
+      PHYSIO_RULES + bodyCtx(ctx) +
+      'THIS YEAR ON THE FACE (流年部位, the app\'s table): nominal age ' + ctx.xu + ' falls on ' + (a ? a.cn + ', ' + a.en : 'no position') +
+      (a && a.zone ? ' in the ' + a.zone.en + ' ' + a.zone.cn : '') + '. Coming next: ' +
+      (ctx.ahead.map(function (x) { return 'age ' + x.age + ' ' + x.cn + ' (' + x.en + ')'; }).join('; ') || 'the ring around the chin and jaw, read by the twelve branches') + '.\n\n' +
+      'REFERENCE:\nThree zones 三停: ' + P.ZONES.map(function (z) { return z.cn + ' ' + z.area + ', ages ' + z.ages + ', ' + z.governs; }).join('; ') + '.\n' +
+      'Five face shapes: ' + P.FACE_SHAPES.map(function (f) { return f.cn + ' ' + f.element + ': ' + f.look; }).join('; ') + '.\n' +
+      'Five officials and features: ' + P.FACE_FEATURES.join(', ') + '.\n' +
+      'Palaces to read (疾厄 health is deliberately left out): ' + P.FACE_PALACES.join('; ') + '.\n\n' +
+      'Return STRICT JSON:\n{\n' +
+      '  "photoCheck": "Whether each photo is usable: front-on, even light, hair off the forehead, no filter; what to retake if anything (30-70 words).",\n' +
+      '  "faceShape": "Which of the five element face shapes this is, from the proportions you can see, and what that element means for temperament (80-120 words).",\n' +
+      '  "zones": "The balance of the three zones 三停 — which is most developed — and what that says about early, middle and later life (90-130 words).",\n' +
+      '  "features": [ { "area": "Feature with Chinese term", "outlook": "What you see and what the tradition reads from it (45-80 words)", "advice": "One practical point (15-30 words)" } ] — the eyebrows, eyes, nose, mouth, ears (if visible), forehead and chin,\n' +
+      '  "palaces": [ { "area": "Palace with Chinese term", "outlook": "What the area shows (35-70 words)" } ] — Life, Wealth, Career, Partner and Property at least; others where the photo shows them,\n' +
+      '  "thisYear": "Read the 流年 position for age ' + ctx.xu + ' as it appears in the photo, then what the next positions suggest for the coming years (90-140 words).",\n' +
+      '  "withBazi": "How the face\'s element sits with the ' + ctx.dmElement + ' Day Master and what that combination suggests (60-100 words).",\n' +
+      '  "strengths": "The three clearest strengths this face shows (60-100 words).",\n' +
+      '  "watch": "Two or three tendencies to work with, each with a response. No health or disaster predictions (60-100 words).",\n' +
+      '  "guidance": "What to do with this reading in the next year (80-120 words).",\n' +
+      '  "confidence": "How much the photo supported the reading, and a one-line reminder that face reading is a traditional art for reflection (25-50 words)."\n}';
+  }
+
+  function analysePalm(cfg, photos, ctx) { return callMedia(cfg, palmPrompt(ctx, photos), PALM_SCHEMA, photos); }
+  function analyseFace(cfg, photos, ctx) { return callMedia(cfg, facePrompt(ctx, photos), FACE_SCHEMA, photos); }
+
   global.QPAI = {
     analyseCombined: analyseCombined, combinedPrompt: combinedPrompt,
     analyseQimenPlate: analyseQimenPlate,
@@ -2930,6 +3017,7 @@
     setModelFixedHandler: setModelFixedHandler,
     analyseDaily: analyseDaily, analyseBazi: analyseBazi, analyseZwds: analyseZwds,
     analyseForecast: analyseForecast, expandManifestation: expandManifestation, speech: speech,
-    palaceSummary: palaceSummary
+    palaceSummary: palaceSummary,
+    analysePalm: analysePalm, analyseFace: analyseFace, palmPrompt: palmPrompt, facePrompt: facePrompt
   };
 })(typeof window !== 'undefined' ? window : globalThis);
