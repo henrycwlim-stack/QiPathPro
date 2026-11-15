@@ -5,6 +5,21 @@
  */
 (function (global) {
   'use strict';
+
+  /* Health in every reading: name the organs or body areas the tradition links to the chart, and why, as areas to look after.
+   * Never a diagnosis, a named disease, or timing or severity of illness, and never a reason to delay medical care. */
+  var HEALTH_MAP = 'Wood: liver, gallbladder, tendons, eyes; Fire: heart, small intestine, blood vessels, tongue; ' +
+    'Earth: spleen, stomach, digestion, muscles, mouth; Metal: lungs, large intestine, skin, nose and airways; ' +
+    'Water: kidneys, bladder, bones, ears, the reproductive and urinary system. Trigrams: 乾 head, lungs; 坤 abdomen, stomach; ' +
+    '震 feet, liver; 巽 thighs, gallbladder, nerves; 坎 ears, kidneys, blood; 離 eyes, heart; 艮 hands, back, spine; 兌 mouth, throat, teeth';
+  var HEALTH_RULE = 'HEALTH: name the specific organs, body systems or parts of the body the reading points to, and say why: which ' +
+    'element is weak, excessive or under attack, and which star, palace, trigram, line or feature points there (traditional links: ' +
+    HEALTH_MAP + '). Present them as areas that could be affected and need looking after, not as a diagnosis: never name a disease, ' +
+    'never say something is wrong or will go wrong, and never give the timing or severity of an illness. Suggest ordinary habits that ' +
+    'support those areas and a routine check-up where it fits, and say plainly that any symptom or concern belongs with a doctor. ' +
+    'Never suggest delaying, avoiding or stopping medical care.\n';
+  var HEALTH_FIELD = 'name the organs or parts of the body it points to and why (which element, star, palace, line or feature), as ' +
+    'areas to look after, never a diagnosis or a named disease; close by saying any symptom belongs with a doctor';
   var C = global.QPCore;
 
   var PROVIDERS = {
@@ -1060,7 +1075,7 @@
       '  "career": "Career timing from 官禄 and the 四化 entering it across the years, with years named (90-130 words).",\n' +
       '  "wealth": "Wealth timing from 财帛 and 田宅, with years named (90-130 words).",\n' +
       '  "relationships": "Relationship timing from 夫妻 and its opposite 官禄, with years named (80-120 words).",\n' +
-      '  "health": "Energy and health tendencies from 疾厄 and any 化忌 entering it, practical and non-alarming (60-100 words).",\n' +
+      '  "health": "Health tendencies from 疾厄, its stars and any 化忌 entering it: ' + HEALTH_FIELD + '; practical and non-alarming (80-130 words).",\n' +
       '  "strategy": "A concrete plan across the 8 years that rides the strong flow years and protects the 化忌 palaces (110-160 words).",\n' +
       '  "caution": "What would change this forecast and where the model is weakest for this board (80-120 words)."\n}';
   }
@@ -1272,7 +1287,7 @@
       'NINE PALACES: ' + palaceSummary(r.chart) + '\n' +
       'ENGINE FINDINGS:\n' + r.findings.map(function (f) { return '- [' + f.tone + '] ' + f.label + ': ' + f.text; }).join('\n') + '\n' +
       'Engine verdict: ' + r.verdict + ' (score ' + r.score + '), direction ' + r.direction + '.\n' +
-      (r.care ? 'HEALTH QUESTION: never tell the person to delay, avoid or stop medical care, and never suggest waiting for a better time to see a doctor. Treat the verdict as being about timing and approach, not a diagnosis or prognosis, and advise seeing a doctor about any concern.\n' : '') +
+      (r.care ? 'HEALTH QUESTION: never tell the person to delay, avoid or stop medical care, and never suggest waiting for a better time to see a doctor. Treat the verdict as being about timing and approach, not a diagnosis or prognosis, and advise seeing a doctor about any concern. Read the 天芮 palace, its trigram and element for which organs or body areas are involved.\n' + HEALTH_RULE : '') +
       'FORMATIONS:\n' + formationBlock(r.formations.slice(0, 12)) + '\n\n' +
       (main ? 'FIRST READING (already given to the person):\n  Answer: ' + clip(main.answer, 600) + '\n  Reading: ' +
         clip(main.reading, 700) + '\n  Action: ' + clip(main.action, 400) + '\n\n' : '') +
@@ -1360,7 +1375,7 @@
                  : ', held in the centre palace') + '.\n\n' +
       'ENGINE FINDINGS:\n' + findings + '\n\n' +
       'Engine verdict: ' + r.verdict + ' (score ' + r.score + '). Indicated direction: ' + r.direction + '.\n\n' +
-      (r.care ? 'HEALTH QUESTION: never tell the person to delay, avoid or stop medical care, and never suggest waiting for a better time to see a doctor. Treat the verdict as being about timing and approach, not a diagnosis or prognosis, and advise seeing a doctor about any concern.\n' : '') +
+      (r.care ? 'HEALTH QUESTION: never tell the person to delay, avoid or stop medical care, and never suggest waiting for a better time to see a doctor. Treat the verdict as being about timing and approach, not a diagnosis or prognosis, and advise seeing a doctor about any concern. Read the 天芮 palace, its trigram and element for which organs or body areas are involved.\n' + HEALTH_RULE : '') +
       'NINE-PALACE LAYOUT:\n' + palaceSummary(r.chart) + '\n\n' +
       'FORMATIONS PRESENT:\n' + formationBlock(r.formations.slice(0, 14)) + '\n\n' +
       'ASKER CONTEXT: Day Master ' + (user.deep || user.bazi).dayMasterCn + ', ' +
@@ -1789,7 +1804,7 @@
       '  "windows": ["5 to 7 entries, best first: an exact month or year from the input — what to initiate in it — why. Then 2 entries prefixed AVOID: for the trough windows."],\n' +
       '  "career": "Career and wealth timing: when to ask, launch, change role or invest, naming the windows and the ten gods behind them (110-160 words).",\n' +
       '  "relationships": "Relationship timing from spouse-palace clashes and harmonies across the windows, with dates (90-130 words).",\n' +
-      '  "health": "Energy and health tendencies from the elements in the trough windows, practical and non-alarming (70-110 words).",\n' +
+      '  "health": "Energy and health tendencies from the elements in the trough windows: ' + HEALTH_FIELD + '; practical and non-alarming (80-120 words).",\n' +
       '  "strategy": "A concrete plan across the next 8 years and the next 13 months that rides the golden windows and shelters in the troughs (120-170 words).",\n' +
       '  "caution": "What would change this forecast, where the model is weakest for this chart, and what the person should watch for (80-120 words)."\n}';
   }
@@ -1827,7 +1842,7 @@
     return LIB + 'You are a master Bazi (八字) forecaster writing ONE personalised annual forecast (流年) for this person ' +
       'for the solar year ' + a.year + ', which runs from 立春 ' + a.lichun + ' to ' + a.ends + '. Ground every statement in ' +
       'the natal chart and the computed year data below. English with Chinese terms in parentheses. These are tendencies ' +
-      'and timing, not certainties; for health, name areas to look after and never diagnose.\n\n' + PLAIN_RULE +
+      'and timing, not certainties.\n\n' + HEALTH_RULE + '\n' + PLAIN_RULE +
       '滴天髓 NATAL ASSESSMENT:\n' + deepBlock(user.deep, user) + '\n\n' +
       'THE YEAR ' + a.year + ': ' + a.pillarCn + ' (' + a.nayin + ', year of the ' + a.zodiac + ')\n' +
       '- Year stem ' + a.pillar.cn.charAt(0) + ' = ' + a.stemGod.cn + ' (' + a.stemGod.en + ') to the Day Master\n' +
@@ -1866,7 +1881,7 @@
       '  "career": "Career this year, with the months to push and to hold (80-120 words).",\n' +
       '  "wealth": "Money this year: earning, holding, risks, and the months for each (80-120 words).",\n' +
       '  "relationships": "Relationships and family this year, with months (70-110 words).",\n' +
-      '  "health": "The areas to look after this year and ordinary habits that help, with the months to be careful; never diagnose (60-100 words).",\n' +
+      '  "health": "The areas to look after this year: ' + HEALTH_FIELD + '; ordinary habits that help, and the months to take extra care (80-120 words).",\n' +
       '  "study": "Study, skills and personal growth this year (50-90 words).",\n' +
       '  "months": "The twelve months grouped into runs — when to push, consolidate and rest — with exact start dates (130-190 words).",\n' +
       '  "keyDates": ["4 to 6 entries: a month or date range from the data — what it is good or risky for — why."],\n' +
@@ -1891,7 +1906,7 @@
     '  "career": "Career this year (70-110 words).",\n' +
     '  "wealth": "Money this year (70-110 words).",\n' +
     '  "relationships": "Relationships and family this year (60-100 words).",\n' +
-    '  "health": "Areas to look after and ordinary habits that help; never diagnose (50-90 words).",\n' +
+    '  "health": "Areas to look after: ' + HEALTH_FIELD + '; ordinary habits that help (60-100 words).",\n' +
     '  "timing": "When in the year to push, hold and rest, from the data (90-140 words).",\n' +
     '  "keyDates": ["4 to 6 entries: a period from the data — what it suits or risks — why."],\n' +
     '  "doList": ["4 to 6 concrete things to do this year."],\n' +
@@ -1903,7 +1918,7 @@
     var LIB = lib('zwds', 'annual 流年 四化 ' + a.pillarCn + ' ' + a.lifePalace.stars.join(' '));
     return LIB + 'You are a master Zi Wei Dou Shu (紫微斗数) forecaster writing ONE personalised annual forecast (流年) for ' +
       a.year + ' (' + a.pillarCn + ', nominal age ' + a.age + '). Read the flow-year palaces, the year stem\'s 四化 and the ' +
-      '大限 in force. English with Chinese terms in parentheses; tendencies, not certainties; never diagnose.\n\n' + PLAIN_RULE +
+      '大限 in force. English with Chinese terms in parentheses; tendencies, not certainties.\n\n' + HEALTH_RULE + '\n' + PLAIN_RULE +
       'NATAL BOARD: ' + z.juCn + ' (' + z.juEn + '); 命宫 in ' + C.BRANCHES[z.ming] + ' (' + (z.mingStars.join('、') || 'empty') + '); 身宫 in ' + C.BRANCHES[z.shen] + '.\n' +
       '大限 IN FORCE: ' + (a.decade ? 'age ' + a.decade.from + '-' + a.decade.to + ' in ' + a.decade.palace + ' [' + (a.decade.stars.join('、') || 'empty') + '], score ' + a.decade.score : 'not yet started') + '\n' +
       'YEAR SCORE: flow-year Life ' + a.lifeScore + ', decade ' + a.decadeScore + ', combined (0.618/0.382) ' + a.score + ' → ' + a.verdict + '\n\n' +
@@ -1932,7 +1947,7 @@
     return LIB + 'You are a master Qi Men Dun Jia (奇门遁甲) consultant writing ONE personalised annual forecast from the year ' +
       'plate (年盘) for ' + a.year + ' (' + a.pillarCn + '). The person is their natal Day Stem ' + a.seat.stem +
       (a.seat.hidden ? ' (甲 hidden under its xun yi)' : '') + '; read where it sits on the year plate and on each month plate. ' +
-      'English with Chinese terms in parentheses; tendencies, not certainties; never diagnose.\n\n' + PLAIN_RULE +
+      'English with Chinese terms in parentheses; tendencies, not certainties.\n\n' + HEALTH_RULE + '\n' + PLAIN_RULE +
       'YEAR PLATE: ' + a.plate.dun + ' Ju ' + a.plate.ju + (a.plate.basis ? ' (' + a.plate.basis + ')' : '') + '; chief ' + a.plate.chief +
         ', envoy ' + a.plate.envoy + ' in palace ' + a.plate.envoyPalace + '; void ' + a.plate.voids.join('') + '\n' +
       'NINE PALACES: ' + palaceSummary(a.chart) + '\n' +
@@ -2083,14 +2098,13 @@
       'parentheses. Never write generic horoscope filler.\n\n' +
       'Hold the frame honestly: this is an interpretive tradition, not prediction. Describe what ' +
       'the configuration indicates and what a person might therefore do, not what will happen. ' +
-      'For health, speak about constitution and habits, and say plainly that symptoms belong to a ' +
-      'doctor.\n\n' + deepBlock(D, user) + '\n\nENGINE DOMAIN READINGS:\n' + eng + '\n\n' +
+      HEALTH_RULE + '\n' + deepBlock(D, user) + '\n\nENGINE DOMAIN READINGS:\n' + eng + '\n\n' +
       'Return STRICT JSON:\n{\n' +
       '  "overview": "The shape of the chart as a whole — day master, strength, climate, and the single thing that most governs how this life runs (140-190 words).",\n' +
       '  "career": "Career and standing, from the Officer and Output elements and the Month pillar. Name concrete kinds of work this configuration suits and why (140-190 words).",\n' +
       '  "wealth": "Wealth: how money is earned, held and lost here. Reference 財多身弱 or 食神生財 where they actually apply (140-190 words).",\n' +
       '  "relationships": "Relationships from the spouse palace (Day branch) and the spouse star for this gender, including any clash or union touching the Day pillar (140-190 words).",\n' +
-      '  "health": "Constitution from the scarcest and most burdened elements, with organ associations as the tradition gives them. Practical habits only; defer symptoms to a doctor (130-180 words).",\n' +
+      '  "health": "Constitution from the scarcest and most burdened elements: ' + HEALTH_FIELD + '. Practical habits that support those areas (130-180 words).",\n' +
       '  "education": "Learning and qualification from the Resource element, Output, and any Academic Star (130-170 words).",\n' +
       '  "guidance": "What to actually do: favourable elements in practice — directions, timing, kinds of activity, what to build and what to stop paying for (140-190 words)."\n}';
   }
@@ -2371,7 +2385,7 @@
       'Five systems have each scored life areas from -3 to +3 where they have something to say. The average and agreement are computed. Where systems split, say so plainly rather than smoothing it over. ' +
       'He Luo speaks only on Self, Luck, Later life and Purpose. "via" means that system has no symbol of its own for the area and read the nearest one.\n' +
       (c.usedQiZheng ? '' : 'Qi Zheng Si Yu is unavailable for this birth date.\n') +
-      'Never suggest delaying, avoiding or stopping medical care, and never diagnose. Never predict death, divorce or a lawsuit as certain.\n\n' +
+      HEALTH_RULE + 'Never predict death, divorce or a lawsuit as certain.\n\n' +
       'AREAS:\n' + c.areas.map(line).join('\n') + '\n\nCover all ' + c.areas.length + ' areas in "lifeAreas", in this order. Be specific to this chart: name the symbols and say what they mean in everyday life. Avoid generic advice.\n\n' +
       'Return STRICT JSON:\n{\n' +
       '  "overview": "The shape of this life across the five systems (90-130 words).",\n' +
@@ -2412,11 +2426,7 @@
       'Answer the question that was asked, directly, before anything else. Read it against all three ' +
       'systems below, say where they agree and where they disagree, and decide. English, Chinese terms in ' +
       'parentheses.\n\n' +
-      'Honesty rules: these systems describe tendencies and timing, not certainties. For health questions, ' +
-      'use the traditional five-element correspondences (Wood liver/gallbladder/tendons, Fire heart/small ' +
-      'intestine/circulation, Earth spleen/stomach/digestion, Metal lungs/large intestine/skin, Water ' +
-      'kidneys/bladder/bones/ears) as areas to look after, recommend ordinary preventive habits and check-ups, ' +
-      'and say plainly that any symptom needs a doctor — never diagnose. For money, career and relationship ' +
+      'Honesty rules: these systems describe tendencies and timing, not certainties. ' + HEALTH_RULE + 'For money, career and relationship ' +
       'decisions, weigh the chart alongside the practical facts the person gives (for a resignation: whether ' +
       'an offer is in hand, savings runway, market) and make the advice conditional on them where it matters. ' +
       'If the question cannot be read from these charts, say so and answer the part that can.\n\n' +
@@ -2912,10 +2922,10 @@
   var AREA_ITEMS = { type:'array', items:{ type:'object', properties:{
     area:{type:'string'}, outlook:{type:'string'}, advice:{type:'string'} }, required:['area','outlook'] } };
   var PALM_SCHEMA = { type:'object', properties:{
-    photoCheck:{type:'string'}, handShape:{type:'string'}, lines:AREA_ITEMS, mounts:{type:'string'},
+    photoCheck:{type:'string'}, handShape:{type:'string'}, lines:AREA_ITEMS, mounts:{type:'string'}, health:{type:'string'},
     fingers:{type:'string'}, twoHands:{type:'string'}, withBazi:{type:'string'}, strengths:{type:'string'},
     watch:{type:'string'}, guidance:{type:'string'}, confidence:{type:'string'} },
-    required:['photoCheck','handShape','lines','mounts','fingers','twoHands','withBazi','strengths','watch','guidance','confidence'] };
+    required:['photoCheck','handShape','lines','mounts','health','fingers','twoHands','withBazi','strengths','watch','guidance','confidence'] };
   var FACE_SCHEMA = { type:'object', properties:{
     photoCheck:{type:'string'}, faceShape:{type:'string'}, zones:{type:'string'}, features:AREA_ITEMS,
     palaces:AREA_ITEMS, health:{type:'string'}, thisYear:{type:'string'}, withBazi:{type:'string'}, strengths:{type:'string'},
@@ -2930,9 +2940,11 @@
     '- Never diagnose, name or infer any illness, disease, medical or skin condition, and never comment on weight, attractiveness, ethnicity or race, religion, ' +
     'sexual orientation, disability, or any other sensitive trait. Do not estimate age from the photo. Do not try to identify the person.\n' +
     '- Never predict death, lifespan, accidents, illness or disaster. Present cautions as tendencies to work with, each with a practical response.\n' +
-    '- The Health palace 疾厄宮, where asked for, is read only as the tradition reads it: vitality, stamina, resilience and how the person ' +
-    'handles stress, as tendencies, with everyday habits of rest, movement and balance. Never name an organ, a disease or a symptom, never ' +
-    'read skin marks or colour as a sign of illness, and end it by saying that any health concern belongs with a doctor, never with a face reading.\n' +
+    '- The Health palace 疾厄 follows this rule. ' + HEALTH_RULE +
+    '  On a photo, read health from the shape, fullness and position of the features and lines, using their traditional organ links ' +
+    '(face: eyes liver, nose lungs, mouth and lips spleen and stomach, ears kidneys, 山根 and 年上 壽上 the chest, heart and lungs; palm: ' +
+    '地紋 and 震 overall vitality, 健康紋 digestion, liver and nerves, and each palm palace by its trigram). Do not read blemishes, skin ' +
+    'colour, swelling or other visible signs as illness: those are for a doctor to look at, not features to read.\n' +
     '- This is a traditional interpretive art for reflection, not a scientific or medical assessment. Say so once, briefly, in "confidence".\n' +
     '- If the image is not a clear photo of what was asked for (a palm, or a face), say so in "photoCheck", keep every other field short, ' +
     'and do not invent a reading.\n' +
@@ -2952,12 +2964,14 @@
       'dominant hand what has been made of it.\n\n' +
       'REFERENCE (the app\'s own tables):\nFive hand shapes: ' + P.HAND_SHAPES.map(function (h) { return h.cn + ' ' + h.element + ': ' + h.look; }).join('; ') + '.\n' +
       'Lines: ' + P.PALM_LINES.map(function (l) { return l.en + ' ' + l.cn + ' — ' + l.where; }).join('; ') + '.\n' +
-      'Palm palaces 掌中八卦: ' + P.PALM_BAGUA.join('; ') + '.\n\n' +
+      'Palm palaces 掌中八卦: ' + P.PALM_BAGUA.join('; ') + '.\n' +
+      'Health palace 疾厄 on the palm, read from: ' + P.PALM_HEALTH.join('; ') + '.\n\n' +
       'Return STRICT JSON:\n{\n' +
       '  "photoCheck": "Whether each photo is usable: lighting, focus, how much of the palm and fingers show, and what to retake if anything (30-70 words).",\n' +
       '  "handShape": "Which of the five element hand shapes this is and why, from the proportions you can see, and what that element means for temperament (90-130 words).",\n' +
       '  "lines": [ { "area": "Line name with Chinese term", "outlook": "What you see — length, depth, shape, breaks, branches — and what the tradition reads from it (50-90 words)", "advice": "One practical point (15-35 words)" } ] — one item for each of the Heart, Head, Life lines, then the Fate and Sun lines only if visible,\n' +
       '  "mounts": "The palm palaces 掌中八卦 and the centre 明堂: which are full or firm and which are flat, and what each indicates (90-140 words).",\n' +
+      '  "health": "The Health palace 疾厄 of the palm: the Life line 地紋, the thumb mound 震 and the Health line 健康紋 if one shows, and which organs or body areas they point to and why, what the tradition reads for vitality and resilience, and everyday habits that support those areas. Never a diagnosis or a named disease; close by saying any symptom belongs with a doctor (90-140 words).",\n' +
       '  "fingers": "Finger length and proportions, the thumb, and what they show about will, thinking and expression (70-110 words).",\n' +
       '  "twoHands": "If both hands are shown, the difference between inborn and developed; otherwise say which hand was read and what the other would add (50-90 words).",\n' +
       '  "withBazi": "How the hand\'s element sits with the ' + ctx.dmElement + ' Day Master (same, producing, produced, controlling or controlled) and what that combination suggests (70-110 words).",\n' +
@@ -2986,7 +3000,7 @@
       '  "zones": "The balance of the three zones 三停 — which is most developed — and what that says about early, middle and later life (90-130 words).",\n' +
       '  "features": [ { "area": "Feature with Chinese term", "outlook": "What you see and what the tradition reads from it (45-80 words)", "advice": "One practical point (15-30 words)" } ] — the eyebrows, eyes, nose, mouth, ears (if visible), forehead and chin,\n' +
       '  "palaces": [ { "area": "Palace with Chinese term", "outlook": "What the area shows (35-70 words)" } ] — Life, Wealth, Career, Partner and Property at least; others where the photo shows them (the Health palace has its own field below),\n' +
-      '  "health": "The Health palace 疾厄宮 at 山根 and 年上 壽上: how full, straight and unbroken the root and bridge of the nose look, and what the tradition reads for vitality, stamina and resilience under pressure, with one or two everyday habits that suit it. Never a diagnosis; close by saying any health concern belongs with a doctor (60-100 words).",\n' +
+      '  "health": "The Health palace 疾厄宮 at 山根 and 年上 壽上: how full, straight and unbroken the root and bridge of the nose look, together with the organ links of the five officials: which organs or body areas the features point to and why, what the tradition reads for vitality and resilience, and everyday habits that support those areas. Never a diagnosis or a named disease; close by saying any symptom belongs with a doctor (90-140 words).",\n' +
       '  "thisYear": "Read the 流年 position for age ' + ctx.xu + ' as it appears in the photo, then what the next positions suggest for the coming years (90-140 words).",\n' +
       '  "withBazi": "How the face\'s element sits with the ' + ctx.dmElement + ' Day Master and what that combination suggests (60-100 words).",\n' +
       '  "strengths": "The three clearest strengths this face shows (60-100 words).",\n' +

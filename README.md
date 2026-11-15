@@ -49,6 +49,17 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.7.2 — Health palace on the palm, and organ-level health readings
+Version folder 10.7.2 (versionCode 61), copied from 10.7.1.
+- **Palm Reading** now has a Health palace 疾厄 section, read from the Life line 地紋, the thumb mound 震 and the Health line 健康紋 where
+  one shows.
+- **Every health reading** (Palm, Face, BaZi, Qimen health questions, Zi Wei, the yearly and decade forecasts, the combined reading
+  and Ask) now follows one shared rule: name the organs or parts of the body the chart points to, and why. The why is the element,
+  star, palace, trigram, line or feature behind it, using the traditional five-element and trigram links. These are given as
+  areas to look after, with habits and a routine check-up where it fits. The AI is still told never to name a disease, never to
+  give the timing or severity of an illness, never to read blemishes or skin colour on a photo as illness, and never to suggest
+  delaying medical care.
+
 ### 10.7.1 — Health palace in Face Reading
 Version folder 10.7.1 (versionCode 60), copied from 10.7.0. Face Reading now reads the Health palace 疾厄宮 (山根 down to 年上 壽上
 on the bridge of the nose) in its own section. It is read only as the tradition does: vitality, stamina and resilience under

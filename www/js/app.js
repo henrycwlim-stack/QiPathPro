@@ -7227,7 +7227,7 @@
       block('The reading', '', '<div id="aiPhys"></div>' + saveBar('phSave', 'Save this reading')) +
       '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">' + (isPalm ? 'Palm' : 'Face') +
         ' reading is a traditional art for reflection, not a scientific or medical assessment. ' +
-        (isPalm ? 'It never reads health, ' : 'It reads the Health palace 疾厄宮 only as traditional vitality, never as a diagnosis, ') +
+        'Its Health palace 疾厄 names the organs and body areas the tradition links to what it sees, as areas to look after, never as a diagnosis, ' +
         'and nothing in it is a reason to delay, avoid or stop medical care.</div>';
 
     host.querySelectorAll('input[type=file][data-slot]').forEach(function (inp) {
@@ -7248,6 +7248,7 @@
     var sections = isPalm ? [
       { label: 'The photos', path: 'photoCheck' }, { label: 'Hand shape', path: 'handShape' },
       { label: 'The lines', path: 'lines', list: 'areas' }, { label: 'Palm palaces 掌中八卦', path: 'mounts' },
+      { label: 'Health palace 疾厄', path: 'health' },
       { label: 'Fingers and thumb', path: 'fingers' }, { label: 'Two hands', path: 'twoHands' },
       { label: 'With your BaZi', path: 'withBazi' }, { label: 'Strengths', path: 'strengths' },
       { label: 'To work with', path: 'watch' }, { label: 'Guidance', path: 'guidance' }, { label: 'Confidence', path: 'confidence' }

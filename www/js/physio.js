@@ -92,6 +92,10 @@
     '巽 below the index finger (wealth)', '離 below the middle and ring fingers (reputation)', '坤 below the little finger (partner, home)',
     '兌 the outer edge, middle (children, creativity)', '乾 the outer edge, low (mentors, father)', '坎 the base of the palm, centre (roots, ancestry)',
     '艮 the base of the thumb, low (learning, siblings)', '震 the thumb mound (vitality, mother)', '明堂 the hollow in the centre (the present)'];
+  // Where the palm's Health palace 疾厄 is read: vitality and resilience only, never a diagnosis.
+  var PALM_HEALTH = ['地紋 the Life line (depth, clarity, how fully it curves around the thumb)',
+    '震 the thumb mound (fullness and firmness, the store of vitality)',
+    '健康紋 the Health line, rising from the base of the palm toward the little finger, where one shows (many palms have none, which is read as good)'];
 
   /* ================= elements against the Day Master ================= */
 
@@ -144,7 +148,7 @@
 
   global.QPPhysio = {
     FACE_AGES: FACE_AGES, ZONES: ZONES, FACE_SHAPES: FACE_SHAPES, FACE_FEATURES: FACE_FEATURES, FACE_PALACES: FACE_PALACES,
-    HAND_SHAPES: HAND_SHAPES, PALM_LINES: PALM_LINES, PALM_BAGUA: PALM_BAGUA, STEM_ELEM: STEM_ELEM,
+    HAND_SHAPES: HAND_SHAPES, PALM_LINES: PALM_LINES, PALM_BAGUA: PALM_BAGUA, PALM_HEALTH: PALM_HEALTH, STEM_ELEM: STEM_ELEM,
     ageArea: ageArea, agesAhead: agesAhead, relation: relation, context: context, prepareImage: prepareImage
   };
 })(typeof window !== 'undefined' ? window : globalThis);
