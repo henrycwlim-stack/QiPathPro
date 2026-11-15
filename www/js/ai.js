@@ -3027,6 +3027,24 @@
       '  "confidence": "How much the photo supported the reading, and a one-line reminder that face reading is a traditional art for reflection (25-50 words)."\n}';
   }
 
+  /* ---------- explain any screen in plain English ---------- */
+  var EXPLAIN_SCHEMA = { type: 'object', properties: { summary: { type: 'string' }, meaning: { type: 'string' }, strengths: { type: 'string' },
+    watch: { type: 'string' }, doNow: { type: 'string' }, readNext: { type: 'string' } }, required: ['summary', 'meaning', 'strengths', 'watch', 'doNow', 'readNext'] };
+  function explainScreen(cfg, title, text, titles) {
+    var prompt = 'You are explaining one screen of a Chinese metaphysics app to its owner, who has no training in it. The screen is "' + title +
+      '". Its full text follows. Explain what it says about THIS person in plain, warm English: no jargon unless you explain it in the same sentence, ' +
+      'no lists of terms, and nothing that is not supported by the text. Tendencies and timing, not certainties.\n\n' + HEALTH_RULE + '\n' + PLAIN_RULE +
+      '\nSCREEN TEXT:\n' + text + '\n\nSection titles on the screen: ' + (titles || []).join(' | ') + '\n\n' +
+      'Return STRICT JSON:\n{\n' +
+      '  "summary": "The single most important message of this screen for this person (40-70 words).",\n' +
+      '  "meaning": "What the screen shows, explained as if to a friend: the main findings and what they mean in daily life (150-250 words).",\n' +
+      '  "strengths": "What works in their favour here and how to use it (60-110 words).",\n' +
+      '  "watch": "What to be careful of, each with a practical response (60-110 words).",\n' +
+      '  "doNow": "Three concrete next steps (60-100 words).",\n' +
+      '  "readNext": "Which two or three section titles on this screen to read for the technical detail, by their exact titles, and why (30-60 words)."\n}';
+    return call(cfg, prompt, EXPLAIN_SCHEMA);
+  }
+
   function analysePalm(cfg, photos, ctx) { return callMedia(cfg, palmPrompt(ctx, photos), PALM_SCHEMA, photos); }
   function analyseFace(cfg, photos, ctx) { return callMedia(cfg, facePrompt(ctx, photos), FACE_SCHEMA, photos); }
 
@@ -3042,7 +3060,7 @@
     askCharts: askCharts, askPrompt: askPrompt,
     PROTOCOLS: PROTOCOLS, sharpenQuestion: sharpenQuestion, writeWalkScript: writeWalkScript, walkScriptPrompt: walkScriptPrompt, withCounter: withCounter, deepDive: deepDive, DEEP_MAX: DEEP_MAX,
     analyseSanCai: analyseSanCai,
-    analyseElements: analyseElements, analyseRelations: analyseRelations, analyseTogether: analyseTogether,
+    explainScreen: explainScreen, analyseElements: analyseElements, analyseRelations: analyseRelations, analyseTogether: analyseTogether,
     analyseYijing: analyseYijing, analyseDayPick: analyseDayPick,
     analyseBaziForecast: analyseBaziForecast, analyseZwdsForecast: analyseZwdsForecast, analyseBaziYear: analyseBaziYear, analyseZwdsYear: analyseZwdsYear, analyseThreats: analyseThreats, analyseQimenYear: analyseQimenYear,
     analyseStructure: analyseStructure, analyseDraws: analyseDraws,

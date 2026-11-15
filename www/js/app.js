@@ -2108,6 +2108,7 @@
         ]);
     }
     else if (chartK === 'together') { renderTogether(host); }
+    else if (chartK === 'areas') { renderLifeAreas(host); }
     else if (chartK === 'compass') { host.innerHTML = '<div id="fsCompass"></div>'; paintCompass(); }
     else if (chartK === 'property') { renderProperty(); }
     else if (chartK === 'plan') { renderPlan(); }
@@ -4104,6 +4105,132 @@
         payload: { type: 'story', typeLabel: 'Story for the year', storyLine: path ? path[1] : '', letGo: d.stReset, story: d.stStory, ability: d.stAbility } };
     });
   }
+
+  /* ---------------- plain English everywhere: the Life Areas page, an opening on every screen, links to the technical detail ---------------- */
+  var laYear = null;
+  function goTech(link) {
+    show(link.s);
+    if (link.s === 'chart') switchChart(link.k); else if (link.s === 'consult') switchConsult(link.k);
+    setTimeout(function () {
+      var scr = $('s-' + link.s), hs = scr ? [].slice.call(scr.querySelectorAll('h2')) : [];
+      var h = hs.filter(function (x) { return x.textContent.indexOf(link.title) === 0; })[0];
+      if (!h) return;
+      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var b = h.closest('.block') || h.parentNode; b.classList.add('flash'); setTimeout(function () { b.classList.remove('flash'); }, 1800);
+    }, 150);
+  }
+  function laBadge(lv) { return '<span class="la-badge ' + lv.toLowerCase() + '">' + lv + '</span>'; }
+  function renderLifeAreas(host) {
+    var y0 = now().y; if (!laYear) laYear = y0;
+    var r = areasSafe(function () { return window.QPLifeAreas.compute(user, laYear); });
+    if (!r) { host.innerHTML = '<div class="notice">The life areas could not be worked out for this profile.</div>'; return; }
+    var links = [];
+    var linkBtns = function (ls) {
+      return '<div class="tech-links"><span>Technical details:</span> ' + ls.map(function (l) { links.push(l); return '<button class="chip" data-go="' + (links.length - 1) + '">' + esc(l.label) + '</button>'; }).join(' ') + '</div>';
+    };
+    var say = function (xs) { return xs.map(function (x) { return '<div class="plain" style="margin-bottom:6px"><b>' + esc(x.sys) + ':</b> ' + esc(x.text) + '</div>'; }).join(''); };
+    host.innerHTML =
+      block('Your life at a glance', 'all twelve areas, every system, in plain English',
+        '<div class="la-years">' + [y0, y0 + 1].map(function (y) { return '<button class="chip' + (y === laYear ? ' on' : '') + '" data-lay="' + y + '">' + y + '</button>'; }).join(' ') + '</div>' +
+        r.summary.map(function (t) { return '<div class="plain" style="margin-bottom:8px">' + esc(t) + '</div>'; }).join('') +
+        xkRows(r.areas.map(function (a) {
+          return ['<a href="#" data-la="' + a.key + '">' + esc(a.label) + '</a><small>' + a.cn + '</small>', 'Lifelong ' + laBadge(a.life) + ' &nbsp; ' + r.year + ' ' + laBadge(a.year)];
+        })) +
+        '<div class="hint">Lifelong combines BaZi, Zi Wei and Qimen from your birth chart, with your BaZi relations at half weight. The year combines BaZi, Zi Wei and Qimen for ' + r.year + '. ' +
+        'Each area below says where the systems agree, and links to the technical working.</div>') +
+      r.areas.map(function (a) {
+        return '<div id="la-' + a.key + '">' + block(esc(a.label) + ' ' + a.cn, 'lifelong ' + a.life.toLowerCase() + ' · ' + r.year + ' ' + a.year.toLowerCase(),
+          '<h3 style="margin:0 0 6px;font-size:.9rem">Over your life ' + laBadge(a.life) + '</h3>' +
+          '<div class="plain" style="margin-bottom:6px">' + esc(a.lifeLine) + ' ' + esc(a.lifeAgree) + '</div>' + say(a.natalSay) +
+          (a.extra ? '<div class="plain" style="margin-bottom:6px"><b>From your Ten Gods:</b> ' + esc(a.extra) + '</div>' : '') +
+          '<h3 style="margin:12px 0 6px;font-size:.9rem">In ' + r.year + ' ' + laBadge(a.year) + '</h3>' +
+          '<div class="plain" style="margin-bottom:6px">' + esc(a.yearLine) + ' ' + esc(a.yearAgree) + '</div>' + say(a.yearSay) +
+          '<div class="todo" style="margin-top:8px"><b>What to do over time:</b> ' + esc(a.doLife || '') + '</div>' +
+          '<div class="todo"><b>What to do in ' + r.year + ':</b> ' + esc(a.doYear || '') + '</div>' +
+          linkBtns(a.links)) + '</div>';
+      }).join('') +
+      '<div class="panel" style="font-size:.8rem;line-height:1.6;color:var(--muted)">These readings describe tendencies and timing for reflection. For health, money and legal matters they never replace a doctor, adviser or lawyer.</div>';
+    host.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { goTech(links[+b.dataset.go]); }; });
+    host.querySelectorAll('[data-la]').forEach(function (a) { a.onclick = function (e) { e.preventDefault(); var t = $('la-' + a.dataset.la); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
+    host.querySelectorAll('[data-lay]').forEach(function (b) { b.onclick = function () { laYear = +b.dataset.lay; renderLifeAreas(host); }; });
+  }
+
+  // Plain-English summaries for the main screens; every other screen gets the section index and the AI explanation.
+  function areasLine(list) {
+    if (!list || !list.length) return null;
+    var s = list.slice().sort(function (a, b) { return b.score - a.score; }), nm = function (xs) { return xs.map(function (x) { return x.label.toLowerCase(); }).join(', '); };
+    return ['Strongest here: ' + nm(s.slice(0, 3)) + '. ' + s[0].plain, 'Needs most care: ' + nm(s.slice(-3).reverse()) + '. ' + s[s.length - 1].todo];
+  }
+  function plainSummary(screen, key) {
+    var y = now().y, D = user.deep, X = window.QPBaziPlus ? areasSafe(function () { return window.QPBaziPlus.all(user, y); }) : null;
+    if (screen === 'chart') {
+      if (key === 'bazi' && X) {
+        var top = X.profile.ranked.filter(function (g) { return g.present; }).slice(0, 3);
+        return [
+          'You are ' + D.dayMasterEn + ' (' + D.dayMasterCn + '). ' + X.day.nature,
+          'Your Day Master is ' + (D.strong ? 'strong' : 'weak') + ', so what helps you most is ' + D.favourableEn.join(', ') + '.',
+          'Your most prominent Ten Gods are ' + top.map(function (g) { return g.en; }).join(', ') + '. The strongest gives you ' + top[0].gift + '.',
+          'Your working style is ' + X.structures.primary.en + ': ' + X.structures.primary.nature,
+          'You tend to do best ' + X.work.best.en.toLowerCase() + '. ' + X.work.flow];
+      }
+      if (key === 'elements') {
+        var sh = D.shares, ord = [0, 1, 2, 3, 4].sort(function (a, b) { return sh[b] - sh[a]; });
+        return ['Your chart is led by ' + C.ELEM_EN[ord[0]] + ' (' + sh[ord[0]] + '%) and shortest of ' + C.ELEM_EN[ord[4]] + ' (' + sh[ord[4]] + '%).',
+          'The elements that help you most are ' + D.favourableEn.join(', ') + '; bring them into your work, surroundings and habits.']
+          .concat(D.diagnosis.disease ? [D.diagnosis.disease.note + ' ' + (D.diagnosis.cure ? D.diagnosis.cure.note : '')] : [])
+          .concat(D.diagnosis.bridge ? [D.diagnosis.bridge.note] : []);
+      }
+      if (key === 'relations') return areasLine(areasSafe(function () { return window.QPBazi.areasRelations(user); }));
+      if (key === 'destiny') return areasLine(areasSafe(function () { var Q = window.QPQimen; return Q.areasDestiny(Q.chartFor('destiny', null, user.birth), user); }));
+      if (key === 'zwds') return areasLine(areasSafe(function () { return window.QPFib.zwdsAreasNatal(user); }));
+      if (key === 'zwperiods') return areasLine(areasSafe(function () { return window.QPFib.zwdsAreasYear(user, window.QPFib.zwdsAnnual(user, y)); }));
+      if (key === 'qmseason') return areasLine(areasSafe(function () { return window.QPQimen.areasYearPlate(user, y); }));
+      if (key === 'luck' && X) {
+        var age = y - user.birth.y, lp = (user.luck.pillars || []).filter(function (l) { return age >= l.from && age < l.to; })[0];
+        var yc = areasSafe(function () { return window.QPYear.yearInChart(user, y); });
+        return [(lp ? 'You are in the ten-year luck pillar ' + lp.pillar.cn + ' (ages ' + lp.from + '–' + lp.to + ').' : 'Your luck pillars are listed below.'),
+          y + ' (' + X.year.pillar + ') is ' + X.year.theme + (X.year.favourable ? ', carried by one of your favourable elements.' : '.'),
+          X.year.quiet ? 'The year makes no clash or combination with your chart: a quieter year to build on.' :
+            'The year ' + X.year.links.slice(0, 2).map(function (l) { return 'brings ' + l.text; }).join('; and ') + '.']
+          .concat(yc && yc.lands[0] ? ['The year\'s strongest element, ' + yc.lands[0].elem + ': ' + yc.lands[0].text] : []);
+      }
+    }
+    if (screen === 'consult' && key === 'liuyao' && lyState.values) {
+      var res = areasSafe(function () { return window.QPLiuYao.read(lyState.values, lyState.when, lyState.topic); });
+      if (res) return ['The cast gives ' + res.hex.name + ' (' + res.hex.nameEn + '): ' + res.hex.theme + (res.changed ? ' It is turning into ' + res.changed.name + ': ' + res.changed.theme : ''),
+        'On your question the reading leans ' + res.verdict.toLowerCase() + '. ' + res.link + ' ' + res.otherLink];
+    }
+    return null;
+  }
+  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1 };
+  function plainOpening(screen) {
+    if (!user) return;
+    var host = $(screen === 'chart' ? 'chartBody' : 'consultBody'), key = screen === 'chart' ? chartK : consultK;
+    if (!host || NO_OPENING[key] || host.querySelector('.plain-open')) return;
+    var hs = [].slice.call(host.querySelectorAll('.block > h2'));
+    if (!hs.length) return;
+    var seg = $(screen === 'chart' ? 'segChart' : 'segConsult'), on = seg ? seg.querySelector(screen === 'chart' ? '[data-c="' + key + '"]' : '[data-k="' + key + '"]') : null, label = on ? on.textContent : '';
+    var sum = areasSafe(function () { return plainSummary(screen, key); });
+    var titles = hs.map(function (h) { return (h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent).trim(); });
+    host.insertAdjacentHTML('afterbegin', '<div class="block plain-open"><h2>In plain English<em>' + esc(label) + '</em></h2>' +
+      (sum ? sum.map(function (t) { return '<div class="plain" style="margin-bottom:8px">' + esc(t) + '</div>'; }).join('')
+           : '<div class="plain" style="margin-bottom:8px">This screen works through the chart step by step. The sections below hold the technical working; tap a title to jump to it, or ask the AI to explain the whole screen in plain English.</div>') +
+      '<div class="tech-links"><span>Technical details:</span> ' + titles.map(function (t, i) { return '<button class="chip" data-jump="' + i + '">' + esc(t) + '</button>'; }).join(' ') + '</div>' +
+      '<details class="tech" style="margin-top:8px"><summary>Explain this screen with AI</summary><div id="aiExplain-' + screen + '"></div></details></div>');
+    host.querySelectorAll('[data-jump]').forEach(function (b) {
+      b.onclick = function () { var h = hs[+b.dataset.jump]; if (!h) return; h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var bl = h.closest('.block'); if (bl) { bl.classList.add('flash'); setTimeout(function () { bl.classList.remove('flash'); }, 1800); } };
+    });
+    aiPanel('aiExplain-' + screen, 'explain', screen + '.' + key + '.' + isoOf(now()), function (cfg) {
+      var text = host.innerText.replace(/\n{2,}/g, '\n').slice(0, 14000);
+      return window.QPAI.explainScreen(cfg, label, text, titles);
+    }, [{ label: 'In short', path: 'summary' }, { label: 'What it means for you', path: 'meaning' }, { label: 'Your strengths here', path: 'strengths' },
+        { label: 'What to watch', path: 'watch' }, { label: 'What to do', path: 'doNow' }, { label: 'Read next', path: 'readNext' }]);
+  }
+  var renderChartBase = renderChart;
+  renderChart = function () { renderChartBase.apply(this, arguments); try { plainOpening('chart'); } catch (e) {} };
+  var renderConsultBase = renderConsult;
+  renderConsult = function () { renderConsultBase.apply(this, arguments); try { plainOpening('consult'); } catch (e) {} };
 
   function renderMonthly(host) {
     var t = now(), opts = window.QPPlanner.startOptions({ y: t.y, m: t.m, d: t.d });
@@ -9827,7 +9954,7 @@
   // The seven categories. Each item opens an existing screen; s is the screen and k its sub-view.
   var NAV = [
     { id: 'destiny', ic: '命', en: 'Destiny', cn: '命運', items: [
-      { label: 'BaZi', s: 'chart', k: 'bazi' }, { label: 'Elements', s: 'chart', k: 'elements' }, { label: 'Relations', s: 'chart', k: 'relations' },
+      { label: 'Life Areas', s: 'chart', k: 'areas' }, { label: 'BaZi', s: 'chart', k: 'bazi' }, { label: 'Elements', s: 'chart', k: 'elements' }, { label: 'Relations', s: 'chart', k: 'relations' },
       { label: 'Together', s: 'chart', k: 'together', when: function () { return tgPrefs().show; } },
       { label: 'Zi Wei', s: 'chart', k: 'zwds' }, { label: 'Qimen Destiny', s: 'chart', k: 'destiny' }, { label: 'Qi Zheng', s: 'chart', k: 'qizheng' }, { label: 'He Luo', s: 'chart', k: 'heluo' }, { label: 'Combined', s: 'chart', k: 'combined' }, { label: 'Palm Reading', s: 'chart', k: 'palm' }, { label: 'Face Reading', s: 'chart', k: 'face' }, { label: 'Ask', s: 'chart', k: 'ask' }] },
     { id: 'seasons', ic: '時', en: 'Seasons', cn: '時運', items: [

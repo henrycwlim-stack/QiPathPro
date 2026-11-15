@@ -936,3 +936,16 @@ details.pl-month > summary{font-size:.9rem;cursor:pointer}
 .ly-res{text-align:center;font-size:.92rem;min-height:1.6em;margin-bottom:10px}
 .ly-built{margin-top:10px}
 @media (prefers-reduced-motion: reduce){.ly-coin{transition:none}.ly-cw.jump{animation:none}}
+
+/* Plain English everywhere */
+.tech-links{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px;font-size:.8rem}
+.tech-links > span{color:var(--muted);margin-right:2px}
+.tech-links .chip{font-size:.74rem;padding:4px 9px}
+.la-years{display:flex;gap:8px;margin-bottom:10px}
+.la-badge{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:999px;border:1px solid currentColor;vertical-align:middle}
+.la-badge.strong{color:var(--celadon)}
+.la-badge.steady{color:var(--muted)}
+.la-badge.weak{color:var(--cinnabar)}
+.block.flash{box-shadow:0 0 0 2px var(--brass);transition:box-shadow .3s}
+.plain-open{border-left:3px solid var(--brass);padding-left:10px}
+a[data-la]{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}

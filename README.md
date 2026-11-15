@@ -49,6 +49,16 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.11 — Plain English everywhere, and the Life Areas page
+Version folder 10.11.0 (versionCode 67), copied from 10.10.0. A new engine, `lifeareas.js` (`window.QPLifeAreas`).
+- **Life Areas** (new first tab under Destiny): all twelve areas in plain English. A summary of your strongest and weakest areas
+  over your life and this year, then for each area: the lifelong reading from BaZi, Zi Wei and Qimen (BaZi relations at half
+  weight) and whether they agree, what your Ten Gods add, the year's reading from BaZi, Zi Wei and Qimen, what to do over time
+  and this year, and buttons that open each system's technical section and highlight it. This year or next.
+- **In plain English** at the top of every Destiny and Consult screen: a written summary for BaZi, Elements, Relations, Luck,
+  Zi Wei, Zi Wei periods, Qimen destiny, Qimen year and Six Lines, and on every screen a row of jump links to its technical
+  sections plus an optional "Explain this screen with AI" that reads the whole screen and explains it in plain English.
+
 ### 10.10 — Six Lines coin toss
 Version folder 10.10.0 (versionCode 66), copied from 10.9.0. Casting in Six Lines now tosses three coins on screen for each line:
 the coins jump and flip, land heads (字, 3) or tails (背, 2), and the result shows straight away (for example tails, tails, heads
