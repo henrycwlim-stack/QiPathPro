@@ -6705,6 +6705,31 @@
         })() +
         (hp ? stemDynHtml(hp.chart, hp.pillars) : '') +
         (function () {
+          // The execution window: Steps 1 to 4.
+          if (!hp) return '';
+          var exDays = 3, ex = areasSafe(function () { return CR.executionWindows(user, t, hp, 3); });
+          if (!ex) return '';
+          // A trap with few release hours that are safe for you: widen the search to a week.
+          if (ex.trap && ex.list.length < 2) { var wide = areasSafe(function () { return CR.executionWindows(user, t, hp, 7); }); if (wide) { ex = wide; exDays = 7; } }
+          var head = ex.trap
+            ? '<div class="plain" style="margin-bottom:8px">The other side (' + esc(ex.trap.opponent) + ', ' + esc(ex.trap.palace) + ' palace) is <b class="good-t">' +
+                ex.trap.kinds.map(function (k) { return k === 'void' ? 'void (空亡): its position is hollow' : 'in its tomb (入墓): it is stalled'; }).join(' and ') + '</b>. ' +
+                'It is released by: ' + esc(ex.trap.keys.map(function (k) { return C.BRANCHES[k.branch] + ', which ' + k.how; }).join('; ')) + '.</div>'
+            : '<div class="plain" style="margin-bottom:8px">The other side is neither void nor in its tomb this hour, so there is no trap to release. These are simply the best hours ahead for your move.</div>';
+          return block('Execution window', 'when to send it: the next ' + (exDays === 7 ? 'seven' : 'three') + ' days',
+            head +
+            (ex.list.length ? xkRows(ex.list.map(function (x, i) {
+              return [(i === 0 ? '<b class="good-t">Best</b> ' : '') + esc(x.label) + '<small>' + x.hourPillar + ' hour · ' + x.dayPillar + ' day</small>',
+                '<div class="plain">' + esc(x.why.join('; ')) + '.</div>' + (x.face ? '<small>Face ' + esc(x.face) + ' when you send or speak.</small>' : '')];
+            })) : '<div class="plain">No hour in the next ' + exDays + ' days meets all the conditions. Hold, prepare, and check again tomorrow.</div>') +
+            '<h3 style="margin:12px 0 6px;font-size:.9rem">Execution protocol</h3><ol class="cr-plan">' +
+              '<li>Draft the message, proposal or notice now, while you are calm, and have it checked if it has legal or financial weight.</li>' +
+              '<li>Send it, or open the meeting, inside the chosen two-hour window, facing the direction shown.</li>' +
+              '<li>Keep it short and firm, and ask for a specific reply by a specific time.</li></ol>' +
+            '<div class="hint">Hours that clash or self-punish your own pillars, and the Five Disharmony Hour, are left out. The release branch, the Day and Hour Stem dynamic, the Open or Rest Door ' +
+              'and the Chief or Nine Heavens each add to the score. This is traditional timing for a well-prepared move; it cannot force anyone\'s decision.</div>');
+        })() +
+        (function () {
           // Phase 3.1: where to face.
           if (!hp || !hp.face) return '';
           var forNoble = (r.goal === 'noble');

@@ -172,7 +172,72 @@
       youOpp: you && opp ? Q.rel(you.element, opp.element) : null };
   }
 
+
+  /* ---------- the execution window: when to strike if the other side is void or in its tomb ----------
+   * Step 1 finds the branch that releases the trap: a clash (冲) or a fill (填實) of the void branch, or the clash that opens the tomb.
+   * Step 2 scans the coming hours for that branch where the Day Stem has the edge over the incoming hour stem, without the hour
+   * clashing or self-punishing the person's own pillars. Step 3 checks the Open or Rest Door and the Chief or Nine Heavens. */
+  var TOMB_BRANCH = [7, 7, 10, 10, 10, 10, 1, 1, 4, 4];   // storage branch of each stem's element: Wood 未, Fire/Earth 戌, Metal 丑, Water 辰
+  var SELF_PUNISH = [4, 6, 9, 11];
+  function trapOf(hp) {
+    if (!hp || !hp.opp) return null;
+    var C2 = C, opp = hp.opp, p = hp.pillars, keys = [], kinds = [];
+    if (opp.isEmpty) {
+      var vb = (hp.chart.voidBranches || []).map(function (c) { return C2.BRANCHES.indexOf(c); });
+      var palB = (opp.branches || []).map(function (c) { return C2.BRANCHES.indexOf(c); });
+      var hit = palB.filter(function (b) { return vb.indexOf(b) >= 0; });
+      (hit.length ? hit : vb).forEach(function (b) {
+        keys.push({ branch: (b + 6) % 12, how: 'clashes the void branch ' + C2.BRANCHES[b] + ' (冲空)' });
+        keys.push({ branch: b, how: 'fills the void branch ' + C2.BRANCHES[b] + ' (填實)' });
+      });
+      kinds.push('void');
+    }
+    var tb = TOMB_BRANCH[p.hour.stem];
+    if ((opp.branches || []).indexOf(C2.BRANCHES[tb]) >= 0) {
+      keys.push({ branch: (tb + 6) % 12, how: 'clashes open the tomb ' + C2.BRANCHES[tb] + ' (冲墓)' });
+      kinds.push('tomb');
+    }
+    if (!kinds.length) return null;
+    return { kinds: kinds, opponent: p.hour.cn.charAt(0), palace: opp.dir, keys: keys };
+  }
+  function executionWindows(user, t, hp, days) {
+    var Q = global.QPQimen, natal = user && user.pillars ? user.pillars : null, trap = trapOf(hp), out = [];
+    var natalB = natal ? [natal.year.branch, natal.month.branch, natal.day.branch, natal.hour.branch] : [];
+    var start = windows(t, 1)[0].start;
+    for (var i = 1; i <= (days || 3) * 12; i++) {
+      var w = new Date(start.getTime() + i * 7200000), mid = new Date(w.getTime() + 3600000);
+      var dt = { y: mid.getFullYear(), m: mid.getMonth() + 1, d: mid.getDate(), hour: mid.getHours(), min: 0 };
+      var r; try { r = Q.chartFor('hour', dt); } catch (e) { continue; }
+      var p = r.pillars, hb = p.hour.branch, db = p.day.branch;
+      if (S.disharmony(p.day.stem, p.hour.stem, p.hour.branch)) continue;
+      // Do not strike in an hour that clashes or self-punishes your own pillars.
+      if (natalB.some(function (b) { return (b + 6) % 12 === hb; })) continue;
+      if (SELF_PUNISH.indexOf(hb) >= 0 && natalB.indexOf(hb) >= 0) continue;
+      var why = [], score = 0;
+      var key = trap ? trap.keys.filter(function (k) { return k.branch === hb; })[0] : null;
+      var dayKey = trap ? trap.keys.filter(function (k) { return k.branch === db; })[0] : null;
+      if (trap && !key && !dayKey) continue;
+      if (key) { score += 3; why.push('the hour ' + C.BRANCHES[hb] + ' ' + key.how); }
+      if (dayKey) { score += 1.5; why.push('the day ' + C.BRANCHES[db] + ' ' + dayKey.how); }
+      var dyn = Q.stemDynamics(r.chart, p);
+      var dv = { control: 2, combine: 1.5, produced: 1, same: -0.5, produce: -0.5, controlled: -2 }[dyn.kind];
+      if (dv < 0 && dyn.kind === 'controlled') continue;
+      score += dv; why.push(dyn.cn + ' ' + dyn.en.toLowerCase());
+      var pals = [1, 2, 3, 4, 6, 7, 8, 9].map(function (n) { return r.chart.palacesByNumber[n]; }).filter(Boolean);
+      var door = pals.filter(function (x) { var g = (x.gate || '').charAt(0); return (g === '开' || g === '休') && !x.isEmpty; })
+        .sort(function (a, b) { return (a.gate.charAt(0) === '开' ? 0 : 1) - (b.gate.charAt(0) === '开' ? 0 : 1); })[0];
+      if (door) { score += door.gate.charAt(0) === '开' ? 1.2 : 0.8; why.push(door.gate + ' in the ' + door.dir + ' palace'); }
+      var backed = dyn.you && (dyn.you.spirit === '值符' || dyn.you.spirit === '九天');
+      if (backed) { score += 1.5; why.push(dyn.you.spirit + ' supports your palace (' + dyn.you.dir + ')'); }
+      if (dyn.you && dyn.you.isEmpty) { score -= 1; why.push('your own palace is void: be sure of your facts'); }
+      out.push({ start: w, label: w.toDateString().slice(0, 10) + ' · ' + pad(w.getHours()) + ':00–' + pad((w.getHours() + 1) % 24) + ':59',
+        hourPillar: p.hour.cn, dayPillar: p.day.cn, score: Math.round(score * 10) / 10, why: why, door: door ? door.dir : null, face: door ? door.dir : (dyn.you ? dyn.you.dir : '') });
+    }
+    out.sort(function (a, b) { return b.score - a.score || a.start - b.start; });
+    return { trap: trap, list: out.slice(0, 5), searched: (days || 3) * 12 };
+  }
+
   function pad(n) { return String(n).length < 2 ? '0' + n : String(n); }
 
-  global.QPCrisis = { TYPES: TYPES, navigate: navigate, triggers: triggers, objectives: objectives, hourPlate: hourPlate, stemRel: stemRel };
+  global.QPCrisis = { TYPES: TYPES, navigate: navigate, triggers: triggers, objectives: objectives, hourPlate: hourPlate, stemRel: stemRel, executionWindows: executionWindows, trapOf: trapOf };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -49,6 +49,19 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.23 — Execution window: releasing a void or tomb
+Version folder 10.23.0 (versionCode 79), copied from 10.22.0. A new block on Consult › Crisis, after "Who holds the leverage".
+- **Step 1, the release key:** when the other side's palace is void, the branch that clashes the void branch (冲空) or fills it
+  (填實) releases it; when its stem sits in its storage branch, the clash of that branch opens the tomb (冲墓).
+- **Step 2, the hour:** the next three days are scanned two hours at a time for the release branch (in the hour, or less strongly in
+  the day), scored by the Day Stem against the Hour Stem. Hours where the issue controls you, the Five Disharmony Hour, and hours
+  that clash or self-punish your own pillars are left out.
+- **Step 3, the plate:** the Open Door (or the Rest Door) and the Chief or Nine Heavens in your palace add to the score; a void palace
+  of your own takes away. The best five hours are listed with the reasons and the direction to face.
+- **Step 4, the protocol:** draft now, send inside the window facing the direction shown, keep it short and ask for a reply by a set time.
+- When there is a trap but fewer than two safe hours in three days, the search widens to seven days. With no trap, the block shows
+  simply the best hours for the move. It is presented as traditional timing for a prepared move, not a way to force a decision.
+
 ### 10.22 — Ten Gods interactions 十神組合
 Version folder 10.22.0 (versionCode 78), copied from 10.21.0. A new section on Destiny › BaZi, also given to the AI reading.
 - **Eleven pairings:** 食神制殺, 傷官見官, 傷官配印, 食傷生財, 財生官, 官印相生, 殺印相生, 比劫奪財, 梟神奪食, 財壞印 and 官殺混雜. A pairing
