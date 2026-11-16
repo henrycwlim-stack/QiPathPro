@@ -6809,6 +6809,119 @@
     }, 60000);
   }
 
+
+  /* ---------- Crisis in plain English: what each part is, how to read it, and the words it uses ---------- */
+  var CRISIS_HELP = {
+    'Crisis navigator': { what: 'Pick what kind of trouble you are in. Every section below then reads the clock for that kind of problem.',
+      read: 'Choose the closest match. The screen re-reads itself every two hours, because in Qi Men each two-hour block of the day has its own pattern.',
+      words: [['Qi Men Dun Jia 奇門遁甲', 'a Chinese timing method. It draws a 3×3 map of the directions for each two-hour block and reads who has the advantage, where, and when.'],
+        ['Shen Sha 神煞', '"symbolic stars": signs in your own birth chart (BaZi) that switch on at certain times, such as helpers, conflicts or travel.']] },
+    'Right now': { what: 'The verdict for the current two-hour block: Act, Prepare or Hold, and which direction helps.',
+      read: 'Act: a good moment to make your move. Prepare: get ready, but do not push yet. Hold: do not escalate; keep things calm. "Move or face" is the direction to face or head towards; "Avoid" is the one to keep behind you.',
+      words: [['Hour pillar', 'the two Chinese characters naming this two-hour block, such as 乙亥.'], ['Five Disharmony Hour 五不遇時', 'an hour whose stem attacks the day\'s stem. Traditionally a bad time to start anything.']] },
+    'Your active stars': { what: 'Which signs in your birth chart are switched on today by the year, month, day and your ten-year luck period.',
+      read: 'Green stars help (a helper, an opening). Red ones warn (a clash, pressure). "Clashes and punishments" are parts of your life under strain today, so keep them out of the fight.',
+      words: [['Nobleman 天乙貴人', 'the helper star: someone senior or kind steps in.'], ['Clash 冲', 'two opposite signs meeting: sudden change or conflict.'],
+        ['Punishment 刑', 'friction that grinds: arguments, red tape, self-inflicted trouble.'], ['Luck pillar 大運', 'the ten-year period of your life you are in now.']] },
+    'Objective': { what: 'What to aim for today, chosen from your strongest active star.',
+      read: 'Tick the box to rank the hours below by this aim instead of by the crisis type. For example, if a helper star is on, the best move is to ask for help.',
+      words: [] },
+    'The hour plate': { what: 'The Qi Men map for this hour: nine boxes, one for each direction plus the centre. You and the problem each sit in one box.',
+      read: 'Your box is marked by your Day Stem, the problem\'s box by the Hour Stem. "Balance" says which box has the upper hand. Each box holds a door (the kind of action), a star (the conditions) and a deity (hidden help or hindrance).',
+      words: [['Palace 宮', 'one of the nine boxes; each stands for a direction.'], ['Day Stem 日干', 'the first character of today\'s day pillar. In crisis reading it stands for you.'],
+        ['Hour Stem 時干', 'the first character of this hour\'s pillar. It stands for the problem or the other side.'], ['Door 門', 'eight doors, such as Open, Rest, Life (good) or Harm, Death (bad): the type of action that works there.'],
+        ['Chief 值符', 'the leading deity: the strongest support on the map.'], ['Ju 局', 'which of the 18 standard map layouts this hour uses.']] },
+    'Who holds the leverage': { what: 'A tug-of-war reading: your Day Stem against the Hour Stem.',
+      read: 'If your element controls theirs, you hold the cards: press for terms but leave them a way out. If theirs controls yours, do not confront; protect your position and wait. "Combine" means both sides want a deal. "Same element" is a stand-off; bring in something new.',
+      words: [['Five elements', 'wood, fire, earth, metal, water. Each feeds one and controls another, for example water puts out fire.'],
+        ['Void 空亡', 'an "empty" box this hour: what sits there is hollow, a bluff, or not really available.'], ['Tomb 入墓', 'a stem stored away in its "tomb": stuck, stalling or unable to act for now.']] },
+    'Execution window': { what: 'The best two-hour slots in the next few days to send the email, make the call or hold the meeting.',
+      read: 'The top line is the best slot. Each slot lists why it scores well and which way to face. If the other side is "void" or "in its tomb", the slots are the hours that release that state: that is when they are most likely to answer.',
+      words: [['Clash open 冲', 'an hour whose sign is opposite the stuck one, which shakes it loose.'], ['Fill 填實', 'an hour that "fills" an empty sign, so the other side becomes real and reachable.'],
+        ['Open Door 開門 / Rest Door 休門', 'the doors for starting things and for calm talks.'], ['Nine Heavens 九天', 'the deity of bold, visible action.']] },
+    'Where to face': { what: 'The direction to sit facing for the call, meeting or message this hour.',
+      read: 'Sit or stand facing the named direction, and if you can only choose a seat, keep the "avoid" direction behind you. Use a phone compass if you are unsure.',
+      words: [] },
+    'Opposition sector': { what: 'Where the trouble sits this hour, how to stay out of its way, and how to keep your plans private.',
+      read: 'Do not meet, sign or argue facing the red directions. Counter-steps tell you how to work around the trouble. Concealment shows when and where to keep a low profile.',
+      words: [['Harm Door 傷門 / Death Door 死門', 'the doors of conflict and of things stalling.'], ['Nine Dun 九遁', 'nine traditional "hiding" patterns: hours good for quiet, protective moves.'],
+        ['Hiding the Stem 遁甲', 'the commander (甲) is never shown on the map; it hides behind another stem. Keep your real resources behind a front until you act.'],
+        ['Wandering Wonders 三奇遊六儀', 'the three lucky stems sitting under the right partner in the Chief\'s box: a good hour for the main move. The reverse ("counter-flow") means exposure.'],
+        ['Jade Maiden 玉女守門', 'an hour for confidential talks and quiet requests.'], ['Earth Door 地戶', 'the direction for keeping things private and low-key.']] },
+    'Your plan': { what: 'The whole screen turned into steps, in order.',
+      read: 'Do "Steady the situation first" before anything else, then follow the numbered steps.',
+      words: [] },
+    'The next hours': { what: 'Every two-hour slot for the next few days, each marked Act, Prepare or Hold.',
+      read: 'Plan your key moves for Act slots, prepare in Prepare slots, and stay quiet in Hold slots. The small tags show your stars and any hiding patterns for that slot.',
+      words: [] }
+  };
+  function crisisHelpHtml(title) {
+    var key = Object.keys(CRISIS_HELP).filter(function (k) { return title.indexOf(k) === 0; })[0], h = key && CRISIS_HELP[key];
+    if (!h) return '';
+    return '<div class="cr-explain"><div class="plain"><b>In plain words:</b> ' + esc(h.what) + '</div>' +
+      '<details class="tech"><summary>How to read it' + (h.words.length ? ' · words used here' : '') + '</summary>' +
+      '<div class="plain" style="margin:6px 0">' + esc(h.read) + '</div>' +
+      (h.words.length ? xkRows(h.words.map(function (w) { return [esc(w[0]), '<div class="plain">' + esc(w[1]) + '</div>']; })) : '') + '</details></div>';
+  }
+  /** A plain summary of the whole screen, for someone with no training. */
+  function crisisPlainSummary(r, hp, CR) {
+    if (!r) return [];
+    var out = [], callTxt = { Act: 'This is a good moment to make your move.', Prepare: 'Get ready, but do not push yet.', Hold: 'Do not escalate right now; keep things calm.' };
+    out.push('Right now (' + r.now.label.replace('Now · ', '') + '): ' + (callTxt[r.now.call] || '') + ' Face ' + r.now.direction + ' and keep ' + r.now.worstDirection + ' behind you.');
+    var act = r.list.filter(function (x) { return x.call === 'Act' && x.label.indexOf('Now') !== 0; })[0];
+    if (act) out.push('Next good slot for practical steps (calls, paperwork, asking for help): ' + act.label + ', facing ' + act.direction + '.');
+    var s = hp && areasSafe(function () { return window.QPQimen.stemDynamics(hp.chart, hp.pillars); });
+    if (s) out.push('Who has the upper hand: ' + s.overall.toLowerCase() + '. ' + s.act);
+    var ex = hp && areasSafe(function () { return CR.executionWindows(user, now(), hp, 3); });
+    if (ex && ex.trap && ex.list.length < 2) { var exw = areasSafe(function () { return CR.executionWindows(user, now(), hp, 7); }); if (exw) ex = exw; }
+    if (ex && !ex.list.length) out.push(ex.trap ? 'The other side is stuck or bluffing for now, but no hour in the coming week is safe for you to press them directly. Keep to practical steps, keep preparing, and check again tomorrow.'
+      : 'No hour in the coming days is clearly right for the key message. Prepare it now and check again tomorrow.');
+    if (ex && ex.list.length) out.push('Best time to send the key message or hold the meeting: ' + ex.list[0].label + (ex.list[0].face ? ', facing ' + ex.list[0].face : '') + '.' +
+      (ex.trap ? ' The other side is stuck or bluffing this hour, and that slot is when it is most likely to shift.' : ''));
+    if (hp && (hp.harm || hp.death)) out.push('Do not meet, sign or argue facing ' + [hp.harm, hp.death].filter(Boolean).map(function (x) { return x.dir; }).join(' or ') + ' this hour.');
+    out.push('If anyone is in danger, call for help now. The timing here is for practical steps, never for safety or health.');
+    return out;
+  }
+  function crisisDecorate(host) {
+    var CR = window.QPCrisis, t = now(), st = crisisState;
+    var tr = areasSafe(function () { return CR.triggers(user, t); }) || { stars: [], conflicts: [], friction: [] };
+    var objs = CR.objectives(tr), goal = st.useStars && objs.length ? objs[0].goal : null;
+    var r = areasSafe(function () { return CR.navigate(user, t, st.type, 7, goal); });
+    var hp = areasSafe(function () { return CR.hourPlate(user, t, r ? r.goal : null); });
+    // 1. A plain explainer under every section title.
+    [].slice.call(host.querySelectorAll('.block > h2')).forEach(function (h) {
+      var title = (h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent).trim();
+      var html = crisisHelpHtml(title);
+      if (html) h.insertAdjacentHTML('afterend', html);
+    });
+    // 2. The whole screen in plain English, after the navigator.
+    var nav = host.querySelector('.block'), sum = crisisPlainSummary(r, hp, CR), type = CR.TYPES.filter(function (x) { return x.key === st.type; })[0];
+    var blocks = host.querySelectorAll('.block'), titles = [].slice.call(blocks).map(function (b) { var h = b.querySelector('h2'); return h ? (h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent).trim() : ''; });
+    if (nav) nav.insertAdjacentHTML('afterend', block('In plain English', 'what this screen tells you to do',
+      sum.map(function (x) { return '<div class="plain" style="margin-bottom:8px">' + esc(x) + '</div>'; }).join('') +
+      '<div class="tech-links"><span>Jump to:</span> ' + titles.map(function (tt, i) { return tt ? '<button class="chip" data-crj="' + i + '">' + esc(tt.replace(/ [\u4e00-\u9fff]+$/, '')) + '</button>' : ''; }).join(' ') + '</div>'));
+    host.querySelectorAll('[data-crj]').forEach(function (b) { b.onclick = function () { var bl = blocks[+b.dataset.crj]; if (bl) { bl.scrollIntoView({ behavior: 'smooth', block: 'start' }); bl.classList.add('flash'); setTimeout(function () { bl.classList.remove('flash'); }, 1800); } }; });
+    // 3. AI: a comprehensive analysis with countermeasures.
+    host.insertAdjacentHTML('beforeend', block('AI analysis and countermeasures', 'the whole screen, read for your situation',
+      '<label for="crNote">What is happening? (optional, a sentence or two; kept on this phone only)</label>' +
+      '<textarea id="crNote" rows="3" placeholder="For example: my business partner has stopped paying their share and will not reply.">' + esc(st.note || '') + '</textarea>' +
+      '<div id="crAi" style="margin-top:10px"></div>' +
+      '<div class="hint">The AI reads everything on this screen. Its countermeasures stay lawful and non-harmful, and it will point you to emergency help or a professional where that is needed.</div>'));
+    var note = $('crNote');
+    note.oninput = function () { st.note = this.value; };
+    // One analysis per crisis type, hour slot and day; the runner reads the note as it stands when you press the button.
+    var stamp = 'crisis.' + st.type + '.' + (r ? r.now.hourPillar : '') + '.' + isoOf(now());
+    aiPanel('crAi', 'crisis', stamp, function (cfg) {
+      var text = [].slice.call(host.querySelectorAll('.block')).filter(function (b) { return !b.querySelector('#crAi'); })
+        .map(function (b) { return b.innerText; }).join('\n').replace(/\n{2,}/g, '\n').slice(0, 16000);
+      return window.QPAI.analyseCrisis(cfg, { type: type ? type.label : st.type, when: (r ? r.now.label + ' · ' + r.now.hourPillar + ' hour' : ''), note: (st.note || '').trim(), text: text });
+    }, [{ label: 'In short', path: 'summary' }, { label: 'What is going on', path: 'situation' }, { label: 'Who holds the leverage', path: 'leverage' },
+        { label: 'Timing', path: 'timing' }, { label: 'Countermeasures', path: 'countermeasures', list: 'cure' }, { label: 'Protect yourself', path: 'protect' },
+        { label: 'Do not', path: 'avoid' }, { label: 'Words you can use', path: 'script' }, { label: 'Get help when', path: 'help' }]);
+  }
+  var renderCrisisBase = renderCrisis;
+  renderCrisis = function (host) { renderCrisisBase(host); try { crisisDecorate(host); } catch (e) { if (window.console) console.warn('crisis explain', e); } };
+
   /** Day Stem against Hour Stem: the leverage read, for any Qimen hour plate. */
   function stemDynHtml(chart, pillars) {
     var s = areasSafe(function () { return window.QPQimen.stemDynamics(chart, pillars); });

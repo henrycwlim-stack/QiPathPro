@@ -49,6 +49,19 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.25 — Crisis in plain English, with AI countermeasures
+Version folder 10.25.0 (versionCode 84), copied from 10.24.3. Consult › Crisis is now readable without any training.
+- **In plain English:** a new block after the navigator turns the screen into a few sentences: the call for this hour and which way
+  to face, the next slot for practical steps, who has the upper hand and what to do about it, the best time to send the key message
+  (or why there is none yet), which directions to avoid, and a safety reminder. Chips jump to each section.
+- **Every section explained:** each of the eleven sections opens with "In plain words" (what it is), then a fold-out "How to
+  read it" and a glossary of the terms it uses: palace, Day and Hour Stem, doors, Chief, Void, Tomb, clash and fill, Nine Dun,
+  Hiding the Stem, Wandering Wonders, Jade Maiden, Earth Door and more.
+- **AI analysis and countermeasures:** an optional note on what is happening (not saved), then an AI reading of the whole screen:
+  in short, what is going on, who holds the leverage, timing, four to six countermeasures (each with when, where to face, how and
+  what to avoid), what to protect, what not to do, an opening line for the key conversation, and when to bring in a professional.
+  Countermeasures must be lawful and non-harmful; any sign of danger puts emergency help first, never a better hour.
+
 ### 10.24.3 — Void and Tomb as modifiers on 儀加奇 and 奇加儀
 Version folder 10.24.3 (versionCode 83), copied from 10.24.2.
 - Each wandering state is now read as active, neutralised by Void (空亡) or constrained by Tomb (入墓), with separate readings

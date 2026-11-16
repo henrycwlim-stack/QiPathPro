@@ -3045,6 +3045,43 @@
     return call(cfg, prompt, EXPLAIN_SCHEMA);
   }
 
+
+  /* ---------- Crisis: comprehensive analysis and countermeasures ---------- */
+  var CRISIS_SCHEMA = { type: 'object', properties: {
+    summary: { type: 'string' }, situation: { type: 'string' }, leverage: { type: 'string' }, timing: { type: 'string' },
+    countermeasures: { type: 'array', items: { type: 'object', properties: { issue: { type: 'string' }, sector: { type: 'string' }, cure: { type: 'string' }, avoid: { type: 'string' } },
+      required: ['issue', 'sector', 'cure', 'avoid'] } },
+    protect: { type: 'string' }, avoid: { type: 'string' }, script: { type: 'string' }, help: { type: 'string' } },
+    required: ['summary', 'situation', 'leverage', 'timing', 'countermeasures', 'protect', 'avoid', 'script', 'help'] };
+  function analyseCrisis(cfg, ctx) {
+    var prompt = 'You are a calm, practical crisis adviser who also reads Qi Men Dun Jia and BaZi. The reader is a junior with no training in ' +
+      'Chinese metaphysics and is under stress. Using the Crisis screen below, give a comprehensive analysis and concrete countermeasures.\n\n' +
+      'CRISIS TYPE: ' + ctx.type + '\nTIME NOW: ' + ctx.when + '\n' +
+      (ctx.note ? 'WHAT THE PERSON SAYS IS HAPPENING (their words): ' + ctx.note + '\n' : 'The person has not described the situation; work from the crisis type.\n') +
+      '\nRULES:\n' +
+      '- Explain every Chinese term the first time you use it, in the same sentence. Short sentences. No term lists.\n' +
+      '- Ground each point in the screen: say which section it comes from (for example "Who holds the leverage" or "Execution window").\n' +
+      '- Countermeasures must be lawful, honest and non-harmful: protecting yourself, documenting, negotiating, timing, positioning, getting support. ' +
+      'Never suggest threats, intimidation, deception that harms someone, revenge, harassment, or anything that breaks a law or an agreement.\n' +
+      '- Each countermeasure pairs a practical action with its timing: the hour window and the direction to face from the screen. The practical action ' +
+      'must make sense on its own, even for someone who does not believe in the timing.\n' +
+      '- Qi Men timing is traditional guidance about when and where to act, not a guarantee, and it never forces another person\'s decision.\n' +
+      '- SAFETY: if anything suggests danger to life, violence, abuse, self-harm or a medical emergency, the first countermeasure is to contact emergency services ' +
+      'or a crisis line now, and you must say never to wait for a better hour. For legal, financial or medical matters, say which professional to involve and when.\n' +
+      PLAIN_RULE + '\n\nCRISIS SCREEN TEXT:\n' + ctx.text + '\n\n' +
+      'Return STRICT JSON:\n{\n' +
+      '  "summary": "The one thing to do and the one thing to avoid right now, and why (50-80 words).",\n' +
+      '  "situation": "What the chart says is going on: the pressure, who or what is behind it, and how strong it is this hour and in the coming days (150-220 words).",\n' +
+      '  "leverage": "Who has the upper hand and why, from the Day Stem against Hour Stem reading and the palaces, and how that should change your approach (80-130 words).",\n' +
+      '  "timing": "The best windows from the Execution window and The next hours sections, what each is good for, and which hours to keep quiet in (80-130 words).",\n' +
+      '  "countermeasures": [ {"issue": "Short name of the move", "sector": "When (the window) and where to face", "cure": "Exactly how to do it and why it helps (40-80 words)", "avoid": "The mistake that would undo it"} ] (4 to 6 items, most urgent first),\n' +
+      '  "protect": "What to shield and how, using the Opposition sector and Concealment parts: what to keep private, where, and until when (70-120 words).",\n' +
+      '  "avoid": "What not to do, which directions and hours to avoid, and what would make things worse (60-100 words).",\n' +
+      '  "script": "A short opening message or first sentence they can adapt for the key conversation or email, calm and firm (40-80 words).",\n' +
+      '  "help": "When and whom to bring in: lawyer, accountant, doctor, counsellor, HR, police or a helpline, as fits the situation (40-80 words)."\n}';
+    return call(cfg, prompt, CRISIS_SCHEMA);
+  }
+
   function analysePalm(cfg, photos, ctx) { return callMedia(cfg, palmPrompt(ctx, photos), PALM_SCHEMA, photos); }
   function analyseFace(cfg, photos, ctx) { return callMedia(cfg, facePrompt(ctx, photos), FACE_SCHEMA, photos); }
 
@@ -3060,7 +3097,7 @@
     askCharts: askCharts, askPrompt: askPrompt,
     PROTOCOLS: PROTOCOLS, sharpenQuestion: sharpenQuestion, writeWalkScript: writeWalkScript, walkScriptPrompt: walkScriptPrompt, withCounter: withCounter, deepDive: deepDive, DEEP_MAX: DEEP_MAX,
     analyseSanCai: analyseSanCai,
-    explainScreen: explainScreen, analyseElements: analyseElements, analyseRelations: analyseRelations, analyseTogether: analyseTogether,
+    explainScreen: explainScreen, analyseCrisis: analyseCrisis, analyseElements: analyseElements, analyseRelations: analyseRelations, analyseTogether: analyseTogether,
     analyseYijing: analyseYijing, analyseDayPick: analyseDayPick,
     analyseBaziForecast: analyseBaziForecast, analyseZwdsForecast: analyseZwdsForecast, analyseBaziYear: analyseBaziYear, analyseZwdsYear: analyseZwdsYear, analyseThreats: analyseThreats, analyseQimenYear: analyseQimenYear,
     analyseStructure: analyseStructure, analyseDraws: analyseDraws,
