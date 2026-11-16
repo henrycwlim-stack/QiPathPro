@@ -245,6 +245,47 @@
    * the commander sits unseen. 三奇游六仪 follows the Bao Jian rule (see structures.js); the Jade Maiden Guards the Door (玉女守门,
    * 丁 with the duty door) is the hour the commentaries tie to the wandering, for confidential and protective moves. 六己 is the
    * Earth Door (地户): the sector for a low profile. */
+
+  /* ---------- Void and Tomb as modifiers on the two wandering states ----------
+   * 儀加奇 (the formation) and 奇加儀 (the counter-flow) are read separately, and so are their modifiers. Void: the palace is 空亡.
+   * Tomb: a stem sits in the palace holding its tomb branch by the Twelve Growth Phases (yin stems counted in reverse), so
+   * 甲 未, 乙 戌, 丙 戌, 丁 丑, 戊 戌, 己 丑, 庚 丑, 辛 辰, 壬 辰, 癸 未. A tomb is opened by the branch that clashes it. */
+  var QI_PAIR = { '乙': ['己', '辛'], '丙': ['戊', '庚'], '丁': ['壬', '癸'] };
+  var TOMB_BR12 = { '甲': 7, '乙': 10, '丙': 10, '丁': 1, '戊': 10, '己': 1, '庚': 1, '辛': 4, '壬': 4, '癸': 7 };
+  var MOD_TEXT = {
+    strict: {
+      normal: 'Structured control: protection and administrative alignment hold.',
+      void: 'Hollow protocol: the arrangement looks sound but has no real leverage, and plans stall. Useful only for keeping a weakness out of sight.',
+      tombTop: 'The rule or pressure above (the Yi) is boxed in and temporarily suspended.',
+      tombBase: 'The resource or adviser below (the Wonder) is locked away; it exists but cannot be used until it is released.'
+    },
+    counter: {
+      normal: 'Exposure: your move is visible and meets friction against a heavy structure.',
+      void: 'Impotent ingenuity: a clever move with no anchor. Expect false starts, empty promises and appearances that deceive.',
+      tombTop: 'Trapped agility: the manoeuvre (the Wonder above) is blinded and self-defeating in this setting.',
+      tombBase: 'The base below (the Yi) is decayed; any hard push makes it cave in.'
+    }
+  };
+  function qiYiState(chart, num, kind) {
+    var x = chart.palacesByNumber[num];
+    if (!x) return null;
+    var hs = [x.heavenStemCn, x.heavenStem2Cn].filter(Boolean), es = [x.earthStemCn, x.earthStem2Cn].filter(Boolean), top = null, base = null;
+    hs.forEach(function (h) { es.forEach(function (e) {
+      if (top) return;
+      if (kind === 'strict' ? (QI_PAIR[e] && QI_PAIR[e].indexOf(h) >= 0) : (QI_PAIR[h] && QI_PAIR[h].indexOf(e) >= 0)) { top = h; base = e; }
+    }); });
+    if (!top) return null;
+    var C2 = C, brs = (x.branches || []).map(function (b) { return C2.BRANCHES.indexOf(b); });
+    var tombed = function (s) { return brs.indexOf(TOMB_BR12[s]) >= 0; };
+    var T = MOD_TEXT[kind], mods = [], release = [];
+    if (x.isEmpty) mods.push({ cn: '空亡', en: 'Void', text: T.void });
+    if (tombed(top)) { mods.push({ cn: '入墓', en: top + ' above in its tomb', text: T.tombTop }); release.push((TOMB_BR12[top] + 6) % 12); }
+    if (tombed(base)) { mods.push({ cn: '入墓', en: base + ' below in its tomb', text: T.tombBase }); release.push((TOMB_BR12[base] + 6) % 12); }
+    release = release.filter(function (b, i) { return release.indexOf(b) === i; });
+    return { kind: kind, dir: x.dir, top: top, base: base, isVoid: !!x.isEmpty, mods: mods, normal: T.normal,
+      potency: mods.length ? (x.isEmpty ? 'neutralised' : 'constrained') : 'active',
+      releaseBy: release.map(function (b) { return C2.BRANCHES[b]; }) };
+  }
   var XUN_HEAD = { '戊': '甲子', '己': '甲戌', '庚': '甲申', '辛': '甲午', '壬': '甲辰', '癸': '甲寅' };
   function formsIn(r, id) { return (r.formations || []).filter(function (f) { return f.id === id; })[0] || null; }
   function palDirs(ch, f) { return ((f && f.palaces) || []).map(function (n) { return ch.palacesByNumber[n] ? ch.palacesByNumber[n].dir : ''; }).filter(Boolean); }
@@ -256,6 +297,8 @@
     var ji = pals.filter(function (x) { return x.heavenStemCn === '己' || x.heavenStem2Cn === '己'; })[0] || null;
     var diJia = formsIn(hp.res, 'wu_jia_di');
     var now = { wander: formsIn(hp.res, 'san_qi_you_liu_yi'), maiden: formsIn(hp.res, 'yu_nv_shou') };
+    var stateOf = function (chart, f, kind) { return f && f.palaces && f.palaces.length ? qiYiState(chart, f.palaces[0], kind) : null; };
+    var wanderState = stateOf(ch, now.wander, 'strict'), counterState = stateOf(ch, formsIn(hp.res, 'san_qi_ni_you'), 'counter');
     // The next hours ahead when each forms.
     var next = { wander: null, maiden: null }, start = windows(t, 1)[0].start;
     for (var i = 1; i <= (days || 3) * 12 && !(next.wander && next.maiden); i++) {
@@ -265,15 +308,16 @@
       ['wander', 'maiden'].forEach(function (k) {
         var f = next[k] ? null : formsIn(r, k === 'wander' ? 'san_qi_you_liu_yi' : 'yu_nv_shou');
         if (f) next[k] = { start: w, label: w.toDateString().slice(0, 10) + ' · ' + pad(w.getHours()) + ':00–' + pad((w.getHours() + 1) % 24) + ':59',
-          hourPillar: r.pillars.hour.cn, dirs: palDirs(r.chart, f) };
+          hourPillar: r.pillars.hour.cn, dirs: palDirs(r.chart, f), state: k === 'wander' ? stateOf(r.chart, f, 'strict') : null };
       });
     }
     return { hide: hide, ji: ji ? { dir: ji.dir, gate: ji.gate, spirit: ji.spirit, isEmpty: ji.isEmpty } : null, diJia: diJia ? palDirs(ch, diJia) : null,
       now: { wander: now.wander ? palDirs(ch, now.wander) : null, maiden: now.maiden ? palDirs(ch, now.maiden) : null,
-        counter: formsIn(hp.res, 'san_qi_ni_you') ? palDirs(ch, formsIn(hp.res, 'san_qi_ni_you')) : null }, next: next };
+        counter: formsIn(hp.res, 'san_qi_ni_you') ? palDirs(ch, formsIn(hp.res, 'san_qi_ni_you')) : null },
+      state: { wander: wanderState, counter: counterState }, next: next };
   }
 
   function pad(n) { return String(n).length < 2 ? '0' + n : String(n); }
 
-  global.QPCrisis = { TYPES: TYPES, navigate: navigate, triggers: triggers, objectives: objectives, hourPlate: hourPlate, stemRel: stemRel, executionWindows: executionWindows, trapOf: trapOf, concealment: concealment };
+  global.QPCrisis = { TYPES: TYPES, navigate: navigate, triggers: triggers, objectives: objectives, hourPlate: hourPlate, stemRel: stemRel, executionWindows: executionWindows, trapOf: trapOf, concealment: concealment, qiYiState: qiYiState, TOMB_BR12: TOMB_BR12 };
 })(typeof window !== 'undefined' ? window : globalThis);

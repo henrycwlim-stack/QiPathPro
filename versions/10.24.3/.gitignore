@@ -1,0 +1,28 @@
+node_modules/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.keystore
+.DS_Store
+__pycache__/
+*.pyc
+
+# release signing key (keep out of version control)
+henry
+
+# built app packages and release output
+*.apk
+*.aab
+android/app/release/
+
+# other signing keys / credentials
+*.jks
+*.p12
+*.pfx
+keystore.properties
+.env
+
+# local build output metadata
+release/

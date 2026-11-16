@@ -49,6 +49,16 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.24.3 — Void and Tomb as modifiers on 儀加奇 and 奇加儀
+Version folder 10.24.3 (versionCode 83), copied from 10.24.2.
+- Each wandering state is now read as active, neutralised by Void (空亡) or constrained by Tomb (入墓), with separate readings
+  for the formation (儀加奇) and the counter-flow (奇加儀), and for a tomb above (the heaven stem) or below (the earth stem).
+- Tomb follows the Twelve Growth Phases, yin stems reversed: 甲 未, 乙 戌, 丙 戌, 丁 丑, 戊 戌, 己 丑, 庚 丑, 辛 辰, 壬 辰, 癸 未,
+  checked against the app's own life-stage table. A tomb names the branch that clashes it open.
+- Shown on Crisis › Concealment for the formation now or next, and for the counter-flow.
+- Tested over 2026: of 584 formations, 365 active, 139 void and 80 tombed; of 98 counter-flows, 77 active, 12 void and 9 tombed.
+  An independent recheck found no misclassified case.
+
 ### 10.24.2 — Counter-flow 奇加仪, kept apart from 三奇游六仪
 Version folder 10.24.2 (versionCode 82), copied from 10.24.1.
 - The two directions are treated as asymmetric states and never merged. 三奇游六仪 stays strict: a 六儀 over its paired Wonder

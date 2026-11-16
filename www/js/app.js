@@ -6747,17 +6747,24 @@
           if (hp.opp) rowsO.push(['The opponent', '<b>' + esc(hp.opp.dir) + '</b><div class="plain">The crisis sits here; let it come to you rather than moving toward it.</div>']);
           hp.hostile.slice(0, 4).forEach(function (f) { rowsO.push([f.name + '<small>' + esc(f.en) + '</small>', '<span class="bad-t">' + esc(f.dirs.join(', ')) + '</span>']); });
           var cc = areasSafe(function () { return CR.concealment(user, t, hp, 3); }), ccRows = [];
+          var modHtml = function (s) {
+            if (!s) return '';
+            var tag = s.potency === 'active' ? '<span class="good-t">Active</span>' : s.potency === 'neutralised' ? '<span class="bad-t">Neutralised by Void</span>' : '<span class="bad-t">Constrained by Tomb</span>';
+            return '<div class="plain"><small>' + s.top + ' over ' + s.base + ' · </small>' + tag + ': ' + esc(s.mods.length ? s.mods.map(function (m) { return m.text; }).join(' ') : s.normal) +
+              (s.releaseBy.length ? ' Released in a ' + s.releaseBy.join(' or ') + ' hour or day, which clashes the tomb open.' : '') + '</div>';
+          };
+
           if (cc && cc.hide) ccRows.push(['Hiding the Stem<small>遁甲 · 甲 under ' + cc.hide.stem + '</small>',
             '<div class="plain">This xun (' + esc(cc.hide.xun) + ') the commanding 甲 hides under ' + cc.hide.stem + ', carried by the Chief' + (cc.hide.palace ? ' in the <b>' + esc(cc.hide.palace) + '</b> palace' : '') + '. ' +
             'Keep your real resources and your decision-maker behind a front, a representative or a holding position, and show them only when you act.' +
             (cc.hide.youAreJia ? ' Your Day Stem is 甲, so you are read from ' + cc.hide.stem + ': you are already the hidden commander.' : '') + '</div>']);
           if (cc) ccRows.push(['Wandering Wonders<small>三奇游六仪 · incl. 乙游己辛 “Wandering Ji”</small>',
-            cc.now.wander ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.wander.join(', ')) + ' palace<div class="plain">In the Chief\'s palace a Yi stem sits over the Wonder that wanders to it: favourable for any undertaking, more so with an auspicious door.</div>'
-              : cc.next.wander ? '<span>Next: <b>' + esc(cc.next.wander.label) + '</b> (' + cc.next.wander.hourPillar + ' hour, ' + esc(cc.next.wander.dirs.join(', ')) + ')</span><div class="plain">When a Yi stem sits over its paired Wonder in the Chief\'s palace. A good hour for the main move.</div>'
+            cc.now.wander ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.wander.join(', ')) + ' palace<div class="plain">In the Chief\'s palace a Yi stem sits over the Wonder that wanders to it: favourable for any undertaking, more so with an auspicious door.</div>' + modHtml(cc.state.wander)
+              : cc.next.wander ? '<span>Next: <b>' + esc(cc.next.wander.label) + '</b> (' + cc.next.wander.hourPillar + ' hour, ' + esc(cc.next.wander.dirs.join(', ')) + ')</span><div class="plain">When a Yi stem sits over its paired Wonder in the Chief\'s palace. A good hour for the main move.</div>' + modHtml(cc.next.wander.state)
               : '<div class="plain">Does not form in the next three days.</div>']);
           if (cc && cc.now.counter) ccRows.push(['Counter-flow<small>奇加仪 · 逆游, the reverse state</small>',
             '<b class="bad-t">Forms now</b> in the ' + esc(cc.now.counter.join(', ')) + ' palace<div class="plain">A Wonder sits over its Yi in the Chief\'s palace: the reverse of the wandering, not the formation itself. ' +
-            'Your advantage is visible and can be turned against you. Keep plans close and do not reveal your position this hour.</div>']);
+            'Your advantage is visible and can be turned against you. Keep plans close and do not reveal your position this hour.</div>' + modHtml(cc.state.counter)]);
           if (cc) ccRows.push(['Jade Maiden Guards the Door<small>玉女守门</small>',
             cc.now.maiden ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.maiden.join(', ')) + ' palace<div class="plain">The hour for confidential talks, quiet requests and protective arrangements.</div>'
               : cc.next.maiden ? '<span>Next: <b>' + esc(cc.next.maiden.label) + '</b> (' + cc.next.maiden.hourPillar + ' hour, ' + esc(cc.next.maiden.dirs.join(', ')) + ')</span><div class="plain">Use it for confidential talks, quiet requests and protective arrangements.</div>'
