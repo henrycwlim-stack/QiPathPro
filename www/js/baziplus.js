@@ -368,6 +368,117 @@
       spouse: SPOUSE_GOD[sg], spouseGod: GOD_CN_TRAD[sg] + ' ' + C.TEN_GODS_EN[sg] };
   }
 
+
+  /* ================= 地支藏干: hidden stems, and 透干通根: how qi penetrates ================= */
+
+  var QI_ROLE = ['Main qi 本氣', 'Middle qi 中氣', 'Residual qi 餘氣'], QI_WEIGHT = [1, 0.5, 0.3];
+  var LABELS = ['Year', 'Month', 'Day', 'Hour'];
+  function pillarsOf(p) { return [p.year, p.month, p.day, p.hour]; }
+
+  /** Every branch's hidden stems: role, weight, Ten God, and whether it shows on a heavenly stem (透出). */
+  function hiddenStems(p) {
+    var dm = p.day.stem, visible = [p.year.stem, p.month.stem, p.hour.stem];
+    return pillarsOf(p).map(function (q, i) {
+      return { pillar: LABELS[i], branch: C.BRANCHES[q.branch], branchIdx: q.branch,
+        stems: C.HIDDEN[q.branch].map(function (h, k) {
+          var g = C.tenGod(dm, h), shown = [];
+          [p.year, p.month, p.day, p.hour].forEach(function (v, j) { if (v.stem === h && j !== 2) shown.push(LABELS[j]); });
+          return { stem: C.STEMS[h], idx: h, role: QI_ROLE[k], level: k, weight: QI_WEIGHT[k] * (i === 1 ? 1.5 : 1),
+            elem: C.ELEM[C.STEM_ELEM[h]], elemEn: C.ELEM_EN[C.STEM_ELEM[h]], god: g.cn, godEn: g.en, isDayMaster: h === dm,
+            revealed: shown, isRevealed: shown.length > 0 };
+        }) };
+    });
+  }
+
+  /** For each visible stem, its roots (通根) in the branches; and the month structure (月令透干取格). */
+  function penetration(p) {
+    var dm = p.day.stem, out = [];
+    pillarsOf(p).forEach(function (q, i) {
+      var e = C.STEM_ELEM[q.stem], roots = [], score = 0;
+      pillarsOf(p).forEach(function (r, j) {
+        C.HIDDEN[r.branch].forEach(function (h, k) {
+          if (C.STEM_ELEM[h] !== e) return;
+          var w = QI_WEIGHT[k] * (j === 1 ? 1.5 : 1) * (j === i ? 1.2 : 1);
+          score += w; roots.push({ at: LABELS[j] + ' ' + C.BRANCHES[r.branch], stem: C.STEMS[h], role: QI_ROLE[k], same: h === q.stem, own: j === i });
+        });
+      });
+      var level = score >= 1.5 ? 'strong' : score >= 0.8 ? 'moderate' : score > 0 ? 'weak' : 'floating';
+      out.push({ pillar: LABELS[i], stem: C.STEMS[q.stem], god: i === 2 ? 'Day Master' : C.tenGod(dm, q.stem).en, godCn: i === 2 ? '日主' : C.tenGod(dm, q.stem).cn,
+        roots: roots, score: Math.round(score * 10) / 10, level: level,
+        text: level === 'floating' ? 'No root in any branch: it shows on the surface but has little behind it, so it comes and goes.'
+          : level === 'weak' ? 'Lightly rooted: present and real, but easily overpowered.'
+          : level === 'moderate' ? 'Rooted: a dependable force in the chart.'
+          : 'Deeply rooted: one of the chart\'s anchors, hard to dislodge.' });
+    });
+    return { stems: out, structure: monthStructure(p) };
+  }
+
+  var STRUCT_TEXT = {
+    0: null, 1: null,
+    2: 'Eating God structure: talent, ease and output carry the life; it flourishes through craft, teaching and enjoyment.',
+    3: 'Hurting Officer structure: brilliance and the urge to improve on the rules; it does best where originality is paid and authority is light.',
+    4: 'Indirect Wealth structure: opportunity, trade and handling money in motion; generous and enterprising.',
+    5: 'Direct Wealth structure: steady effort turned into dependable income and assets.',
+    6: 'Seven Killings structure: drive under pressure and the courage to take on hard challenges; needs discipline or a channel.',
+    7: 'Direct Officer structure: order, reputation and responsibility; it rises through rules, rank and trust.',
+    8: 'Indirect Resource structure: unusual insight and specialist knowledge; it shines in research, strategy and the unconventional.',
+    9: 'Direct Resource structure: learning, protection and support; it grows through study, mentors and good standing.'
+  };
+  var PROSPERITY_BRANCH = { 0:2, 1:3, 2:5, 4:5, 3:6, 5:6, 6:8, 7:9, 8:11, 9:0 }, BLADE_BRANCH = { 0:3, 2:6, 4:6, 6:9, 8:0 };
+  /** The month structure by the classical rule: the month branch's hidden stem that shows on a stem sets it, main qi first. */
+  function monthStructure(p) {
+    var dm = p.day.stem, mb = p.month.branch, hs = C.HIDDEN[mb], visible = [p.year.stem, p.month.stem, p.hour.stem];
+    var pick = null, how = '', companion = function (k) { var gi = C.tenGod(dm, hs[k]).i; return gi === 0 || gi === 1; };
+    // A revealed hidden stem sets the structure, main qi first; a companion of the Day Master gives way to any other revealed stem.
+    var shown = []; for (var k = 0; k < hs.length; k++) if (visible.indexOf(hs[k]) >= 0) shown.push(k);
+    var other = shown.filter(function (k) { return !companion(k); });
+    if (other.length) pick = other[0]; else if (shown.length) pick = shown[0];
+    if (pick !== null) how = QI_ROLE[pick] + ' ' + C.STEMS[hs[pick]] + ' shows on a heavenly stem';
+    else { var nonComp = []; for (var k2 = 1; k2 < hs.length; k2++) if (!companion(k2)) nonComp.push(k2);
+      pick = companion(0) && nonComp.length && !(PROSPERITY_BRANCH[dm] === mb || BLADE_BRANCH[dm] === mb) ? nonComp[0] : 0;
+      how = 'nothing in the month branch shows on a stem, so its ' + QI_ROLE[pick].split(' ')[0].toLowerCase() + ' qi ' + C.STEMS[hs[pick]] + ' sets it'; }
+    var g = C.tenGod(dm, hs[pick]);
+    if (g.i === 0 || g.i === 1) {
+      var special = PROSPERITY_BRANCH[dm] === mb ? { cn: '建祿格', en: 'Established Prosperity', text: 'The Day Master sits on its own prosperity in the month: self-made, independent and capable, best when it has wealth or authority to work on.' }
+        : BLADE_BRANCH[dm] === mb ? { cn: '羊刃格', en: 'Goat Blade', text: 'The Day Master holds the blade in the month: forceful and decisive, best controlled by Seven Killings or Direct Officer.' }
+        : { cn: '月劫格', en: 'Month Companion', text: 'Peers and rivals dominate the month: drive and competitiveness, best directed by the Officer or drained by Output.' };
+      return { cn: special.cn, en: special.en, god: g.cn, how: how, text: special.text };
+    }
+    return { cn: g.cn + '格', en: g.en + ' structure', god: g.cn, how: how, text: STRUCT_TEXT[g.i] };
+  }
+
+  /* ================= 十二長生: the twelve life stages ================= */
+
+  var STAGE_PLAIN = {
+    '長生': 'Growth: a fresh start with momentum; things begun here tend to develop.',
+    '沐浴': 'Bathing: charm and exposure, but unsteady; attraction and restlessness.',
+    '冠帶': 'Capping: getting ready to be seen; ambition, image and preparation.',
+    '臨官': 'Office: standing on your own feet; capable, earning, self-reliant.',
+    '帝旺': 'Peak: full strength; leadership and force, with the risk of overreach.',
+    '衰': 'Decline: past the peak; experience and judgement replace raw energy.',
+    '病': 'Sickness: energy runs low; a time to slow down, look after yourself and plan.',
+    '死': 'Death: stillness; things settle or end, and attention turns inward.',
+    '墓': 'Tomb: storage; saving, holding, and keeping things close.',
+    '絕': 'Extinction: a clean break; one chapter closes so another can open.',
+    '胎': 'Conception: ideas forming; plans that need time before they show.',
+    '養': 'Nurture: being nourished and supported; growing under someone\'s care.'
+  };
+  /** The Day Master's stage in each pillar, the luck pillar and a year, plus every stem's stage on its own branch (自坐). */
+  function lifeStages(user, year) {
+    var B = global.QPBazi, p = user.pillars, dm = p.day.stem;
+    var one = function (stem, branch) { var st = B.stageOf(stem, branch); return { cn: st.cn, en: st.en, power: st.power, plain: STAGE_PLAIN[st.cn] }; };
+    var dmRows = pillarsOf(p).map(function (q, i) { var s = one(dm, q.branch); s.where = LABELS[i] + ' ' + C.BRANCHES[q.branch]; return s; });
+    var age = year - user.birth.y, lp = null;
+    (user.luck && user.luck.pillars || []).forEach(function (l) { if (age >= l.from && age < l.to) lp = l; });
+    var yb = ((year - 1984) % 12 + 12) % 12;
+    var timing = [];
+    if (lp) { var a = one(dm, lp.pillar.branch); a.where = 'Luck pillar ' + lp.pillar.cn + ' (ages ' + lp.from + '–' + lp.to + ')'; timing.push(a); }
+    var y = one(dm, yb); y.where = year + ' (' + C.BRANCHES[yb] + ' year)'; timing.push(y);
+    var selfSeat = pillarsOf(p).map(function (q, i) { var s = one(q.stem, q.branch); s.where = LABELS[i] + ' ' + C.STEMS[q.stem] + C.BRANCHES[q.branch]; return s; });
+    var luckPath = (user.luck && user.luck.pillars || []).map(function (l) { var s = one(dm, l.pillar.branch); return { ages: l.from + '–' + l.to, pillar: l.pillar.cn, cn: s.cn, en: s.en, power: s.power, now: l === lp }; });
+    return { dayMaster: C.STEMS[dm], natal: dmRows, timing: timing, selfSeat: selfSeat, luckPath: luckPath };
+  }
+
   /* ================= everything at once ================= */
 
   function all(user, year) {
@@ -387,6 +498,10 @@
     L.push('HIDDEN TALENTS (month branch ' + x.talents.branch + '): main ' + x.talents.main.god + ' ' + x.talents.main.en +
       (x.talents.subs.length ? ', sub ' + x.talents.subs.map(function (t) { return t.god + ' ' + t.en; }).join(', ') : '') +
       (x.talents.revealed.length ? '; revealed on the stems: ' + x.talents.revealed.join(' ') : '; none revealed'));
+    var pen = penetration(user.pillars), ls = lifeStages(user, new Date().getFullYear());
+    L.push('MONTH STRUCTURE (子平, 月令透干): ' + pen.structure.cn + ' ' + pen.structure.en + ' — ' + pen.structure.how + '.');
+    L.push('ROOTS (通根): ' + pen.stems.map(function (s) { return s.pillar + ' ' + s.stem + ' ' + s.level; }).join(', ') + '.');
+    L.push('TWELVE STAGES of the Day Master: ' + ls.natal.map(function (s) { return s.where + ' ' + s.cn; }).join(', ') + '; now ' + ls.timing.map(function (s) { return s.where + ' ' + s.cn; }).join(', ') + '.');
     L.push('DAY PILLAR ' + x.day.cn + ' (' + x.day.nayin + '): sits on ' + x.day.stage + '; partner palace holds ' + x.day.spouseGod + '.');
     L.push('LIFE PALACE 命宮 ' + x.lifePalace.cn + ' (' + x.lifePalace.nayin + '), CONCEPTION PALACE 胎元 ' + x.conceptionPalace.cn + ' (' + x.conceptionPalace.nayin + ').');
     L.push('USEFUL GOD IN THE CHART: ' + (x.useful.focus ? x.useful.focus.cn + ' ' + x.useful.focus.en + ' (' + x.useful.focus.elemEn + ')' : 'none present') +
@@ -399,6 +514,6 @@
   }
 
   global.QPBaziPlus = { GROUPS: GROUPS, GOD_TEXT: GOD_TEXT, REL_MEAN: REL_MEAN, profile: profile, structures: structures, talents: talents,
-    lifePalace: lifePalace, conceptionPalace: conceptionPalace, sixHouses: sixHouses, usefulGod: usefulGod, family: family,
+    lifePalace: lifePalace, conceptionPalace: conceptionPalace, hiddenStems: hiddenStems, penetration: penetration, monthStructure: monthStructure, lifeStages: lifeStages, STAGE_PLAIN: STAGE_PLAIN, sixHouses: sixHouses, usefulGod: usefulGod, family: family,
     workWealth: workWealth, yearAgainst: yearAgainst, dayPillar: dayPillar, branchRels: branchRels, all: all, aiText: aiText };
 })(typeof window !== 'undefined' ? window : globalThis);

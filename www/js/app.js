@@ -1840,6 +1840,42 @@
               'and the Heavenly Doctor, and the day pillar itself for 魁罡, 金神, 陰陽差錯, 十惡大敗, 孤鸞 and 天赦. Schools differ on a few tables; QiPath uses the most common. ' +
               'The descriptions are QiPath\'s own.</div>');
         })() +
+        (function () {
+          var X = window.QPBaziPlus, hsd = areasSafe(function () { return X.hiddenStems(user.pillars); }), pen = areasSafe(function () { return X.penetration(user.pillars); }),
+              ls = areasSafe(function () { return X.lifeStages(user, now().y); });
+          if (!hsd || !pen || !ls) return '';
+          var lvlCls = { strong: 'good-t', moderate: '', weak: '', floating: 'bad-t' };
+          return block('Hidden Stems 地支藏干', 'what each branch holds beneath the surface',
+              xkRows(hsd.map(function (b) {
+                return [b.pillar + ' ' + b.branch, b.stems.map(function (h) {
+                  return '<div>' + h.stem + ' <small style="display:inline">' + h.elemEn + ' · ' + h.role + ' · ' + (h.isDayMaster ? 'same as Day Master' : h.godEn + ' ' + h.god) + '</small>' +
+                    (h.isRevealed ? ' <b class="good-t" title="also shows on the ' + esc(h.revealed.join(', ')) + ' stem">透</b>' : '') + '</div>';
+                }).join('')];
+              })) +
+              '<div class="hint">Each branch hides one to three stems: the main qi carries most of its force, the middle and residual less. ' +
+                'A hidden stem that also shows on a heavenly stem (透) is active and visible in your life; one that stays hidden is a latent resource.</div>') +
+            block('Qi Penetration 透干通根', 'how surface and roots connect',
+              '<div class="plain" style="margin-bottom:8px"><b>Month structure: ' + pen.structure.cn + ' ' + esc(pen.structure.en) + '.</b> ' + esc(pen.structure.text || '') +
+                ' <small>(' + esc(pen.structure.how) + ')</small></div>' +
+              xkRows(pen.stems.map(function (s) {
+                return [s.pillar + ' ' + s.stem + '<small>' + esc(s.god) + '</small>', '<b class="' + lvlCls[s.level] + '">' + (s.level === 'floating' ? 'Floating 虛浮' : s.level.charAt(0).toUpperCase() + s.level.slice(1) + ' root 通根') + '</b>' +
+                  (s.roots.length ? ' <small style="display:inline">' + esc(s.roots.map(function (r) { return r.at + ' ' + r.stem; }).join(', ')) + '</small>' : '') +
+                  '<div class="plain">' + esc(s.text) + '</div>'];
+              })) +
+              '<div class="hint">A heavenly stem is rooted (通根) when a branch hides a stem of the same element; roots in the month count most. ' +
+                'The structure follows the classical rule that the month branch\'s hidden stem showing on a stem sets the pattern, main qi first.</div>') +
+            block('Twelve Life Stages 十二長生', 'the Day Master ' + ls.dayMaster + ' through the cycle',
+              xkRows(ls.natal.concat(ls.timing).map(function (s) {
+                return [esc(s.where), s.cn + ' <small style="display:inline">' + esc(s.en) + ' · strength ' + Math.round(s.power * 100) + '%</small><div class="plain">' + esc(s.plain) + '</div>'];
+              })) +
+              '<h3 style="margin:12px 0 6px;font-size:.9rem">Through your luck pillars</h3><div class="ls-path">' + ls.luckPath.map(function (l) {
+                return '<span class="tag' + (l.now ? ' on' : '') + '" title="' + esc(l.en) + '">' + l.ages + ' ' + l.pillar + ' · ' + l.cn + '</span>';
+              }).join('') + '</div>' +
+              '<h3 style="margin:12px 0 6px;font-size:.9rem">Each stem on its own branch 自坐</h3>' +
+              xkRows(ls.selfSeat.map(function (s) { return [esc(s.where), s.cn + ' <small style="display:inline">' + esc(s.en) + '</small>']; })) +
+              '<div class="hint">Every stem passes through twelve stages as it moves round the branches; yin stems run the cycle backwards. ' +
+                'The stage shows how much strength the Day Master draws from each pillar and each period, and how settled each stem is on its own seat.</div>');
+        })() +
         block('滴天髓 reading', 'the classical frame',
           (function () {
             var D = user.deep, out = '';

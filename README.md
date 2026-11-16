@@ -49,6 +49,17 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.20 — Hidden Stems, Qi Penetration and the Twelve Life Stages
+Version folder 10.20.0 (versionCode 76), copied from 10.19.0. Three new sections on Destiny › BaZi, also given to the AI reading.
+- **Hidden Stems 地支藏干:** each branch's main, middle and residual qi with element, Ten God and weight, marked 透 when the same
+  stem shows on a heavenly stem.
+- **Qi Penetration 透干通根:** each heavenly stem's roots in the branches (same element, main qi weighted most, the month most of
+  all), rated strong, moderate, weak or floating 虛浮; and the month structure by the classical rule that the month branch's
+  hidden stem showing on a stem sets it (月令透干取格), main qi first, with a companion giving way to any other revealed stem and
+  建祿格, 羊刃格 or 月劫格 when the Day Master's own element rules.
+- **Twelve Life Stages 十二長生:** the Day Master's stage in each pillar, the current luck pillar and this year, with what each stage
+  means; the stage through every luck pillar; and each stem's stage on its own branch (自坐). Yin stems run the cycle backwards.
+
 ### 10.19 — Crisis navigator: the three-phase protocol
 Version folder 10.19.0 (versionCode 75), copied from 10.18.0.
 - **Phase 1, Your active stars:** the Shen Sha that the luck pillar, year, month and day switch on in the person's chart; clashes,

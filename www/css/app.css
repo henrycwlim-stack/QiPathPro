@@ -970,3 +970,6 @@ a[data-la]{color:inherit;text-decoration:underline dotted;text-underline-offset:
 .crisis-safe{margin-bottom:10px}
 .cr-plan{margin:0 0 0 18px;padding:0;line-height:1.6;font-size:.9rem}
 .cr-plan li{margin-bottom:6px}
+
+.ls-path{display:flex;flex-wrap:wrap;gap:4px}
+.ls-path .tag{font-size:.72rem}
