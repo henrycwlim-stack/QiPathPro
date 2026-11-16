@@ -49,6 +49,23 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.26 — Invest: Qi Men for technical and value investing
+Version folder 10.26.0 (versionCode 85), copied from 10.25.0. A new Consult › Invest tab and engine (invest.js).
+- **Two postures:** Technical investing is the Guest (客), read on the hour plate; Value investing is the Host (主), read on the day
+  plate. Settings: position (long or short) and market trend for technical; holding period for value.
+- **Phase 1, Void:** the void palaces this period are flagged ILLUSION.
+- **Phase 2, Capital 戊:** void = value trap / fake volume; in its tomb (戌, Qian) = frozen capital; 戊 over 庚 = capital flight
+  (a stop-loss signal for traders, a hedge signal for value investors); 庚 over 戊 = suppressed capital. Blocking alerts stop new entries.
+- **Phase 3, Yield 生门:** a void Life Door means zero yield; otherwise the capital and profit palaces read as direct, high yield,
+  high effort, frictional or aligned.
+- **Strategy patterns:** momentum (伤门 九天 天冲), chart reading (景门 朱雀 天英) and short selling (死门 白虎 庚) for technical;
+  blue-chip core (生门 值符 天心/天任), deep value (死门 九地 天芮, over a year) and dividends (休门 六合, 戊 feeding 生门) for value.
+- **Sector rotation:** the nine stars as sectors, scored by door, season (multipliers on the classical star stages: a star is
+  Prosperous when it produces the month's element) and BaZi fit (favourable Wealth ×2, Output ×1.5, Resource ×1.2, unfavourable 0).
+- **Windows ahead, plain English, explainers and AI:** the next twelve hours or fourteen days; a plain summary; an explainer and
+  glossary on every section; an AI reading with risk rules and a research checklist that never names securities or amounts.
+- Clearly marked as traditional timing, not financial advice. Tested over 2026 against an independent recheck with no differences.
+
 ### 10.25 — Crisis in plain English, with AI countermeasures
 Version folder 10.25.0 (versionCode 84), copied from 10.24.3. Consult › Crisis is now readable without any training.
 - **In plain English:** a new block after the navigator turns the screen into a few sentences: the call for this hour and which way

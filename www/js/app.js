@@ -4311,7 +4311,7 @@
     }
     return null;
   }
-  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1, coach: 1, crisis: 1 };
+  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1, coach: 1, crisis: 1, invest: 1 };
   function plainOpening(screen) {
     if (!user) return;
     var host = $(screen === 'chart' ? 'chartBody' : 'consultBody'), key = screen === 'chart' ? chartK : consultK;
@@ -4873,6 +4873,7 @@
     if (consultK === 'oracle') { renderOracle(host); return; }
     if (consultK === 'liuyao') { renderLiuYao(host); return; }
     if (consultK === 'crisis') { renderCrisis(host); return; }
+    if (consultK === 'invest') { renderInvest(host); return; }
     if (consultK === 'warcraft') { renderWar(host); return; }
     if (consultK === 'execution') { renderExec(host); return; }
     if (consultK === 'sevenstar') { renderSeven(host); return; }
@@ -6921,6 +6922,140 @@
   }
   var renderCrisisBase = renderCrisis;
   renderCrisis = function (host) { renderCrisisBase(host); try { crisisDecorate(host); } catch (e) { if (window.console) console.warn('crisis explain', e); } };
+
+
+  /* ================= Invest: Qi Men for technical and value investing ================= */
+  var investState = { style: 'technical', direction: 'long', trend: 'rising', horizon: 'long', note: '' };
+  var INVEST_HELP = {
+    'Investing with Qi Men': { what: 'Choose how you invest. Technical (fast trading) is read from the two-hour plate; value (long-term buying) from the day plate.',
+      read: 'Technical investing is the "Guest" (客): it acts fast and leaves. Value investing is the "Host" (主): it waits and accumulates. Each reads a different plate because they work on different time scales.',
+      words: [['Plate 盤', 'the 3×3 Qi Men map for a period. The hour plate changes every two hours; the day plate once a day.'], ['Guest 客 / Host 主', 'the side that moves first versus the side that waits and holds.']] },
+    'This period': { what: 'The overall verdict: stand aside, no real yield, neutral, or a favourable set-up.',
+      read: 'Stand aside means the capital check failed, so no new positions this period whatever else looks good. Favourable means a strategy pattern has formed and capital is clear.',
+      words: [] },
+    'Phase 1 · Void': { what: 'Which directions are "empty" this period. Anything that lands there is an illusion: fake volume, a value trap, or a promise that will not hold.',
+      read: 'The void moves with the ten-day cycle (旬). If the capital, the profit door or a sector sits in a void box, treat what it promises as not real yet.',
+      words: [['Void 空亡', 'the two branches missing from this ten-period cycle; the boxes holding them are hollow.'], ['Xun 旬', 'a cycle of ten stem-branch periods led by a 甲.']] },
+    'Phase 2 · Capital': { what: 'Whether the money you put at risk is safe this period. 戊 (Wu) stands for your capital.',
+      read: 'Secure: proceed to the profit check. Blocked: do not open new positions. Each alert says why: a void (trap), its tomb (money locked up), 戊 over 庚 (capital leaving) or 庚 over 戊 (heavy pressure).',
+      words: [['戊 Wu', 'the stem of capital and principal.'], ['庚 Geng', 'the stem of obstacles and rivals.'], ['Tomb 入墓', 'a stem stored away and stuck; 戊\'s tomb is 戌, in the Northwest palace.']] },
+    'Phase 3 · Yield': { what: 'Where the profit is (the Life Door 生门) and how easily it reaches your capital.',
+      read: 'High yield: profit flows to you. High effort: you have to work the position. Frictional: costs eat the margin. Zero: the Life Door is void, so expected returns may not arrive.',
+      words: [['Life Door 生門', 'the door of growth, profit and yield.'], ['Produces / controls', 'in the five elements, wood feeds fire, fire feeds earth, earth feeds metal, metal feeds water and water feeds wood; each controls the one two steps on.']] },
+    'Strategy patterns': { what: 'Classic combinations of a door, a deity and a star in one box, each suiting a trading or investing style.',
+      read: 'A full match (3 of 3) is a strong traditional signal for that style; 2 of 3 is partial. A pattern in a void box, or when capital is blocked, does not count.',
+      words: [['Door', 'the type of action (Harm Door: cutting in fast; Death Door: endings and bottoms; Rest Door: passive income).'],
+        ['Deity', 'hidden backing: Nine Heavens (momentum), Nine Earth (hidden value), Chief (quality), Six Harmony (compounding).'], ['Star', 'the conditions and the sector.']] },
+    'Sector rotation': { what: 'Each of the nine stars stands for a group of industries. They are ranked by where they sit, the season, and your own chart.',
+      read: 'The star with the Life Door is the profit centre. The season multiplier shows if the sector is in or out of favour. "Personal fit" comes from your BaZi: sectors in your unfavourable element score zero for you.',
+      words: [['Nine Stars 九星', 'nine symbolic stars that move round the plate.'], ['Season 旺相休囚死', 'Prosperous, Strong, Weak, Trapped or Dead for this month.'],
+        ['Favourable element 用神', 'the element your birth chart needs; unfavourable 忌神 is the one that upsets it.'], ['Wealth / Output / Resource', 'what an element means for you: money you control, effort that earns, or safety and backing.']] },
+    'Windows ahead': { what: 'The next periods at a glance, so you can plan when to act or stay out.',
+      read: 'Look for periods where capital is Secure and a pattern forms. Skip periods marked Blocked.',
+      words: [] },
+    'AI reading': { what: 'An AI explanation of the whole screen, turned into risk rules and a research checklist.',
+      read: 'It will not tell you what to buy. It explains the reading and how to manage risk around it.', words: [] }
+  };
+  function investHelpHtml(title) {
+    var key = Object.keys(INVEST_HELP).filter(function (k) { return title.indexOf(k) === 0; })[0], h = key && INVEST_HELP[key];
+    if (!h) return '';
+    return '<div class="cr-explain"><div class="plain"><b>In plain words:</b> ' + esc(h.what) + '</div>' +
+      '<details class="tech"><summary>How to read it' + (h.words.length ? ' · words used here' : '') + '</summary>' +
+      '<div class="plain" style="margin:6px 0">' + esc(h.read) + '</div>' +
+      (h.words.length ? xkRows(h.words.map(function (w) { return [esc(w[0]), '<div class="plain">' + esc(w[1]) + '</div>']; })) : '') + '</details></div>';
+  }
+  function renderInvest(host) {
+    var IV = window.QPInvest, st = investState, t = now();
+    var opts = { style: st.style, direction: st.direction, trend: st.trend, horizon: st.horizon };
+    var r = areasSafe(function () { return IV.read(user, t, opts); });
+    var win = areasSafe(function () { return IV.windows(user, t, opts); }) || [];
+    var sel = function (id, label, list, val) { return '<label for="' + id + '">' + label + '</label><select id="' + id + '">' + list.map(function (o) {
+      return '<option value="' + o[0] + '"' + (o[0] === val ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; };
+    var tech = st.style === 'technical';
+    var stCls = function (s) { return s === 'SECURE' || s === 'HIGH_YIELD' || s === 'DIRECT' || s === 'OK' ? 'good-t' : s === 'BLOCKED' || s === 'ZERO' || s === 'ILLUSION' || s === 'DO_NOT_TRADE' ? 'bad-t' : ''; };
+    var html = '<div class="notice"><b>Not financial advice.</b> This is traditional Qi Men timing for reflection. It knows nothing about prices, companies or the economy. ' +
+      'Never invest money you cannot afford to lose, never borrow to trade, and speak to a licensed adviser before real decisions.</div>' +
+      block('Investing with Qi Men 投资奇门', r ? r.posture : '',
+        sel('ivStyle', 'How you invest', [['technical', 'Technical: trading, momentum (hour plate)'], ['value', 'Value: long-term, fundamentals (day plate)']], st.style) +
+        (tech ? sel('ivDir', 'Position', [['long', 'Long (buying)'], ['short', 'Short (selling short)']], st.direction) +
+                sel('ivTrend', 'Market trend right now', [['rising', 'Rising'], ['sideways', 'Sideways'], ['falling', 'Falling']], st.trend)
+              : sel('ivHorizon', 'Holding period', [['long', 'More than a year'], ['short', 'Less than a year']], st.horizon)));
+    if (!r) { host.innerHTML = html + '<div class="notice">The plate could not be read. Try again.</div>'; wireInvest(host); return; }
+    var ph = r.phases, cap = ph.capital, y = ph.yield;
+    var bestS = r.strategies.slice().sort(function (a, b) { return b.score - a.score; })[0], topSec = r.sectors[0], life = r.sectors.filter(function (s) { return s.isLife; })[0];
+    var nextGood = win.filter(function (w) { return w.capital === 'SECURE' && w.best && w.best.score >= 60; })[0];
+    var plain = [
+      'Verdict for this ' + (tech ? 'two-hour period' : 'day') + ': ' + r.verdict.toLowerCase() + '.',
+      cap.status === 'SECURE' ? 'Your capital (戊) is clear this period: no trap, lock-up or pressure on it.' :
+        (cap.status === 'BLOCKED' ? 'Capital is blocked this period. ' : 'Capital needs care this period. ') + cap.alerts.map(function (a) { return a.title + ': ' + a.text; }).join(' '),
+      'Profit: ' + y.text,
+      bestS && bestS.score >= 60 ? 'Pattern: "' + bestS.name + '" forms in the ' + bestS.palace + ' (' + bestS.matched + ' of 3).' : 'No ' + (tech ? 'trading' : 'investing') + ' pattern forms strongly this period.',
+      life ? 'The profit centre is ' + life.sector.split(':')[0].toLowerCase() + ' (' + life.star + ', ' + life.season + ')' + (life.status !== 'OK' ? ', but it is flagged ' + life.status.replace(/_/g, ' ').toLowerCase() : '') + '.' : '',
+      topSec ? 'Best fit for you overall: ' + topSec.sector.split(':')[0].toLowerCase() + ' (' + topSec.fit.toLowerCase() + ').' : '',
+      nextGood ? 'Next clearer ' + (tech ? 'window' : 'day') + ': ' + nextGood.label + ' (' + nextGood.best.name + ').' : 'No clearly favourable ' + (tech ? 'window in the next day' : 'day in the next two weeks') + '.'
+    ].filter(Boolean);
+    html += block('In plain English', 'what this screen says', plain.map(function (x) { return '<div class="plain" style="margin-bottom:8px">' + esc(x) + '</div>'; }).join('')) +
+      block('This period', (tech ? r.pillars.hour.cn + ' hour' : r.pillars.day.cn + ' day') + ' · ' + r.chart.dun + ' ju ' + r.chart.ju,
+        '<div class="verdictbar"><span class="big ' + (r.verdict === 'Favourable set-up' ? 'good' : r.verdict === 'Neutral' ? 'mid' : 'bad') + '">' + esc(r.verdict) + '</span>' +
+        '<span class="sub">Capital ' + cap.status + ' · Yield ' + y.status.replace(/_/g, ' ') + '</span></div>') +
+      block('Phase 1 · Void 空亡', 'the illusions this period',
+        '<div class="plain">' + (ph.voidDirs.length ? 'Void this period: <b class="bad-t">' + esc(ph.voidDirs.join(', ')) + '</b>. Anything landing in these palaces is flagged ILLUSION.' : 'No outer palace is void this period.') + '</div>') +
+      block('Phase 2 · Capital 戊', cap.palace ? '戊 in the ' + cap.palace + ' palace (' + cap.element + ')' : 'not placed',
+        '<div class="plain" style="margin-bottom:6px">Status: <b class="' + stCls(cap.status) + '">' + cap.status + '</b></div>' +
+        (cap.alerts.length ? xkRows(cap.alerts.map(function (a) { return [a.cn + '<small>' + a.code.replace(/_/g, ' ') + '</small>', '<b class="bad-t">' + esc(a.title) + '</b><div class="plain">' + esc(a.text) + '</div>']; }))
+          : '<div class="plain">No void, tomb or 庚 pressure on your capital.</div>')) +
+      block('Phase 3 · Yield 生门', y.palace ? 'Life Door in the ' + y.palace + ' palace (' + y.element + ')' : 'not placed',
+        '<div class="plain">Status: <b class="' + stCls(y.status) + '">' + y.status.replace(/_/g, ' ') + '</b>. ' + esc(y.text) + '</div>') +
+      block('Strategy patterns', tech ? 'the Guest: speed and momentum' : 'the Host: accumulation and endurance',
+        xkRows(r.strategies.map(function (s) {
+          return [esc(s.name) + '<small>' + s.cn + '</small>', '<b class="' + (s.score >= 60 ? 'good-t' : '') + '">' + s.matched + ' of 3 · score ' + s.score + '</b> <small style="display:inline">' + esc(s.palace) + '</small>' +
+            '<div class="plain">' + esc(s.read) + '</div>' + (s.hits.length ? '<small>Present: ' + esc(s.hits.join(', ')) + (s.miss.length ? ' · missing: ' + esc(s.miss.join(', ')) : '') + '</small>' : '') +
+            (s.flags.length ? '<div><small class="bad-t">' + esc(s.flags.join(' ')) + '</small></div>' : '')];
+        })) + '<div class="hint">The best palace for each pattern is shown. 白虎 and 勾陈, and 朱雀 and 玄武, are the same deity slot on Yin and Yang plates.</div>') +
+      block('Sector rotation', 'the nine stars as sectors, ranked for you',
+        xkRows(r.sectors.map(function (s, i) {
+          return [(i === 0 ? '<b class="good-t">Top</b> ' : '') + s.star + (s.isLife ? ' <b class="good-t">生门</b>' : '') + '<small>' + esc(s.en) + ' · ' + s.element + '</small>',
+            '<b class="' + stCls(s.status) + '">' + s.score + '</b> <small style="display:inline">' + esc(s.palace) + ' · ' + s.door + ' · ' + esc(s.season) + ' ×' + s.seasonMult + (s.role ? ' · ' + esc(s.role) + ' ×' + s.personal : '') + '</small>' +
+            '<div class="plain">' + esc(s.sector) + '</div><small>' + esc(s.style) + ' Season: ' + esc(s.seasonRead) + '. ' + esc(s.fit) + '.</small>' +
+            (s.flags.length || s.status !== 'OK' ? '<div><small class="bad-t">' + esc([s.status !== 'OK' ? s.status.replace(/_/g, ' ') : ''].concat(s.flags).filter(Boolean).join(' · ')) + '</small></div>' : '')];
+        })) + '<div class="hint">Score = door base (Life Door 100) × season (Prosperous 2.0, Strong 1.5, Weak 0.8, Trapped 0.5, Dead 0) × personal fit (favourable Wealth 2.0, Output 1.5, ' +
+          'Resource 1.2, unfavourable 0). Star seasons follow the Smoky Fisherman\'s Song: a star is Prosperous when it produces the month\'s element.</div>') +
+      block('Windows ahead', tech ? 'the next twelve two-hour periods' : 'the next fourteen days',
+        xkRows(win.map(function (w) {
+          return [esc(w.label) + '<small>' + w.pillar + '</small>', '<b class="' + (w.capital === 'SECURE' && w.best && w.best.score >= 60 ? 'good-t' : w.capital === 'BLOCKED' ? 'bad-t' : '') + '">' + esc(w.verdict) + '</b>' +
+            '<small style="display:inline"> · capital ' + w.capital + ' · yield ' + w.yieldStatus.replace(/_/g, ' ').toLowerCase() + '</small>' +
+            (w.best && w.best.score > 0 ? '<div><small>' + esc(w.best.name) + ' ' + w.best.matched + '/3</small></div>' : '') +
+            (w.topSector ? '<div><small>Top sector: ' + w.topSector.star + ' ' + esc(w.topSector.sector.split(':')[0]) + '</small></div>' : '')];
+        }))) +
+      block('AI reading', 'the whole screen explained, with risk rules',
+        '<label for="ivNote">What are you considering? (optional; kept on this phone only)</label>' +
+        '<textarea id="ivNote" rows="3" placeholder="For example: adding to a bank stock I hold, or a short-term trade in a tech ETF.">' + esc(st.note || '') + '</textarea>' +
+        '<div id="ivAi" style="margin-top:10px"></div>' +
+        '<div class="hint">The AI explains the reading and turns it into risk rules and a research checklist. It will not name what to buy or how much.</div>');
+    host.innerHTML = html;
+    [].slice.call(host.querySelectorAll('.block > h2')).forEach(function (h) {
+      var title = (h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent).trim(), x = investHelpHtml(title);
+      if (x) h.insertAdjacentHTML('afterend', x);
+    });
+    wireInvest(host);
+    var settings = tech ? 'position ' + st.direction + ', market ' + st.trend : 'holding period ' + (st.horizon === 'long' ? 'over a year' : 'under a year');
+    aiPanel('ivAi', 'invest', 'invest.' + st.style + '.' + settings + '.' + (tech ? r.pillars.hour.cn : r.pillars.day.cn) + '.' + isoOf(now()), function (cfg) {
+      var text = [].slice.call(host.querySelectorAll('.block')).filter(function (b) { return !b.querySelector('#ivAi'); })
+        .map(function (b) { return b.innerText; }).join('\n').replace(/\n{2,}/g, '\n').slice(0, 16000);
+      return window.QPAI.analyseInvest(cfg, { style: tech ? 'technical investing' : 'value investing', posture: r.posture, settings: settings,
+        when: t.y + '-' + t.m + '-' + t.d + ' ' + t.hour + ':' + String(t.min).padStart(2, '0'), note: (st.note || '').trim(), text: text });
+    }, [{ label: 'In short', path: 'summary' }, { label: 'Market conditions', path: 'market' }, { label: 'Capital and yield', path: 'capital' },
+        { label: 'Strategy', path: 'strategy' }, { label: 'Sectors', path: 'sectors' }, { label: 'For you personally', path: 'personal' },
+        { label: 'Risk rules', path: 'risk', list: 'cure' }, { label: 'Research before deciding', path: 'checklist' }, { label: 'Get advice when', path: 'help' }]);
+  }
+  function wireInvest(host) {
+    var st = investState, re = function () { renderInvest(host); };
+    if ($('ivStyle')) $('ivStyle').onchange = function () { st.style = this.value; re(); };
+    if ($('ivDir')) $('ivDir').onchange = function () { st.direction = this.value; re(); };
+    if ($('ivTrend')) $('ivTrend').onchange = function () { st.trend = this.value; re(); };
+    if ($('ivHorizon')) $('ivHorizon').onchange = function () { st.horizon = this.value; re(); };
+    if ($('ivNote')) $('ivNote').oninput = function () { st.note = this.value; };
+  }
 
   /** Day Stem against Hour Stem: the leverage read, for any Qimen hour plate. */
   function stemDynHtml(chart, pillars) {

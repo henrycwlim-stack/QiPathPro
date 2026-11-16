@@ -3046,6 +3046,41 @@
   }
 
 
+
+  /* ---------- Invest: the Qi Men investing reading explained, with risk discipline ---------- */
+  var INVEST_SCHEMA = { type: 'object', properties: {
+    summary: { type: 'string' }, market: { type: 'string' }, capital: { type: 'string' }, strategy: { type: 'string' }, sectors: { type: 'string' },
+    personal: { type: 'string' },
+    risk: { type: 'array', items: { type: 'object', properties: { issue: { type: 'string' }, sector: { type: 'string' }, cure: { type: 'string' }, avoid: { type: 'string' } }, required: ['issue', 'sector', 'cure', 'avoid'] } },
+    checklist: { type: 'string' }, help: { type: 'string' } },
+    required: ['summary', 'market', 'capital', 'strategy', 'sectors', 'personal', 'risk', 'checklist', 'help'] };
+  function analyseInvest(cfg, ctx) {
+    var prompt = 'You read Qi Men Dun Jia for investors and explain it to a junior with no training in Chinese metaphysics or finance. ' +
+      'Explain the Invest screen below: what the traditional reading says about this ' + ctx.style + ' period, and turn it into sound risk discipline.\n\n' +
+      'STYLE: ' + ctx.style + ' (' + ctx.posture + ')\nSETTINGS: ' + ctx.settings + '\nTIME: ' + ctx.when + '\n' +
+      (ctx.note ? 'WHAT THE PERSON IS CONSIDERING (their words): ' + ctx.note + '\n' : '') +
+      '\nRULES:\n' +
+      '- This is traditional symbolic timing, not financial advice. The chart knows nothing about prices, companies, earnings or the economy. Say so once, plainly, in the summary.\n' +
+      '- Never name a specific security, ticker, fund or coin to buy or sell, never give a price target, position size, leverage level or expected return, and never promise profit.\n' +
+      '- Translate signals into general discipline: when to stand aside, how to limit risk (stop-losses, position limits as a share of savings, diversification, ' +
+      'never borrowing to invest or investing money needed for living costs), and what to research independently before any decision.\n' +
+      '- Explain every Chinese term in the same sentence the first time. Ground each point in a section of the screen by its title.\n' +
+      '- If the person seems to chase losses, invest money they cannot afford to lose, or borrow to trade, say gently that this is a warning sign and suggest talking to someone.\n' +
+      '- For any real decision, point them to a licensed financial adviser.\n' +
+      PLAIN_RULE + '\n\nINVEST SCREEN TEXT:\n' + ctx.text + '\n\n' +
+      'Return STRICT JSON:\n{\n' +
+      '  "summary": "The reading in one breath: stand aside, wait or proceed carefully, and why; plus the one-line reminder that this is not financial advice (50-80 words).",\n' +
+      '  "market": "What the plate says about conditions this period: illusions (void), pressure and openings (120-180 words).",\n' +
+      '  "capital": "The state of capital (戊) and yield (the Life Door 生门) and what each means in practice (80-130 words).",\n' +
+      '  "strategy": "Which strategy pattern forms or does not, what it suits, and its limits (80-130 words).",\n' +
+      '  "sectors": "The leading sectors in the reading and why, their seasonal state, and which to treat with caution; no specific securities (80-130 words).",\n' +
+      '  "personal": "How the person\'s BaZi favourable and unfavourable elements change the picture (60-100 words).",\n' +
+      '  "risk": [ {"issue": "Short name of a risk rule", "sector": "When it applies (period or signal)", "cure": "What to do, concretely (30-60 words)", "avoid": "The mistake it prevents"} ] (4 to 6 items),\n' +
+      '  "checklist": "Five questions to research before any decision, one per sentence (60-100 words).",\n' +
+      '  "help": "When to talk to a licensed adviser, and where to get help if investing is causing stress or losses they cannot afford (40-70 words)."\n}';
+    return call(cfg, prompt, INVEST_SCHEMA);
+  }
+
   /* ---------- Crisis: comprehensive analysis and countermeasures ---------- */
   var CRISIS_SCHEMA = { type: 'object', properties: {
     summary: { type: 'string' }, situation: { type: 'string' }, leverage: { type: 'string' }, timing: { type: 'string' },
@@ -3097,7 +3132,7 @@
     askCharts: askCharts, askPrompt: askPrompt,
     PROTOCOLS: PROTOCOLS, sharpenQuestion: sharpenQuestion, writeWalkScript: writeWalkScript, walkScriptPrompt: walkScriptPrompt, withCounter: withCounter, deepDive: deepDive, DEEP_MAX: DEEP_MAX,
     analyseSanCai: analyseSanCai,
-    explainScreen: explainScreen, analyseCrisis: analyseCrisis, analyseElements: analyseElements, analyseRelations: analyseRelations, analyseTogether: analyseTogether,
+    explainScreen: explainScreen, analyseCrisis: analyseCrisis, analyseInvest: analyseInvest, analyseElements: analyseElements, analyseRelations: analyseRelations, analyseTogether: analyseTogether,
     analyseYijing: analyseYijing, analyseDayPick: analyseDayPick,
     analyseBaziForecast: analyseBaziForecast, analyseZwdsForecast: analyseZwdsForecast, analyseBaziYear: analyseBaziYear, analyseZwdsYear: analyseZwdsYear, analyseThreats: analyseThreats, analyseQimenYear: analyseQimenYear,
     analyseStructure: analyseStructure, analyseDraws: analyseDraws,

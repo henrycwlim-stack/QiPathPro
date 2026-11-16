@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Open in QiPath Pro</title>
+<!-- Served by GitHub Pages. Email apps will not open qipath:// links, so the daily digest links here and this page
+     hands the structure to the app: an Android intent URL first (opens QiPath Pro directly in Chrome), then the
+     plain qipath:// link as a button. -->
+<style>
+  :root{--bg:#f6f1e7;--fg:#222;--muted:#666;--accent:#c8452f}
+  @media (prefers-color-scheme:dark){:root{--bg:#16120e;--fg:#e9dfcc;--muted:#a59a88}}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 Georgia,serif;padding:32px 16px}
+  main{max-width:480px;margin:auto}
+  a.btn{display:inline-block;margin:14px 0;padding:10px 16px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none}
+  p{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1 style="font-weight:400">Opening QiPath Pro…</h1>
+  <p id="what"></p>
+  <a class="btn" id="open" href="#">Open the manifestation script</a>
+  <p>If nothing happens, open QiPath Pro and go to Consult › Structures — the same structure is listed there.</p>
+</main>
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search), keep = new URLSearchParams();
+    ['d', 'h', 'p', 'f'].forEach(function (k) { if (q.get(k)) keep.set(k, q.get(k)); });
+    var kind = q.get('to') === 'manifest' && /^\d{4}-\d{2}-\d{2}$/.test(q.get('d') || '') ? 'manifest' : 'structures';
+    var path = kind + (kind === 'manifest' ? '?' + keep.toString() : '');
+    var direct = 'qipath://' + path;
+    var intent = 'intent://' + path + '#Intent;scheme=qipath;package=com.qipath.pro;end';
+    if (kind === 'manifest') document.getElementById('what').textContent = 'Structure on ' + q.get('d') + ' at ' + String(q.get('h')).padStart(2, '0') + ':30.';
+    var android = /Android/i.test(navigator.userAgent);
+    document.getElementById('open').href = android ? intent : direct;
+    location.href = android ? intent : direct;
+  })();
+</script>
+</body>
+</html>
