@@ -49,6 +49,18 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.24 — Concealment: Hiding the Stem and the Wandering Wonders
+Version folder 10.24.0 (versionCode 80), copied from 10.23.0. A Concealment part in the Opposition sector on Consult › Crisis.
+- **三奇游六仪, Three Wonders Wander the Six Yi:** rebuilt from the Imperial Qi Men Compendium (御定奇門寶鑑) rule. 乙 wanders to
+  己 and 辛, 丙 to 戊 and 庚, 丁 to 壬 and 癸, and it counts only when this xun's Chief (直符) brings its leading stem onto the paired
+  Wonder. The old loose version, which held on most plates, stays retired. The new one forms in about 12% of hours and now shows
+  among the auspicious formations everywhere. 乙游己辛 is the formation called "Wandering Ji".
+- **Hiding the Stem (遁甲):** the 六儀 that the commanding 甲 hides under this xun, and the Chief's palace that carries it, with a
+  note when the Day Stem is 甲.
+- **Jade Maiden Guards the Door (玉女守门):** shown now or at its next hour, as the commentaries tie the wandering to it, for
+  confidential talks and protective arrangements.
+- **Earth Door (地户):** the palace of 己 on the heaven plate as the low-profile sector, marked when the Earthly Fake (地假) forms.
+
 ### 10.23 — Execution window: releasing a void or tomb
 Version folder 10.23.0 (versionCode 79), copied from 10.22.0. A new block on Consult › Crisis, after "Who holds the leverage".
 - **Step 1, the release key:** when the other side's palace is void, the branch that clashes the void branch (冲空) or fills it

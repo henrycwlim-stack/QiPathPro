@@ -237,7 +237,40 @@
     return { trap: trap, list: out.slice(0, 5), searched: (days || 3) * 12 };
   }
 
+
+  /* ---------- concealment: hiding the stem, the wandering Wonders, and the Earth Door ----------
+   * 遁甲: 甲 never shows on the plate; it hides under the 六儀 that leads its xun, which the Chief (值符) carries. That palace is where
+   * the commander sits unseen. 三奇游六仪 follows the Bao Jian rule (see structures.js); the Jade Maiden Guards the Door (玉女守门,
+   * 丁 with the duty door) is the hour the commentaries tie to the wandering, for confidential and protective moves. 六己 is the
+   * Earth Door (地户): the sector for a low profile. */
+  var XUN_HEAD = { '戊': '甲子', '己': '甲戌', '庚': '甲申', '辛': '甲午', '壬': '甲辰', '癸': '甲寅' };
+  function formsIn(r, id) { return (r.formations || []).filter(function (f) { return f.id === id; })[0] || null; }
+  function palDirs(ch, f) { return ((f && f.palaces) || []).map(function (n) { return ch.palacesByNumber[n] ? ch.palacesByNumber[n].dir : ''; }).filter(Boolean); }
+  function concealment(user, t, hp, days) {
+    if (!hp) return null;
+    var Q = global.QPQimen, ch = hp.chart, p = hp.pillars, fu = ch.meta && ch.meta.fuShou;
+    var pals = [1, 2, 3, 4, 6, 7, 8, 9].map(function (n) { return ch.palacesByNumber[n]; }).filter(Boolean);
+    var hide = fu ? { stem: fu, xun: XUN_HEAD[fu] || '', palace: hp.chief ? hp.chief.dir : null, youAreJia: p.day.stem === 0 } : null;
+    var ji = pals.filter(function (x) { return x.heavenStemCn === '己' || x.heavenStem2Cn === '己'; })[0] || null;
+    var diJia = formsIn(hp.res, 'wu_jia_di');
+    var now = { wander: formsIn(hp.res, 'san_qi_you_liu_yi'), maiden: formsIn(hp.res, 'yu_nv_shou') };
+    // The next hours ahead when each forms.
+    var next = { wander: null, maiden: null }, start = windows(t, 1)[0].start;
+    for (var i = 1; i <= (days || 3) * 12 && !(next.wander && next.maiden); i++) {
+      var w = new Date(start.getTime() + i * 7200000), mid = new Date(w.getTime() + 3600000), r;
+      try { r = Q.chartFor('hour', { y: mid.getFullYear(), m: mid.getMonth() + 1, d: mid.getDate(), hour: mid.getHours(), min: 0 }); } catch (e) { continue; }
+      if (S.disharmony(r.pillars.day.stem, r.pillars.hour.stem, r.pillars.hour.branch)) continue;
+      ['wander', 'maiden'].forEach(function (k) {
+        var f = next[k] ? null : formsIn(r, k === 'wander' ? 'san_qi_you_liu_yi' : 'yu_nv_shou');
+        if (f) next[k] = { start: w, label: w.toDateString().slice(0, 10) + ' · ' + pad(w.getHours()) + ':00–' + pad((w.getHours() + 1) % 24) + ':59',
+          hourPillar: r.pillars.hour.cn, dirs: palDirs(r.chart, f) };
+      });
+    }
+    return { hide: hide, ji: ji ? { dir: ji.dir, gate: ji.gate, spirit: ji.spirit, isEmpty: ji.isEmpty } : null, diJia: diJia ? palDirs(ch, diJia) : null,
+      now: { wander: now.wander ? palDirs(ch, now.wander) : null, maiden: now.maiden ? palDirs(ch, now.maiden) : null }, next: next };
+  }
+
   function pad(n) { return String(n).length < 2 ? '0' + n : String(n); }
 
-  global.QPCrisis = { TYPES: TYPES, navigate: navigate, triggers: triggers, objectives: objectives, hourPlate: hourPlate, stemRel: stemRel, executionWindows: executionWindows, trapOf: trapOf };
+  global.QPCrisis = { TYPES: TYPES, navigate: navigate, triggers: triggers, objectives: objectives, hourPlate: hourPlate, stemRel: stemRel, executionWindows: executionWindows, trapOf: trapOf, concealment: concealment };
 })(typeof window !== 'undefined' ? window : globalThis);

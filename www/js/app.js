@@ -6746,6 +6746,22 @@
           if (hp.death) rowsO.push(['Death Door 死门', '<b class="bad-t">' + esc(hp.death.dir) + '</b><div class="plain">Where things stall and end.</div>']);
           if (hp.opp) rowsO.push(['The opponent', '<b>' + esc(hp.opp.dir) + '</b><div class="plain">The crisis sits here; let it come to you rather than moving toward it.</div>']);
           hp.hostile.slice(0, 4).forEach(function (f) { rowsO.push([f.name + '<small>' + esc(f.en) + '</small>', '<span class="bad-t">' + esc(f.dirs.join(', ')) + '</span>']); });
+          var cc = areasSafe(function () { return CR.concealment(user, t, hp, 3); }), ccRows = [];
+          if (cc && cc.hide) ccRows.push(['Hiding the Stem<small>遁甲 · 甲 under ' + cc.hide.stem + '</small>',
+            '<div class="plain">This xun (' + esc(cc.hide.xun) + ') the commanding 甲 hides under ' + cc.hide.stem + ', carried by the Chief' + (cc.hide.palace ? ' in the <b>' + esc(cc.hide.palace) + '</b> palace' : '') + '. ' +
+            'Keep your real resources and your decision-maker behind a front, a representative or a holding position, and show them only when you act.' +
+            (cc.hide.youAreJia ? ' Your Day Stem is 甲, so you are read from ' + cc.hide.stem + ': you are already the hidden commander.' : '') + '</div>']);
+          if (cc) ccRows.push(['Wandering Wonders<small>三奇游六仪 · incl. 乙游己辛 “Wandering Ji”</small>',
+            cc.now.wander ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.wander.join(', ')) + ' palace<div class="plain">The Chief has brought this xun\'s stem onto its paired Wonder: favourable for any undertaking, more so with an auspicious door.</div>'
+              : cc.next.wander ? '<span>Next: <b>' + esc(cc.next.wander.label) + '</b> (' + cc.next.wander.hourPillar + ' hour, ' + esc(cc.next.wander.dirs.join(', ')) + ')</span><div class="plain">When the Chief brings this xun\'s stem onto its paired Wonder. A good hour for the main move.</div>'
+              : '<div class="plain">Does not form in the next three days.</div>']);
+          if (cc) ccRows.push(['Jade Maiden Guards the Door<small>玉女守门</small>',
+            cc.now.maiden ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.maiden.join(', ')) + ' palace<div class="plain">The hour for confidential talks, quiet requests and protective arrangements.</div>'
+              : cc.next.maiden ? '<span>Next: <b>' + esc(cc.next.maiden.label) + '</b> (' + cc.next.maiden.hourPillar + ' hour, ' + esc(cc.next.maiden.dirs.join(', ')) + ')</span><div class="plain">Use it for confidential talks, quiet requests and protective arrangements.</div>'
+              : '<div class="plain">Does not form in the next three days.</div>']);
+          if (cc && cc.ji) ccRows.push(['Earth Door<small>地户 · 己 on the heaven plate</small>',
+            '<b>' + esc(cc.ji.dir) + '</b>' + (cc.diJia && cc.diJia.length ? ' <span class="good-t">· Earthly Fake 地假 forms (' + esc(cc.diJia.join(', ')) + ')</span>' : '') +
+            '<div class="plain">The sector for keeping a low profile: store documents, hold private conversations and keep your preparations here.' + (cc.ji.isEmpty ? ' It is void this hour, so do not rely on it to hide anything that matters.' : '') + '</div>']);
           var natalBad = tr.conflicts.filter(function (c) { return c.kind !== 'union'; }).slice(0, 3);
           var dunWin = r.list.filter(function (x) { return x.dun && x.dun.length && x.call !== 'Hold'; })[0];
           var steps = [];
@@ -6756,7 +6772,8 @@
           return block('Opposition sector', 'Phase 3 · where the hostile forces sit, and how to work around them',
             (rowsO.length ? xkRows(rowsO) : '') +
             (steps.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Counter-steps</h3><ol class="cr-plan">' + steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' : '') +
-            '<div class="hint">These are the traditional ways to avoid and shield against a hostile sector: positioning, timing and the Nine Dun (九遁) concealment formations. They work by keeping you out of the line of conflict, not by acting on anyone.</div>');
+            (ccRows.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Concealment</h3>' + xkRows(ccRows) : '') +
+            '<div class="hint">These are the traditional ways to avoid and shield against a hostile sector: positioning, timing and the Nine Dun (九遁) concealment formations. They work by keeping you out of the line of conflict, not by acting on anyone. Wandering Wonders follows the Imperial Qi Men Compendium (御定奇門寶鑑): it counts only when this xun\'s Chief comes to the palace. “Hiding the Stem” and “Wandering Ji” are your school\'s names for 遁甲 and 乙游己辛.</div>');
         })() +
         block('Your plan', 'in plain English', '<ol class="cr-plan">' + r.plan.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
           '<h3 style="margin:12px 0 6px;font-size:.9rem">Steady the situation first</h3><ul class="cr-plan">' + r.steady.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>') +
