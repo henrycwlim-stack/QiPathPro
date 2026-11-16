@@ -194,5 +194,133 @@
   }
   function pad(n) { n = (n + 24) % 24; return (n < 10 ? '0' : '') + n; }
 
-  global.QPInvest = { read: read, windows: windows, phases: phases, sectors: sectors, strategies: strategies, SECTORS: SECTORS, STRATEGIES: STRATEGIES, SEASON_MULT: SEASON_MULT };
+
+  /* ================= BaZi for investing: instruments, the monthly circuit breaker, and the all-clear ================= */
+  // Ten God index: 0 比肩 1 劫财 2 食神 3 伤官 4 偏财 5 正财 6 七杀 7 正官 8 偏印 9 正印. Its element is the Day Master's plus floor(i/2) steps.
+  var INSTRUMENTS = [
+    { cn: '比肩', en: 'Friend', cat: 'Cooperative and pooled equity', why: 'Equals sharing risk and reward.', vehicles: 'Joint ventures, standard index funds, syndicated property deals.', risk: 'medium' },
+    { cn: '劫财', en: 'Rob Wealth', cat: 'Zero-sum and hype cycles', why: 'Fierce competition: taking from others or being taken from.', vehicles: 'Meme stocks, crowded retail trades, same-day (0DTE) options, speculative crowdfunding.', risk: 'extreme' },
+    { cn: '食神', en: 'Eating God', cat: 'Steady growth and compounding', why: 'Output that produces wealth smoothly, process-driven.', vehicles: 'Mutual funds, low-frequency rules-based investing, dividend reinvestment plans, value stocks.', risk: 'low' },
+    { cn: '伤官', en: 'Hurting Officer', cat: 'Volatility and disruption', why: 'Output that attacks the establishment: profiting from friction.', vehicles: 'Short selling, disruptive tech, volatile options strategies (straddles, strangles), high-frequency trading.', risk: 'high' },
+    { cn: '偏财', en: 'Indirect Wealth', cat: 'Windfall and asymmetric risk', why: 'Entrepreneurial, variable, sudden returns.', vehicles: 'Venture capital, directional options, growth stocks, cryptocurrencies.', risk: 'high' },
+    { cn: '正财', en: 'Direct Wealth', cat: 'Predictable cash flow', why: 'Steady, recurring, controlled income.', vehicles: 'Blue-chip dividend stocks, REITs, investment-grade corporate bonds.', risk: 'low' },
+    { cn: '七杀', en: 'Seven Killings', cat: 'Leverage and margin', why: 'Extreme pressure and high stakes: other people\'s money.', vehicles: 'Margin trading, futures, leveraged ETFs, deep out-of-the-money options, junk bonds.', risk: 'extreme' },
+    { cn: '正官', en: 'Direct Officer', cat: 'Regulated debt and utilities', why: 'Law, regulation and institutional discipline.', vehicles: 'Utility stocks, AAA-rated bonds, tightly regulated index funds.', risk: 'low' },
+    { cn: '偏印', en: 'Indirect Resource', cat: 'Alternative and esoteric assets', why: 'Unconventional backing that needs specialist knowledge.', vehicles: 'Niche thematic ETFs, royalties and IP, art and collectibles, DeFi staking.', risk: 'high' },
+    { cn: '正印', en: 'Direct Resource', cat: 'Safe haven and institutional', why: 'Orthodox safety, guarantees, tangible backing.', vehicles: 'Treasury bills, sovereign bonds, broad-market index ETFs, physical property.', risk: 'low' }
+  ];
+  function godSets(user) {
+    var D = user && user.deep;
+    if (!D) return null;
+    var de = D.dayMasterElem, fav = D.favourable || [], unf = D.unfavourable || [], G = [];
+    for (var i = 0; i < 10; i++) { var e = (de + Math.floor(i / 2)) % 5; G.push({ i: i, elem: e, fav: fav.indexOf(e) >= 0, unf: unf.indexOf(e) >= 0 }); }
+    return { de: de, strong: !!D.strong, gods: G, fav: G.filter(function (g) { return g.fav; }).map(function (g) { return g.i; }), unf: G.filter(function (g) { return g.unf; }).map(function (g) { return g.i; }) };
+  }
+  /** Phase 1 and 2 of the instrument map: which instruments suit the chart and which to avoid, with the four gates. */
+  function instruments(user) {
+    var g = godSets(user);
+    if (!g) return null;
+    var list = INSTRUMENTS.map(function (x, i) {
+      return { cn: x.cn, en: x.en, cat: x.cat, why: x.why, vehicles: x.vehicles, risk: x.risk, element: EL_EN[g.gods[i].elem],
+        status: g.gods[i].unf ? 'avoid' : g.gods[i].fav ? 'suits' : 'neutral' };
+    });
+    var has = function (arr, i) { return arr.indexOf(i) >= 0; }, gates = [];
+    gates.push(has(g.unf, 6) ? { key: 'leverage', cn: '七杀', title: 'Leverage gate: closed', tone: 'bad',
+        text: 'Seven Killings is unfavourable for you: avoid margin, futures and leveraged funds. Debt-fuelled pressure works against your chart.' }
+      : has(g.fav, 6) ? { key: 'leverage', cn: '七杀', title: 'Leverage gate: tolerated, not recommended', tone: 'mid',
+        text: 'Seven Killings is favourable, so you handle pressure well. Leverage can still lose more than you put in: only with experience, strict limits and a licensed adviser.' }
+      : { key: 'leverage', cn: '七杀', title: 'Leverage gate: neutral', tone: 'mid', text: 'No strong sign either way. Treat margin and leveraged products with great care.' });
+    gates.push(has(g.fav, 3) ? { key: 'volatility', cn: '伤官', title: 'Volatility gate: open, capped', tone: 'good',
+        text: 'Hurting Officer is favourable: you can cope with active, volatile strategies. Keep them to a small, capped slice you can afford to lose.' }
+      : has(g.unf, 3) ? { key: 'volatility', cn: '伤官', title: 'Volatility gate: closed', tone: 'bad',
+        text: 'Hurting Officer is unfavourable: avoid day-trading and short selling, which invite emotional, contrarian trades. Favour funds (食神) and broad index funds (正印).' }
+      : { key: 'volatility', cn: '伤官', title: 'Volatility gate: neutral', tone: 'mid', text: 'Volatile strategies are neither favoured nor flagged; size them modestly.' });
+    gates.push(g.strong ? { key: 'yield', cn: '財', title: 'Yield engine: direct wealth', tone: 'good',
+        text: 'A strong Day Master can hold wealth directly: dividend stocks (正财) and growth (偏财) suit you more than parking money.' }
+      : { key: 'yield', cn: '印', title: 'Yield engine: protective assets', tone: 'good',
+        text: 'A weak Day Master should not chase yield directly: accumulate protective assets (正印) such as T-bills, broad index funds and property that grow quietly.' });
+    if (has(g.unf, 1)) gates.push({ key: 'hype', cn: '劫财', title: 'Hype avoidance', tone: 'bad',
+      text: 'Rob Wealth is unfavourable: stay out of trending meme stocks and retail hype. Your chart is the one left holding the bag.' });
+    return { strong: g.strong, list: list, gates: gates, favGods: g.fav.map(function (i) { return INSTRUMENTS[i].cn; }), unfGods: g.unf.map(function (i) { return INSTRUMENTS[i].cn; }) };
+  }
+
+  /* ---------- the monthly circuit breaker and the all-clear ---------- */
+  var THREAT = {
+    6: { key: 'Seven_Killings', title: 'Leverage kill switch', risk: 'Sudden crashes, margin calls and systemic shocks.',
+      steps: ['Bring margin and leveraged positions down before the month starts.', 'No new futures, leveraged funds or high-beta crypto this month.'] },
+    1: { key: 'Rob_Wealth', title: 'Volatility quarantine', risk: 'Retail traps, pump-and-dumps, revenge trading, money siphoned by others.',
+      steps: ['Review speculative and high-beta holdings; consider moving them to cash or T-bills.', 'No meme stocks, same-day options or new speculative coins this month.'] },
+    3: { key: 'Hurting_Officer', title: 'Volatility quarantine', risk: 'Regulatory crackdowns, leadership scandals, support levels breaking.',
+      steps: ['Review short-term options and disruptive names under regulatory scrutiny; consider moving them to cash.', 'No new speculative positions this month.'] },
+    8: { key: 'Indirect_Resource', title: 'Liquidity check', risk: 'False information, data errors, being trapped in illiquid or misunderstood assets.',
+      steps: ['Avoid illiquid micro-caps and products with lock-ups; start unstaking in time if needed.', 'Verify every piece of information twice before acting.'] }
+  };
+  var THREAT_ORDER = [6, 1, 3, 8];
+  function monthsAhead(user, t, count) {
+    var P = global.QPPlanner, A = global.QPAstro, g = godSets(user);
+    if (!P || !A || !g) return [];
+    var ms = P.solarMonths({ y: t.y, m: t.m, d: t.d }).slice(0, count || 12), prev = null;
+    // The month before the first, so the first can be read as an all-clear.
+    var before = P.solarMonths((function () { var d = A.jdToLocal(ms[0].t0 - 2); return { y: d.y, m: d.m, d: Math.floor(d.d) }; })())[0];
+    return [before].concat(ms).map(function (x) {
+      var d0 = A.jdToLocal(x.t0), d1 = A.jdToLocal(x.t1 - 1), mid = A.jdToLocal(x.t0 + 7);
+      var p = C.fourPillars(mid.y, mid.m, Math.floor(mid.d), 12, 0), ms_ = p.month.stem, mb = p.month.branch, mq = C.HIDDEN[mb][0];
+      var sg = C.tenGod(user.pillars.day.stem, ms_).i, bg = C.tenGod(user.pillars.day.stem, mq).i;
+      var hit = [sg, bg].filter(function (i, k, a) { return g.unf.indexOf(i) >= 0 && a.indexOf(i) === k; });
+      var cat = THREAT_ORDER.filter(function (i) { return hit.indexOf(i) >= 0; })[0];
+      var mode = hit.length ? 'DEFENSIVE_LOCKDOWN' : prev === 'DEFENSIVE_LOCKDOWN' ? 'ALL_CLEAR_TRANCHING' : 'OFFENSIVE';
+      var r = { t0: x.t0, t1: x.t1, start: { y: d0.y, m: d0.m, d: Math.floor(d0.d) }, end: { y: d1.y, m: d1.m, d: Math.floor(d1.d) }, pillar: p.month.cn,
+        stemGod: INSTRUMENTS[sg].cn + ' ' + INSTRUMENTS[sg].en, branchGod: INSTRUMENTS[bg].cn + ' ' + INSTRUMENTS[bg].en + ' (' + C.STEMS[mq] + ' main qi)',
+        threats: hit.map(function (i) { return INSTRUMENTS[i].cn + ' ' + INSTRUMENTS[i].en; }), mode: mode,
+        threat: cat !== undefined ? THREAT[cat] : hit.length ? { key: 'General', title: 'Extra caution', risk: 'An unfavourable influence for you rules the month.',
+          steps: ['No new speculative or leveraged positions this month.', 'Keep to your plan and review stop-losses.'] } : null,
+        source: hit.length ? (hit.indexOf(sg) >= 0 && hit.indexOf(bg) >= 0 ? 'stem and branch' : hit.indexOf(sg) >= 0 ? 'stem (visible news and volatility)' : 'branch (deep, institutional shifts)') : null };
+      prev = mode;
+      return r;
+    }).slice(1);
+  }
+  /** The staged re-entry for an all-clear month: three thirds, each waiting for its Qi Men gate. */
+  function allClearPlan(user, month) {
+    var Q = global.QPQimen, A = global.QPAstro, g = godSets(user);
+    if (!Q || !A || !g || !month) return null;
+    var fav = g.fav.map(function (i) { return g.gods[i].elem; }).filter(function (e, k, a) { return a.indexOf(e) === k; });
+    var wealthOut = [(g.de + 1) % 5, (g.de + 2) % 5].filter(function (e) { return fav.indexOf(e) >= 0; });
+    var relaxed = !wealthOut.length, want2 = relaxed ? fav : wealthOut;
+    var dayAt = function (k) { var d = A.jdToLocal(month.t0 + k); return { y: d.y, m: d.m, d: Math.floor(d.d) }; };
+    var label = function (d, h) { return d.d + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.m - 1] + (h !== undefined ? ' · ' + pad(h - 1) + ':00–' + pad(h) + ':59' : ''); };
+    var palEl = function (x) { return elIdx(x); };
+    var find1 = null, find2 = null, find3 = null, k, h, r;
+    for (k = 0; k < 5 && !find1; k++) {
+      var d1 = dayAt(k + 0.5);
+      try { r = Q.chartFor('day', { y: d1.y, m: d1.m, d: d1.d, hour: 12, min: 0 }); } catch (e) { continue; }
+      var od = pals(r.chart).filter(function (x) { return x.gate === '开门'; })[0];
+      if (od && !od.isEmpty && fav.indexOf(palEl(od)) >= 0) find1 = { when: label(d1), why: 'Open Door in the ' + od.dir + ' (' + EL_EN[palEl(od)] + ', favourable for you)' };
+    }
+    for (k = 5; k < 10 && !find2; k++) {
+      var d2 = dayAt(k + 0.5);
+      for (h = 1; h < 24 && !find2; h += 2) {
+        try { r = Q.chartFor('hour', { y: d2.y, m: d2.m, d: d2.d, hour: h, min: 30 }); } catch (e) { continue; }
+        var ch2 = pals(r.chart).filter(function (x) { return (x.spirit === '值符' || x.spirit === '九天') && !x.isEmpty && want2.indexOf(palEl(x)) >= 0; })[0];
+        if (ch2) find2 = { when: label(d2, h + 1), why: ch2.spirit + ' over ' + EL_EN[palEl(ch2)] + ' in the ' + ch2.dir + (relaxed ? ' (a favourable element; neither your Wealth nor Output element is favourable)' : ' (your favourable ' + ((g.de + 2) % 5 === palEl(ch2) ? 'Wealth' : 'Output') + ' element)') };
+      }
+    }
+    for (k = 10; k < 20 && !find3; k++) {
+      var d3 = dayAt(k + 0.5);
+      for (h = 1; h < 24 && !find3; h += 2) {
+        try { r = Q.chartFor('hour', { y: d3.y, m: d3.m, d: d3.d, hour: h, min: 30 }); } catch (e) { continue; }
+        var ld = pals(r.chart).filter(function (x) { return x.gate === '生门'; })[0];
+        if (ld && !ld.isEmpty && fav.indexOf(palEl(ld)) >= 0) find3 = { when: label(d3, h + 1), why: 'Life Door in the ' + ld.dir + ' (' + EL_EN[palEl(ld)] + ', favourable for you)' };
+      }
+    }
+    return [
+      { level: 1, name: 'Vanguard', days: 'days 1–5', gate: 'Open Door (开门) in a palace of your favourable element, on the day plate', found: find1,
+        action: 'Move the first third back into core holdings and low-risk growth.' },
+      { level: 2, name: 'Main force', days: 'days 6–10', gate: 'Chief (值符) or Nine Heavens (九天) over your favourable Wealth or Output element, on the hour plate', found: find2,
+        action: 'Move the second third back into your normal growth positions.' },
+      { level: 3, name: 'Full return', days: 'day 11 onwards', gate: 'Life Door (生门) in a palace of your favourable element, on the hour plate, once markets have calmed (your judgement)', found: find3,
+        action: 'Return to your normal allocation. Leverage only if it was already part of a plan agreed with an adviser.' }
+    ];
+  }
+
+  global.QPInvest = { instruments: instruments, monthsAhead: monthsAhead, allClearPlan: allClearPlan, godSets: godSets, INSTRUMENTS: INSTRUMENTS, THREAT: THREAT, read: read, windows: windows, phases: phases, sectors: sectors, strategies: strategies, SECTORS: SECTORS, STRATEGIES: STRATEGIES, SEASON_MULT: SEASON_MULT };
 })(typeof window !== 'undefined' ? window : globalThis);

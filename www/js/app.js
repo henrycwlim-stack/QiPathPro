@@ -6953,6 +6953,17 @@
     'Windows ahead': { what: 'The next periods at a glance, so you can plan when to act or stay out.',
       read: 'Look for periods where capital is Secure and a pattern forms. Skip periods marked Blocked.',
       words: [] },
+    'Your instruments': { what: 'The ten Ten Gods matched to ten kinds of investment, marked as suiting you or to avoid, from your birth chart.',
+      read: 'Favourable Ten Gods point to instruments that fit your temperament; unfavourable ones to instruments that tend to go wrong for you. The four gates sum it up: leverage, volatility, where yield should come from, and hype.',
+      words: [['Ten Gods 十神', 'the ten relationships between your Day Master and every other element: friends, output, wealth, pressure and support.'], ['Day Master 日主', 'the stem of your birth day: you.'],
+        ['Strong / weak', 'whether your chart supports the Day Master well; a weak one should protect before chasing.']] },
+    'Monthly circuit breaker': { what: 'Each solar month is checked against the Ten Gods that are unfavourable for you. If one rules the month, it turns defensive.',
+      read: 'Defensive: cut leverage and speculation before the month starts, keep core holdings, and buy nothing speculative. Normal: your usual rules apply.',
+      words: [['Solar month 節氣月', 'the Chinese month that begins at a solar term, around the 4th to 8th of each Western month.'], ['Main qi 本氣', 'the strongest hidden stem in the month\'s branch.']] },
+    'All-clear': { what: 'After a defensive month, a plan to return to the market in three thirds instead of all at once.',
+      read: 'Each third waits for its Qi Men gate: an Open Door day, then a Chief or Nine Heavens hour, then a Life Door hour. Mark each third done when you act.', words: [] },
+    'Decision journal': { what: 'Your own record of what you did and why, linked to the state in force at the time.',
+      read: 'Rows are only ever added. Export it to review your discipline, or share it with an adviser.', words: [] },
     'AI reading': { what: 'An AI explanation of the whole screen, turned into risk rules and a research checklist.',
       read: 'It will not tell you what to buy. It explains the reading and how to manage risk around it.', words: [] }
   };
@@ -7027,6 +7038,7 @@
             (w.best && w.best.score > 0 ? '<div><small>' + esc(w.best.name) + ' ' + w.best.matched + '/3</small></div>' : '') +
             (w.topSector ? '<div><small>Top sector: ' + w.topSector.star + ' ' + esc(w.topSector.sector.split(':')[0]) + '</small></div>' : '')];
         }))) +
+      investPart2Html(r) +
       block('AI reading', 'the whole screen explained, with risk rules',
         '<label for="ivNote">What are you considering? (optional; kept on this phone only)</label>' +
         '<textarea id="ivNote" rows="3" placeholder="For example: adding to a bank stock I hold, or a short-term trade in a tech ETF.">' + esc(st.note || '') + '</textarea>' +
@@ -7037,7 +7049,7 @@
       var title = (h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent).trim(), x = investHelpHtml(title);
       if (x) h.insertAdjacentHTML('afterend', x);
     });
-    wireInvest(host);
+    wireInvest(host); wireInvestPart2(host);
     var settings = tech ? 'position ' + st.direction + ', market ' + st.trend : 'holding period ' + (st.horizon === 'long' ? 'over a year' : 'under a year');
     aiPanel('ivAi', 'invest', 'invest.' + st.style + '.' + settings + '.' + (tech ? r.pillars.hour.cn : r.pillars.day.cn) + '.' + isoOf(now()), function (cfg) {
       var text = [].slice.call(host.querySelectorAll('.block')).filter(function (b) { return !b.querySelector('#ivAi'); })
@@ -7048,6 +7060,108 @@
         { label: 'Strategy', path: 'strategy' }, { label: 'Sectors', path: 'sectors' }, { label: 'For you personally', path: 'personal' },
         { label: 'Risk rules', path: 'risk', list: 'cure' }, { label: 'Research before deciding', path: 'checklist' }, { label: 'Get advice when', path: 'help' }]);
   }
+
+  /* ---------- Invest, part 2: your instruments, the monthly circuit breaker, the all-clear, and the on-device audit log ---------- */
+  function ivLogKey() { return 'qipath.invest.audit.' + user.id; }
+  function ivLog() { try { return JSON.parse(localStorage.getItem(ivLogKey()) || '{"states":[],"journal":[],"tranches":{}}'); } catch (e) { return { states: [], journal: [], tranches: {} }; } }
+  function ivLogSave(L) { try { localStorage.setItem(ivLogKey(), JSON.stringify(L)); } catch (e) {} }
+  function ivId() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }); }
+  /** Append-only: a new state row only when the mode or the solar month changes. */
+  function ivLogState(m, snapshot) {
+    var L = ivLog(), last = L.states[L.states.length - 1];
+    if (last && last.solar_month === m.pillar && last.system_mode === m.mode) return last;
+    var row = { state_id: ivId(), system_mode: m.mode, solar_month: m.pillar, active_threat_god: m.threats.length ? m.threats.join(', ') : null,
+      transition_reason: m.mode === 'DEFENSIVE_LOCKDOWN' ? m.threat.title + ': ' + m.threats.join(', ') + ' rules the month (' + m.source + ').' :
+        m.mode === 'ALL_CLEAR_TRANCHING' ? 'The unfavourable month has passed; neither the stem nor the branch main qi is unfavourable.' : 'No unfavourable Ten God rules the month.',
+      created_at: new Date().toISOString(),
+      trigger: { trigger_type: 'SOLAR_MONTH_SHIFT', bazi_day_master: C.STEMS[user.pillars.day.stem], month_stem_god: m.stemGod, month_branch_god: m.branchGod, qmdj_metadata: snapshot || null } };
+    L.states.push(row); ivLogSave(L);
+    return row;
+  }
+  var IV_MODE = { OFFENSIVE: ['Normal', 'good-t'], DEFENSIVE_LOCKDOWN: ['Defensive', 'bad-t'], ALL_CLEAR_TRANCHING: ['All clear: staged return', 'good-t'] };
+  function investPart2Html(r) {
+    var IV = window.QPInvest, t = now(), ins = areasSafe(function () { return IV.instruments(user); });
+    var months = areasSafe(function () { return IV.monthsAhead(user, t, 12); }) || [];
+    var cur = months[0], out = '';
+    var snap = r ? { plate: r.style, dun: r.chart.dun, ju: r.chart.ju, void: r.phases.voidDirs, capital: r.phases.capital.status, yield: r.phases.yield.status } : null;
+    var state = cur ? ivLogState(cur, snap) : null, L = ivLog();
+    if (ins) out += block('Your instruments 十神', 'which kinds of investment fit your chart',
+      '<div class="plain" style="margin-bottom:8px">A ' + (ins.strong ? 'strong' : 'weak') + ' Day Master. Favourable Ten Gods: ' + esc(ins.favGods.join(' ')) + '. Unfavourable: ' + esc(ins.unfGods.join(' ') || 'none') + '.</div>' +
+      xkRows(ins.gates.map(function (gt) { return [gt.cn + '<small>' + esc(gt.title) + '</small>', '<div class="plain ' + (gt.tone === 'bad' ? 'bad-t' : gt.tone === 'good' ? 'good-t' : '') + '">' + esc(gt.text) + '</div>']; })) +
+      '<h3 style="margin:12px 0 6px;font-size:.9rem">The ten instrument types</h3>' +
+      xkRows(ins.list.map(function (x) {
+        return [x.cn + '<small>' + esc(x.en) + ' · ' + x.element + '</small>', '<b class="' + (x.status === 'suits' ? 'good-t' : x.status === 'avoid' ? 'bad-t' : '') + '">' + (x.status === 'suits' ? 'Suits you' : x.status === 'avoid' ? 'Avoid' : 'Neutral') + '</b> <small style="display:inline">' + esc(x.cat) + ' · risk ' + x.risk + '</small>' +
+          '<div class="plain">' + esc(x.vehicles) + '</div><small>' + esc(x.why) + '</small>'];
+      })) + '<div class="hint">"Suits you" means the type matches your temperament in the chart, not that it is a good investment now. No percentages are given: how much to put where depends on your goals, savings and timeline.</div>');
+    if (cur) {
+      out += block('Monthly circuit breaker', 'the solar month against your unfavourable Ten Gods',
+        '<div class="verdictbar"><span class="big ' + (cur.mode === 'DEFENSIVE_LOCKDOWN' ? 'bad' : 'good') + '">' + IV_MODE[cur.mode][0] + '</span><span class="sub">' + cur.pillar + ' month · ' +
+          cur.start.d + '/' + cur.start.m + ' to ' + cur.end.d + '/' + cur.end.m + '<br>Stem ' + esc(cur.stemGod) + ' · branch ' + esc(cur.branchGod) + '</span></div>' +
+        (cur.threat ? '<div class="plain" style="margin:8px 0"><b class="bad-t">' + esc(cur.threat.title) + '</b>: ' + esc(cur.threat.risk) + ' From the month\'s ' + esc(cur.source) + '.</div>' +
+          '<ol class="cr-plan">' + cur.threat.steps.concat(['Core holdings: do not sell in a panic. If you want protection, discuss hedging with an adviser rather than selling everything.',
+            'Your own rule for the month: no new speculative or leveraged buys; selling and passive income only.']).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>'
+          : '<div class="plain" style="margin-top:8px">No unfavourable Ten God rules this month. Normal rules apply.</div>') +
+        '<h3 style="margin:12px 0 6px;font-size:.9rem">The next twelve months</h3>' +
+        xkRows(months.map(function (m) {
+          return [m.pillar + '<small>' + m.start.d + '/' + m.start.m + '–' + m.end.d + '/' + m.end.m + '</small>', '<b class="' + IV_MODE[m.mode][1] + '">' + IV_MODE[m.mode][0] + '</b>' +
+            (m.threat ? ' <small style="display:inline">' + esc(m.threat.title) + ' · ' + esc(m.threats.join(', ')) + '</small>' : '') + '<div><small>' + esc(m.stemGod) + ' · ' + esc(m.branchGod) + '</small></div>'];
+        })) + '<div class="hint">The month\'s stem stands for visible news and volatility; the main qi of its branch for deep, institutional shifts. Either one carrying an unfavourable Ten God turns the month defensive.</div>');
+      var ac = months.filter(function (m) { return m.mode === 'ALL_CLEAR_TRANCHING'; })[0];
+      if (ac) {
+        var plan = areasSafe(function () { return window.QPInvest.allClearPlan(user, ac); }) || [];
+        var tk = ac.pillar + '.' + ac.start.y, done = (L.tranches[tk] || {});
+        out += block('All-clear: staged return', ac.pillar + ' month from ' + ac.start.d + '/' + ac.start.m + (ac === cur ? ' · now' : ''),
+          '<div class="plain" style="margin-bottom:8px">After a defensive month, return in thirds rather than all at once, each third waiting for its Qi Men gate.</div>' +
+          xkRows(plan.map(function (p) {
+            var d = done[p.level];
+            return ['Third ' + p.level + '<small>' + esc(p.name) + ' · ' + p.days + '</small>', '<b class="' + (d ? 'good-t' : '') + '">' + (d ? 'Done ' + new Date(d).getDate() + '/' + (new Date(d).getMonth() + 1) : p.found ? 'Gate: ' + esc(p.found.when) : 'Awaiting gate') + '</b>' +
+              (p.found ? '<div><small>' + esc(p.found.why) + '</small></div>' : '<div><small>No qualifying ' + (p.level === 1 ? 'day' : 'hour') + ' in this span; wait for the next.</small></div>') +
+              '<div class="plain">' + esc(p.action) + '</div><small>Gate: ' + esc(p.gate) + '.</small>' +
+              (!d ? '<div><button class="chip" data-ivtr="' + p.level + '" data-ivtk="' + esc(tk) + '">Mark done</button></div>' : '')];
+          })) + '<div class="hint">The app cannot see market volatility; the third step waits for your own judgement that markets have calmed.</div>');
+      }
+    }
+    // The journal: the person's own decisions, each tied to the state that was in force.
+    var J = L.journal.slice(-8).reverse();
+    out += block('Decision journal and audit log', 'kept on this phone only',
+      '<div class="plain" style="margin-bottom:8px">Record your own decisions here. Each entry is tied to the state in force (' + (state ? esc(IV_MODE[state.system_mode][0]) + ', ' + esc(state.solar_month) + ' month' : 'none') + '), so you can look back on whether you kept your rules.</div>' +
+      '<div class="two"><div><label for="ivJSym">Asset</label><input id="ivJSym" maxlength="20" placeholder="e.g. a fund or stock"></div>' +
+      '<div><label for="ivJAct">Action</label><select id="ivJAct"><option>BUY</option><option>SELL</option><option>LIQUIDATE</option><option>HEDGE</option></select></div></div>' +
+      '<div class="two"><div><label for="ivJQty">Quantity</label><input id="ivJQty" inputmode="decimal"></div><div><label for="ivJPx">Price</label><input id="ivJPx" inputmode="decimal"></div></div>' +
+      '<label for="ivJWhy">Reason</label><input id="ivJWhy" maxlength="200" placeholder="Why, in a sentence">' +
+      '<div class="two"><button class="btn" id="ivJAdd">Add to journal</button><button class="btn ghost" id="ivJExp">Export audit log</button></div>' +
+      (J.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Latest entries</h3>' + xkRows(J.map(function (j) {
+        var s = L.states.filter(function (x) { return x.state_id === j.state_id; })[0];
+        var jd = new Date(j.executed_at); return [esc(j.action) + '<small>' + jd.getDate() + '/' + (jd.getMonth() + 1) + '/' + jd.getFullYear() + '</small>', '<b>' + esc(j.asset_symbol) + '</b> ' + esc(String(j.quantity)) + ' @ ' + esc(String(j.execution_price)) +
+          '<div class="plain">' + esc(j.execution_reason) + '</div><small class="' + (s && s.system_mode === 'DEFENSIVE_LOCKDOWN' && (j.action === 'BUY') ? 'bad-t' : '') + '">State: ' + (s ? esc(IV_MODE[s.system_mode][0]) + ' · ' + esc(s.solar_month) : '—') +
+          (s && s.system_mode === 'DEFENSIVE_LOCKDOWN' && j.action === 'BUY' ? ' · bought during a defensive month' : '') + '</small>'];
+      })) : '') +
+      '<div class="hint">' + L.states.length + ' state change' + (L.states.length === 1 ? '' : 's') + ' and ' + L.journal.length + ' journal entr' + (L.journal.length === 1 ? 'y' : 'ies') + ' logged. Rows are only ever added, never edited. ' +
+        'The export follows the same structure as an audit database: engine states, their triggers, transactions and re-entry thirds.</div>');
+    return out;
+  }
+  function wireInvestPart2(host) {
+    host.querySelectorAll('[data-ivtr]').forEach(function (b) { b.onclick = function () {
+      var L = ivLog(), k = b.dataset.ivtk; L.tranches[k] = L.tranches[k] || {}; L.tranches[k][b.dataset.ivtr] = new Date().toISOString(); ivLogSave(L); renderInvest(host); }; });
+    if ($('ivJAdd')) $('ivJAdd').onclick = function () {
+      var sym = $('ivJSym').value.trim(), q = parseFloat($('ivJQty').value), px = parseFloat($('ivJPx').value), why = $('ivJWhy').value.trim();
+      if (!sym || !(q > 0) || !(px >= 0) || !why) { window.alert('Fill in the asset, quantity, price and reason.'); return; }
+      var L = ivLog(), st = L.states[L.states.length - 1];
+      L.journal.push({ transaction_id: ivId(), state_id: st ? st.state_id : null, asset_symbol: sym.slice(0, 20), action: $('ivJAct').value, quantity: q, execution_price: px,
+        gross_value: Math.round(q * px * 10000) / 10000, execution_reason: why, executed_at: new Date().toISOString() });
+      ivLogSave(L); renderInvest(host);
+    };
+    if ($('ivJExp')) $('ivJExp').onclick = function () {
+      var L = ivLog(), tr = [];
+      Object.keys(L.tranches).forEach(function (k) { Object.keys(L.tranches[k]).forEach(function (lv) { tr.push({ month: k, tranche_level: +lv, allocation_percentage: 33.33, status: 'EXECUTED', executed_at: L.tranches[k][lv] }); }); });
+      var data = { exported_at: new Date().toISOString(), engine_state_log: L.states.map(function (s) { var c = {}; Object.keys(s).forEach(function (k) { if (k !== 'trigger') c[k] = s[k]; }); return c; }),
+        temporal_triggers: L.states.map(function (s) { return Object.assign({ state_id: s.state_id, evaluated_at: s.created_at }, s.trigger || {}); }),
+        asset_transactions: L.journal, redeployment_tranches: tr };
+      var bytes = new TextEncoder().encode(JSON.stringify(data, null, 2));
+      plannerSave({ bytes: bytes, name: 'qipath-invest-audit.json' }).catch(function (e) { window.alert('Export failed: ' + (e && e.message || e)); });
+    };
+  }
+
   function wireInvest(host) {
     var st = investState, re = function () { renderInvest(host); };
     if ($('ivStyle')) $('ivStyle').onchange = function () { st.style = this.value; re(); };

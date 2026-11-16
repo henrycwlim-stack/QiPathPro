@@ -49,6 +49,22 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.27 — Invest: instruments, monthly circuit breaker, all-clear and audit log
+Version folder 10.27.0 (versionCode 86), copied from 10.26.0. Four new sections on Consult › Invest.
+- **Your instruments 十神:** the ten Ten Gods mapped to ten instrument types (safe haven, alternative, cash flow, windfall,
+  compounding, volatility, regulated, leverage, pooled, hype), each marked suits you, neutral or avoid from the favourable and
+  unfavourable elements. Four gates: leverage (七杀), volatility (伤官), where yield should come from (strong or weak Day Master)
+  and hype avoidance (劫财). No allocation percentages, and leverage is never "authorised".
+- **Monthly circuit breaker:** each of the next twelve solar months is checked: if its stem or its branch's main qi is an
+  unfavourable Ten God, the month turns Defensive, with the threat type (leverage kill switch, volatility quarantine, liquidity
+  check or extra caution) and a protective checklist.
+- **All-clear, staged return:** after a Defensive month, a return in thirds, each with its Qi Men gate found on the plates:
+  an Open Door day in a favourable element (days 1–5), a Chief or Nine Heavens hour over favourable Wealth or Output (days 6–10),
+  and a Life Door hour in a favourable element (day 11 on). Each third can be marked done.
+- **Decision journal and audit log:** an append-only log on the phone of every state change (mode, month, threat, reason,
+  trigger), the person's own decisions tied to the state in force, and the thirds done; exported as JSON in the shape of the
+  audit tables (engine states, triggers, transactions, re-entry thirds). A buy in a Defensive month is flagged.
+
 ### 10.26 — Invest: Qi Men for technical and value investing
 Version folder 10.26.0 (versionCode 85), copied from 10.25.0. A new Consult › Invest tab and engine (invest.js).
 - **Two postures:** Technical investing is the Guest (客), read on the hour plate; Value investing is the Host (主), read on the day
