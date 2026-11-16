@@ -5266,6 +5266,7 @@
             '<div class="panel" style="margin-top:10px;font-size:.9rem;line-height:1.7">' +
             esc(r.advice) + '</div>' +
             (r.care ? '<div class="find ' + toneCls('neutral') + '" style="margin-top:10px"><b>' + esc(r.care.label) + '</b><span>' + esc(r.care.text) + '</span></div>' : '')) +
+          stemDynHtml(r.chart, r.pillars) +
           block('Fibonacci timing', 'this question recast ' + fib.points.length + ' times, ' +
             fib.horizon.toLowerCase(),
             fibSummaryHtml(fib, qmCls) +
@@ -6688,6 +6689,7 @@
               ['Balance', '<div class="plain">' + esc(relText[hp.youOpp] || 'not clear this hour') + '</div>']
             ]) + '<div class="hint">Deities show hidden backing, stars the conditions, doors the action, and stems the players.</div>');
         })() +
+        (hp ? stemDynHtml(hp.chart, hp.pillars) : '') +
         (function () {
           // Phase 3.1: where to face.
           if (!hp || !hp.face) return '';
@@ -6739,6 +6741,22 @@
       var tt = now(), p = C.fourPillars(tt.y, tt.m, tt.d, tt.hour, tt.min);
       if (p.hour.cn !== st.slot) renderCrisis(host);
     }, 60000);
+  }
+
+  /** Day Stem against Hour Stem: the leverage read, for any Qimen hour plate. */
+  function stemDynHtml(chart, pillars) {
+    var s = areasSafe(function () { return window.QPQimen.stemDynamics(chart, pillars); });
+    if (!s) return '';
+    var cls = s.power >= 0.5 ? 'good' : s.power > -0.5 ? 'mid' : 'bad';
+    return block('Who holds the leverage', 'Day Stem ' + s.dayStem + ' (you) against Hour Stem ' + s.hourStem + ' (the issue)',
+      '<div class="verdictbar"><span class="big ' + cls + '">' + esc(s.overall) + '</span><span class="sub">' + s.cn + ' · ' + esc(s.en) + '<br>' +
+        s.dayStem + ' ' + s.dayElem + ' against ' + s.hourStem + ' ' + s.hourElem + '</span></div>' +
+      xkRows([
+        ['What it means', '<div class="plain">' + esc(s.read) + '</div>'],
+        ['On the ground', '<div class="plain">' + (s.you && s.opp ? 'You sit in the ' + esc(s.you.dir) + ' palace and the issue in the ' + esc(s.opp.dir) + '; ' + esc(s.palNote || 'the palaces add nothing either way') + '.' : 'The palaces could not be placed this hour.') + '</div>'],
+        ['What to do', '<div class="plain">' + esc(s.act) + '</div>']
+      ].concat(s.notes.map(function (n) { return [n.cn + '<small>' + esc(n.en) + '</small>', '<div class="plain">' + esc(n.text) + '</div>']; }))) +
+      '<div class="hint">The stems\' own elements set the dynamic; the palaces confirm or soften it; a void palace (空亡) hollows a position and a stem in its storage branch (入墓) is stalled.</div>');
   }
   function renderNumbers() {
     var dt = now(), host = $('numbersBody');

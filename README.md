@@ -49,6 +49,16 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.21 — Who holds the leverage: Day Stem against Hour Stem
+Version folder 10.21.0 (versionCode 77), copied from 10.20.0. A new Qimen read, `QPQimen.stemDynamics`, shown in Consult › Crisis
+and in every Consult › Forecast reading.
+- **The dynamic from the stems' own elements:** you control the issue (我克), the issue controls you (克我), you feed it (我生), it
+  feeds you (生我), the two stems combine (合), or a same-element standoff (比和), each with what it means and what to do.
+- **On the ground:** the palaces the Day Stem and Hour Stem sit in confirm or soften the dynamic.
+- **Void and tomb:** a void palace (空亡) under the other side reads as a hollow position, under you as thin footing; a stem in its
+  storage branch (入墓, Wood 未, Fire and Earth 戌, Metal 丑, Water 辰, as elsewhere in the app) reads as stalling or fatigue.
+- **Overall:** from 'You hold the leverage' to 'They hold the leverage'.
+
 ### 10.20 — Hidden Stems, Qi Penetration and the Twelve Life Stages
 Version folder 10.20.0 (versionCode 76), copied from 10.19.0. Three new sections on Destiny › BaZi, also given to the AI reading.
 - **Hidden Stems 地支藏干:** each branch's main, middle and residual qi with element, Ten God and weight, marked 透 when the same

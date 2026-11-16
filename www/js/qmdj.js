@@ -1504,6 +1504,50 @@
   var PAL_BR = { 1: [0], 2: [7, 8], 3: [3], 4: [4, 5], 6: [10, 11], 7: [9], 8: [1, 2], 9: [6] };
   var GRAVE_BR = { wood: 7, fire: 10, earth: 10, metal: 1, water: 4 };       // 三合 storage: 未 戌 戌 丑 辰
   var STEM_EL = ['wood', 'wood', 'fire', 'fire', 'earth', 'earth', 'metal', 'metal', 'water', 'water'];
+  /* ---------- Day Stem and Hour Stem: who holds the leverage ----------
+   * The Day Stem is you, the Hour Stem the issue or the other side. Their own elements give the power dynamic; the palaces they
+   * sit in confirm or soften it; a void palace (空亡) makes a position hollow, and a stem in its storage branch (入墓) is stalled. */
+  var DYN_UNION = { 0:5, 5:0, 1:6, 6:1, 2:7, 7:2, 3:8, 8:3, 4:9, 9:4 };
+  var DYN = {
+    control:    { cn: '我克时干', en: 'You control the issue', power: 2,
+      read: 'You hold the structural upper hand: the resources, terms or leverage the other side needs.',
+      act: 'Press the advantage to lock in binding commitments or good terms, but leave the other side a way out so they do not dig in.' },
+    controlled: { cn: '时干克我', en: 'The issue controls you', power: -2,
+      read: 'The other side holds more leverage, backing or timing; you are on the defensive.',
+      act: 'Do not force a direct confrontation. Protect your position, look for supportive doors, stars or people, and return when the pressure eases.' },
+    produce:    { cn: '我生时干', en: 'You feed the issue', power: -0.5,
+      read: 'You are putting energy into solving their problem; useful for goodwill, costly if it goes on too long.',
+      act: 'Make sure what you give is tied to what you get back; frame your offer so that solving their bottleneck also delivers your aim.' },
+    produced:   { cn: '时干生我', en: 'The issue feeds you', power: 1,
+      read: 'Concessions, support or patronage flow toward you.',
+      act: 'Accept the help gracefully and align your story with their needs; this is a good moment to agree terms.' },
+    combine:    { cn: '日时相合', en: 'Day and Hour Stems combine', power: 1,
+      read: 'A natural pull toward agreement: both sides want a deal, and the outcome turns on compromise.',
+      act: 'Work toward a shared solution; put both sides\' core needs on the table and close while the goodwill lasts.' },
+    same:       { cn: '比和', en: 'Same element: a standoff', power: 0,
+      read: 'An even match: equal resolve and pride, and neither side wants to blink first.',
+      act: 'Break the symmetry: bring in a third party, new information or a different timetable rather than pushing head-on.' }
+  };
+  function stemDynamics(chart, p) {
+    var d = p.day.stem, h = p.hour.stem, de = C.STEM_ELEM[d], he = C.STEM_ELEM[h];
+    var kind = DYN_UNION[d] === h ? 'combine' : de === he ? 'same' : (de + 2) % 5 === he ? 'control' : (he + 2) % 5 === de ? 'controlled' : (de + 1) % 5 === he ? 'produce' : 'produced';
+    var you = askerPalace(chart, p), opp = askerPalace(chart, { day: p.hour });
+    var palRel = you && opp ? rel(you.element, opp.element) : null;
+    var palNote = { controls: 'your palace also controls theirs, which confirms your position', controlled_by: 'their palace controls yours, which weighs against you',
+      produces: 'your palace feeds theirs: you give more than you get on the ground', produced_by: 'their palace feeds yours: the setting helps you', same: 'the two palaces stand level' }[palRel] || '';
+    var grave = function (stem, pal) { return !!pal && (pal.branches || []).indexOf(C.BRANCHES[GRAVE_BR[STEM_EL[stem]]]) >= 0; };
+    var notes = [], power = DYN[kind].power + (palRel === 'controls' ? 1 : palRel === 'controlled_by' ? -1 : palRel === 'produced_by' ? 0.5 : palRel === 'produces' ? -0.5 : 0);
+    var voidYou = !!(you && you.isEmpty), voidOpp = !!(opp && opp.isEmpty), tombYou = grave(d, you), tombOpp = grave(h, opp);
+    if (voidOpp) { notes.push({ cn: '空亡', en: 'Their position is void', text: 'The other side\'s stance is hollow: a bluff, resources that are not really there, or a deal without substance. Do not give ground to it.' }); power += 1; }
+    if (voidYou) { notes.push({ cn: '空亡', en: 'Your position is void', text: 'Your own footing is thinner than it looks; check your facts and resources before you commit.' }); power -= 1; }
+    if (tombOpp) { notes.push({ cn: '入墓', en: 'Their stem is in its tomb', text: 'The other side is stalling, undecided or unable to act for now.' }); power += 0.5; }
+    if (tombYou) { notes.push({ cn: '入墓', en: 'Your stem is in its tomb', text: 'You are tired or stuck; pause the negotiation and come back fresh.' }); power -= 0.5; }
+    var overall = power >= 2 ? 'You hold the leverage' : power >= 0.5 ? 'You have the edge' : power > -0.5 ? 'Evenly balanced' : power > -2 ? 'They have the edge' : 'They hold the leverage';
+    return { kind: kind, cn: DYN[kind].cn, en: DYN[kind].en, read: DYN[kind].read, act: DYN[kind].act,
+      dayStem: C.STEMS[d], hourStem: C.STEMS[h], dayElem: C.ELEM_EN[de], hourElem: C.ELEM_EN[he],
+      you: you, opp: opp, palRel: palRel, palNote: palNote, notes: notes, power: Math.round(power * 10) / 10, overall: overall };
+  }
+
   var INTENT = { financial: { stem: 4, why: '戊 — capital' }, legal: { stem: 3, why: '丁 — documents and strategy' },
     friction: { stem: 3, why: '丁 — strategy' }, relationship: { stem: 1, why: '乙 — harmony' },
     health: { stem: 1, why: '乙 — the healing star (日奇)' }, upheaval: { stem: 2, why: '丙 — clarity and momentum' } };
@@ -2320,7 +2364,7 @@
     mobility: mobility, NINE_NOBLES: NINE_NOBLES, lifePalaces: lifePalaces, areasDestiny: areasDestiny, areasYearPlate: areasYearPlate, areasOnPlate: areasOnPlate, natalSeat: natalSeat, palaceQuality: palaceQuality,
     CHART_TYPES: CHART_TYPES, chartFor: chartFor, DOOR_INTENT: DOOR_INTENT,
     formationCatalogue: formationCatalogue, searchFormations: searchFormations,
-    CATEGORIES: CATEGORIES, SCENARIOS: SCENARIOS, SEARCH_FIELDS: SEARCH_FIELDS, qimenAnnual: qimenAnnual, threatBridge: threatBridge, THREATS: THREATS, threatMonths: threatMonths, threatMonthText: threatMonthText, threatMonthTextFull: threatMonthTextFull, monthJiazi: monthJiazi,
+    stemDynamics: stemDynamics, CATEGORIES: CATEGORIES, SCENARIOS: SCENARIOS, SEARCH_FIELDS: SEARCH_FIELDS, qimenAnnual: qimenAnnual, threatBridge: threatBridge, THREATS: THREATS, threatMonths: threatMonths, threatMonthText: threatMonthText, threatMonthTextFull: threatMonthTextFull, monthJiazi: monthJiazi,
     METHODS: METHODS, nianMingPalace: nianMingPalace, symbolFor: symbolFor,
     forecast: forecast, searchWindows: searchWindows, manifestPlan: manifestPlan,
     MANIFEST_GOALS: MANIFEST_GOALS, MANIFEST_STAGES: MANIFEST_STAGES, manifestRank: manifestRank, searchManifest: searchManifest, OPPOSITE_DIR: OPPOSITE_DIR, spokenScript: spokenScript, destinyProfile: destinyProfile,
