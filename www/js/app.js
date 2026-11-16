@@ -6755,6 +6755,9 @@
             cc.now.wander ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.wander.join(', ')) + ' palace<div class="plain">In the Chief\'s palace a Yi stem sits over the Wonder that wanders to it: favourable for any undertaking, more so with an auspicious door.</div>'
               : cc.next.wander ? '<span>Next: <b>' + esc(cc.next.wander.label) + '</b> (' + cc.next.wander.hourPillar + ' hour, ' + esc(cc.next.wander.dirs.join(', ')) + ')</span><div class="plain">When a Yi stem sits over its paired Wonder in the Chief\'s palace. A good hour for the main move.</div>'
               : '<div class="plain">Does not form in the next three days.</div>']);
+          if (cc && cc.now.counter) ccRows.push(['Counter-flow<small>奇加仪 · 逆游, the reverse state</small>',
+            '<b class="bad-t">Forms now</b> in the ' + esc(cc.now.counter.join(', ')) + ' palace<div class="plain">A Wonder sits over its Yi in the Chief\'s palace: the reverse of the wandering, not the formation itself. ' +
+            'Your advantage is visible and can be turned against you. Keep plans close and do not reveal your position this hour.</div>']);
           if (cc) ccRows.push(['Jade Maiden Guards the Door<small>玉女守门</small>',
             cc.now.maiden ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.maiden.join(', ')) + ' palace<div class="plain">The hour for confidential talks, quiet requests and protective arrangements.</div>'
               : cc.next.maiden ? '<span>Next: <b>' + esc(cc.next.maiden.label) + '</b> (' + cc.next.maiden.hourPillar + ' hour, ' + esc(cc.next.maiden.dirs.join(', ')) + ')</span><div class="plain">Use it for confidential talks, quiet requests and protective arrangements.</div>'

@@ -49,6 +49,16 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.24.2 — Counter-flow 奇加仪, kept apart from 三奇游六仪
+Version folder 10.24.2 (versionCode 82), copied from 10.24.1.
+- The two directions are treated as asymmetric states and never merged. 三奇游六仪 stays strict: a 六儀 over its paired Wonder
+  (儀加奇) in the Chief's palace, unchanged.
+- The reverse, a Wonder over its Yi in the Chief's palace (奇加儀), is a separate derivative state, 奇加仪 · 逆游 "counter-flow".
+  It is listed as special, not auspicious, and carries an inverse modifier: exposure, vulnerability and tension.
+- On Crisis › Concealment it shows in red when it forms, with the advice to keep plans close. In the execution window, an hour with
+  the counter-flow in your own palace loses a point.
+- Tested over 2026: 584 strict hits and 98 counter-flow hits, all valid, none missed, never both in the same palace.
+
 ### 10.24.1 — 三奇游六仪: the two conditions, tested
 Version folder 10.24.1 (versionCode 81), copied from 10.24.0.
 - The formation now enforces exactly two conditions: (1) a 六儀 on the heaven plate over the Wonder that wanders to it

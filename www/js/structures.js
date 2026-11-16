@@ -53,6 +53,18 @@
           return [x.earthStemCn, x.earthStem2Cn].some(function (e) { return PAIR[e] && hs.some(function (h) { return PAIR[e].indexOf(h) >= 0; }); });
         }).map(function (x) { return x.number; });
       } },
+    // The reverse, 奇加儀: a Wonder over the Yi it wanders to, in the Chief's palace. Not the Bao Jian formation and never merged with it.
+    // Kept as its own derivative state with an inverse modifier: exposure, vulnerability and dynamic tension.
+    { id: 'san_qi_ni_you', name: '奇加仪 · 逆游', nameEn: 'Wonder over its Yi: counter-flow', category: N, source: 'derived', inverse: true,
+      description: 'The reverse of 三奇游六仪: in the Chief\'s palace a Wonder sits over the Yi it wanders to (奇加儀). Not the classical formation. Read it as exposure and tension: your advantage is visible and can be turned against you, so move carefully.',
+      detect: function (p) {
+        var PAIR = { '乙': ['己', '辛'], '丙': ['戊', '庚'], '丁': ['壬', '癸'] };
+        return p.filter(function (x) {
+          if (!x.number || x.number === 5 || x.spirit !== '值符') return false;
+          var es = [x.earthStemCn, x.earthStem2Cn].filter(Boolean);
+          return [x.heavenStemCn, x.heavenStem2Cn].some(function (h) { return PAIR[h] && es.some(function (e) { return PAIR[h].indexOf(e) >= 0; }); });
+        }).map(function (x) { return x.number; });
+      } },
     S0('yu_nv_shou', '玉女守门', 'Jade Maiden Watches the Door', A, 'Favours relationships, connection, mediation, study and exams.', [R(null, '丁', 'ENV')]),
 
     S0('yun_dun', '云遁', 'Cloud Dun', A, 'Suits quiet self-cultivation, low-profile success, long journeys and changing old habits.', [R('乙', '辛', GOOD), R('乙', null, ['休门', '开门'], null, '坤')]),

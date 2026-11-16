@@ -230,6 +230,8 @@
       var backed = dyn.you && (dyn.you.spirit === '值符' || dyn.you.spirit === '九天');
       if (backed) { score += 1.5; why.push(dyn.you.spirit + ' supports your palace (' + dyn.you.dir + ')'); }
       if (dyn.you && dyn.you.isEmpty) { score -= 1; why.push('your own palace is void: be sure of your facts'); }
+      var cf = formsIn(r, 'san_qi_ni_you'), youN = dyn.you && (dyn.you.number || dyn.you.num);
+      if (cf && youN && (cf.palaces || []).indexOf(youN) >= 0) { score -= 1; why.push('counter-flow 奇加仪 in your palace: your hand is exposed'); }
       out.push({ start: w, label: w.toDateString().slice(0, 10) + ' · ' + pad(w.getHours()) + ':00–' + pad((w.getHours() + 1) % 24) + ':59',
         hourPillar: p.hour.cn, dayPillar: p.day.cn, score: Math.round(score * 10) / 10, why: why, door: door ? door.dir : null, face: door ? door.dir : (dyn.you ? dyn.you.dir : '') });
     }
@@ -267,7 +269,8 @@
       });
     }
     return { hide: hide, ji: ji ? { dir: ji.dir, gate: ji.gate, spirit: ji.spirit, isEmpty: ji.isEmpty } : null, diJia: diJia ? palDirs(ch, diJia) : null,
-      now: { wander: now.wander ? palDirs(ch, now.wander) : null, maiden: now.maiden ? palDirs(ch, now.maiden) : null }, next: next };
+      now: { wander: now.wander ? palDirs(ch, now.wander) : null, maiden: now.maiden ? palDirs(ch, now.maiden) : null,
+        counter: formsIn(hp.res, 'san_qi_ni_you') ? palDirs(ch, formsIn(hp.res, 'san_qi_ni_you')) : null }, next: next };
   }
 
   function pad(n) { return String(n).length < 2 ? '0' + n : String(n); }
