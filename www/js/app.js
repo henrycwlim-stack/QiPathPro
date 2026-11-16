@@ -1768,6 +1768,20 @@
               (top.length ? '<h3 style="margin:14px 0 6px;font-size:.9rem">Your three strongest</h3>' +
                 rows(top.map(function (g) { return [g.cn + '<small>' + g.en + '</small>', '<div class="plain">' + esc(g.gift) + '.</div><div class="plain"><b>Suits:</b> ' + esc(g.work) + '.</div><div class="plain"><b>Watch:</b> ' + esc(g.watch) + '.</div>']; })) : '') +
               '<div class="hint">Each god is scored from the visible stems and the hidden stems (main, middle and residual), with the month weighted most and each element adjusted for its season (旺相休囚死). 100% is your strongest god; the rest are measured against it.</div>') +
+            (function () {
+          var I = areasSafe(function () { return window.QPBaziPlus.tenGodInteractions(user, now().y); });
+          if (!I) return '';
+          var row = function (x, extra) { return [x.cn + '<small>' + esc(x.en) + '</small>', (extra ? '<span class="' + (x.tone === 'good' ? 'good-t' : 'bad-t') + '">' + esc(extra) + '</span>' : '') +
+            '<div class="plain">' + esc(x.text) + '</div>' + (x.sides && x.sides.length ? '<small>' + esc(x.sides.join(' · ')) + '</small>' : '')]; };
+          var good = I.natal.filter(function (x) { return x.tone === 'good'; }), bad = I.natal.filter(function (x) { return x.tone !== 'good'; });
+          return block('Ten Gods interactions 十神組合', 'how the gods in your chart act on each other, for a ' + (I.strong ? 'strong' : 'weak') + ' Day Master',
+            (good.length ? '<h3 style="margin:0 0 6px;font-size:.9rem">Working for you</h3>' + xkRows(good.map(function (x) { return row(x); })) : '') +
+            (bad.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">To manage</h3>' + xkRows(bad.map(function (x) { return row(x); })) : '') +
+            (!I.natal.length ? '<div class="plain">No strong pairing stands out; the gods in your chart work fairly independently.</div>' : '') +
+            (I.triggers.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Switched on now</h3>' + xkRows(I.triggers.map(function (x) { return row(x, x.via); })) : '') +
+            '<div class="hint">A pairing counts when both gods show on a stem or are strong in the hidden stems. The same pairing reads differently for a strong and a weak Day Master; ' +
+              'some are cancelled by a third god (Resource softens Hurting Officer meeting the Officer; Wealth restrains Indirect Resource). The descriptions are QiPath\'s own.</div>');
+        })() +
             block('Structure 格局', 'your working style, from the strongest group of gods',
               xkRows([grp(st.primary, 'Primary'), grp(st.secondary, 'Secondary')]) +
               '<div class="plain" style="margin-top:8px">' + (st.extreme ? '<span class="bad-t">Extreme structure.</span> ' : '') + esc(st.extremeNote) +

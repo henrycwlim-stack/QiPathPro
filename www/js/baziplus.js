@@ -479,6 +479,94 @@
     return { dayMaster: C.STEMS[dm], natal: dmRows, timing: timing, selfSeat: selfSeat, luckPath: luckPath };
   }
 
+
+  /* ================= 十神組合: how the Ten Gods act on each other ================= */
+  // God index: 0 比肩 1 劫財 2 食神 3 傷官 4 偏財 5 正財 6 七殺 7 正官 8 偏印 9 正印.
+  // Each rule names the two sides, and how it reads for a strong and a weak Day Master (QiPath's own wording).
+  var TG_RULES = [
+    { cn: '食神制殺', en: 'Eating God tames Seven Killings', a: [2], b: [6],
+      good: 'Talent and calm skill turn pressure into authority: you handle crises and difficult people well.',
+      weak: 'Your output keeps pressure in check, but it costs energy; pace yourself.' },
+    { cn: '傷官見官', en: 'Hurting Officer meets Direct Officer', a: [3], b: [7], caution: true, notWith: [8, 9],
+      good: 'Outspokenness collides with rules and bosses; channel criticism into improvement rather than open challenge.',
+      weak: 'Friction with authority, contracts and reputation; keep agreements in writing and choose your battles.' },
+    { cn: '傷官配印', en: 'Hurting Officer refined by Resource', a: [3], b: [8, 9],
+      good: 'Brilliance disciplined by learning: original ideas with the knowledge to back them.',
+      weak: 'Learning steadies a restless mind; study and mentors turn talent into results.' },
+    { cn: '食傷生財', en: 'Output generates Wealth', a: [2, 3], b: [4, 5],
+      good: 'Skill and creativity turn into money: your best income comes from what you make or offer.',
+      weak: 'Talent can earn, but producing and earning together drain you; build systems and help.' },
+    { cn: '財生官', en: 'Wealth supports Officer', a: [4, 5], b: [6, 7],
+      good: 'Money and resources lift your status: wealth opens doors to rank and influence.',
+      weak: 'Money brings responsibility and pressure; take on only what you can carry.' },
+    { cn: '官印相生', en: 'Officer and Resource feed each other', a: [7], b: [8, 9],
+      good: 'Authority backed by learning: a natural route to rank, trust and recognition.',
+      weak: 'Status and support come together; mentors and institutions carry you forward.' },
+    { cn: '殺印相生', en: 'Seven Killings transformed by Resource', a: [6], b: [8, 9],
+      good: 'Pressure converted through knowledge into power; you rise through difficult roles.',
+      weak: 'Learning and support turn threats into protection; lean on expertise when under pressure.' },
+    { cn: '比劫奪財', en: 'Companions compete for Wealth', a: [0, 1], b: [4, 5], caution: true,
+      good: 'Money is shared or contested by peers; keep partnerships and money clear on paper.',
+      weak: 'Peers help you hold your ground, though they also share the gains.' },
+    { cn: '梟神奪食', en: 'Indirect Resource blocks the Eating God', a: [8], b: [2], caution: true, notWith: [4, 5],
+      good: 'Overthinking or unconventional detours block enjoyment and output; finish things and enjoy them.',
+      weak: 'Support comes with strings that limit your self-expression; protect time for what you enjoy.' },
+    { cn: '財壞印', en: 'Wealth damages Resource', a: [4, 5], b: [8, 9], caution: true,
+      good: 'Chasing money can cost reputation, study or support; keep principles ahead of profit.',
+      weak: 'Money pressures undermine the support you rely on; protect your credentials and your backers.' },
+    { cn: '官殺混雜', en: 'Officer and Killings mixed', a: [6], b: [7], caution: true,
+      good: 'Mixed signals from authority: several bosses or competing obligations; clarify who you answer to.',
+      weak: 'Pressure from several directions at once; narrow your commitments.' }
+  ];
+  var TG_BALANCE = [
+    { cn: '財多身弱', en: 'More wealth than the Day Master can hold', test: function (g, st) { return !st && share(g, [4, 5]) >= 30; }, caution: true,
+      text: 'Opportunities exceed your capacity: partners, a team and good advice turn them into money you keep.' },
+    { cn: '殺重身輕', en: 'Seven Killings heavy on a weak Day Master', test: function (g, st) { return !st && share(g, [6]) >= 22; }, caution: true,
+      text: 'Pressure outweighs your reserves: build support (Resource) before taking on rivals.' },
+    { cn: '身強殺淺', en: 'Strong Day Master, light pressure', test: function (g, st) { return st && share(g, [6, 7]) < 10; },
+      text: 'Strength with little to push against: take on responsibility or a worthy challenge, or the energy turns restless.' },
+    { cn: '印多身強', en: 'Resource heavy on a strong Day Master', test: function (g, st) { return st && share(g, [8, 9]) >= 30; }, caution: true,
+      text: 'Too much help and thinking; act more and depend less. Output and Wealth bring balance.' },
+    { cn: '比劫幫身', en: 'Companions support a weak Day Master', test: function (g, st) { return !st && share(g, [0, 1]) >= 15; },
+      text: 'Friends, peers and teammates make you stronger; work with others rather than alone.' }
+  ];
+  function share(gods, idx) { var tot = gods.reduce(function (a, g) { return a + g.score; }, 0) || 1; return Math.round(idx.reduce(function (a, i) { return a + gods[i].score; }, 0) / tot * 100); }
+
+  /** The interactions present in a chart, judged for the Day Master's strength, and those a luck pillar or year switches on. */
+  function tenGodInteractions(user, year) {
+    var p = user.pillars, prof = profile(p), g = prof.gods, strong = !!(user.deep && user.deep.strong);
+    var visible = [p.year.stem, p.month.stem, p.hour.stem].map(function (s) { return C.tenGod(p.day.stem, s).i; });
+    var shown = function (i) { return visible.indexOf(i) >= 0; };
+    var present = function (i) { return shown(i) || g[i].pct >= 60; };
+    // A pairing needs one side on a heavenly stem and the other on a stem or strong below.
+    var pairs = function (a, b) { return (a.some(shown) && b.some(present)) || (b.some(shown) && a.some(present)); };
+    var anyOf = function (arr, test) { return arr.filter(test); };
+    var natal = [];
+    TG_RULES.forEach(function (r) {
+      var A = anyOf(r.a, present), Bs = anyOf(r.b, present);
+      if (!A.length || !Bs.length || !pairs(r.a, r.b)) return;
+      if (r.notWith && r.notWith.some(present)) return;
+      natal.push({ cn: r.cn, en: r.en, tone: r.caution ? 'caution' : 'good', text: strong ? r.good : r.weak,
+        sides: A.map(function (i) { return g[i].cn; }).concat(Bs.map(function (i) { return g[i].cn; })) });
+    });
+    TG_BALANCE.forEach(function (r) { if (r.test(g, strong)) natal.push({ cn: r.cn, en: r.en, tone: r.caution ? 'caution' : 'good', text: r.text, sides: [] }); });
+    // Triggers: a luck pillar or year stem that brings one side of a rule whose other side the chart holds.
+    var age = year - user.birth.y, lp = null, trig = [];
+    (user.luck && user.luck.pillars || []).forEach(function (l) { if (age >= l.from && age < l.to) lp = l; });
+    var src = []; if (lp) src.push({ label: 'Luck pillar ' + lp.pillar.cn, stem: lp.pillar.stem });
+    var ys = (((year - 1984) % 10) + 10) % 10; src.push({ label: year + ' (' + C.STEMS[ys] + ' year)', stem: ys });
+    src.forEach(function (s) {
+      var gi = C.tenGod(p.day.stem, s.stem).i;
+      TG_RULES.forEach(function (r) {
+        var side = r.a.indexOf(gi) >= 0 ? r.b : r.b.indexOf(gi) >= 0 ? r.a : null;
+        if (!side || !side.some(present)) return;
+        if (r.notWith && r.notWith.some(present)) return;
+        trig.push({ cn: r.cn, en: r.en, tone: r.caution ? 'caution' : 'good', via: s.label + ' brings ' + g[gi].cn + ' ' + g[gi].en, text: strong ? r.good : r.weak });
+      });
+    });
+    return { strong: strong, natal: natal, triggers: trig };
+  }
+
   /* ================= everything at once ================= */
 
   function all(user, year) {
@@ -498,7 +586,9 @@
     L.push('HIDDEN TALENTS (month branch ' + x.talents.branch + '): main ' + x.talents.main.god + ' ' + x.talents.main.en +
       (x.talents.subs.length ? ', sub ' + x.talents.subs.map(function (t) { return t.god + ' ' + t.en; }).join(', ') : '') +
       (x.talents.revealed.length ? '; revealed on the stems: ' + x.talents.revealed.join(' ') : '; none revealed'));
-    var pen = penetration(user.pillars), ls = lifeStages(user, new Date().getFullYear());
+    var pen = penetration(user.pillars), ls = lifeStages(user, new Date().getFullYear()), tgi = tenGodInteractions(user, new Date().getFullYear());
+    L.push('TEN GOD INTERACTIONS: ' + (tgi.natal.map(function (x) { return x.cn + ' ' + x.en; }).join('; ') || 'none notable') +
+      (tgi.triggers.length ? '; switched on now: ' + tgi.triggers.map(function (x) { return x.cn + ' (' + x.via + ')'; }).join('; ') : '') + '.');
     L.push('MONTH STRUCTURE (子平, 月令透干): ' + pen.structure.cn + ' ' + pen.structure.en + ' — ' + pen.structure.how + '.');
     L.push('ROOTS (通根): ' + pen.stems.map(function (s) { return s.pillar + ' ' + s.stem + ' ' + s.level; }).join(', ') + '.');
     L.push('TWELVE STAGES of the Day Master: ' + ls.natal.map(function (s) { return s.where + ' ' + s.cn; }).join(', ') + '; now ' + ls.timing.map(function (s) { return s.where + ' ' + s.cn; }).join(', ') + '.');
@@ -514,6 +604,6 @@
   }
 
   global.QPBaziPlus = { GROUPS: GROUPS, GOD_TEXT: GOD_TEXT, REL_MEAN: REL_MEAN, profile: profile, structures: structures, talents: talents,
-    lifePalace: lifePalace, conceptionPalace: conceptionPalace, hiddenStems: hiddenStems, penetration: penetration, monthStructure: monthStructure, lifeStages: lifeStages, STAGE_PLAIN: STAGE_PLAIN, sixHouses: sixHouses, usefulGod: usefulGod, family: family,
+    lifePalace: lifePalace, conceptionPalace: conceptionPalace, hiddenStems: hiddenStems, penetration: penetration, tenGodInteractions: tenGodInteractions, TG_RULES: TG_RULES, monthStructure: monthStructure, lifeStages: lifeStages, STAGE_PLAIN: STAGE_PLAIN, sixHouses: sixHouses, usefulGod: usefulGod, family: family,
     workWealth: workWealth, yearAgainst: yearAgainst, dayPillar: dayPillar, branchRels: branchRels, all: all, aiText: aiText };
 })(typeof window !== 'undefined' ? window : globalThis);

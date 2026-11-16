@@ -49,6 +49,18 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.22 — Ten Gods interactions 十神組合
+Version folder 10.22.0 (versionCode 78), copied from 10.21.0. A new section on Destiny › BaZi, also given to the AI reading.
+- **Eleven pairings:** 食神制殺, 傷官見官, 傷官配印, 食傷生財, 財生官, 官印相生, 殺印相生, 比劫奪財, 梟神奪食, 財壞印 and 官殺混雜. A pairing
+  counts when one god shows on a heavenly stem and the other shows on a stem or is strong below. Resource cancels 傷官見官 and
+  Wealth cancels 梟神奪食, as in the classics.
+- **Five balance patterns:** 財多身弱, 殺重身輕, 身強殺淺, 印多身強 and 比劫幫身, from the god shares and the Day Master's strength.
+- **Read for the Day Master:** each pairing has one reading for a strong Day Master and another for a weak one, grouped as working
+  for you or to manage, with the gods involved.
+- **Switched on now:** pairings that the current luck pillar's or this year's stem completes with a god already in the chart.
+- Across 2,088 test charts a chart shows about three pairings; the commonest appear in a third of charts and the sharpest
+  (傷官見官, 梟神奪食) in about one in twenty.
+
 ### 10.21 — Who holds the leverage: Day Stem against Hour Stem
 Version folder 10.21.0 (versionCode 77), copied from 10.20.0. A new Qimen read, `QPQimen.stemDynamics`, shown in Consult › Crisis
 and in every Consult › Forecast reading.
