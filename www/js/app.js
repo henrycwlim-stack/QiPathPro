@@ -570,11 +570,16 @@
     var strip = '<div class="hours">' + d.hours.map(function (x) {
       var cls = x.score >= 7 ? 'g' : x.score >= 4 ? 'm' : 'b';
       var isNow = x.branch === h.pillars.hourBranch;
-      return '<div class="hr ' + cls + (isNow ? ' now' : '') + '">' +
-             '<div class="b">' + x.branchCn + '</div>' +
+      return '<div class="hr ' + cls + (isNow ? ' now' : '') + (x.wuBuYu ? ' wby' : '') + '"' + (x.wuBuYu ? ' title="Five Disharmony Hour 五不遇时"' : '') + '>' +
+             '<div class="b">' + x.branchCn + (x.wuBuYu ? '<i>✕</i>' : '') + '</div>' +
              '<div class="s">' + x.range.slice(0, 5) + '</div>' +
              '<div class="bar" style="width:' + (x.score * 10) + '%"></div></div>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' + (function () {
+      var w = S.wuBuYuHour(d.pillars.day.stem);
+      return '<div class="hint wby-note"><b>五不遇时 Five Disharmony Hour today:</b> ' + w.branchCn + ' ' + w.range + ' (' + w.pillar + ' on a ' + C.STEMS[d.pillars.day.stem] + ' day). ' +
+        'The hour stem attacks the day stem with the same polarity, so plans started then tend to meet resistance. Choose another hour for anything important.' +
+        (h.wuBuYu ? ' <b class="bad-t">That is the current hour.</b>' : '') + '</div>';
+    })();
 
     var q = h.qimen;
     var html =
@@ -582,7 +587,7 @@
       block('This hour in the Qimen plate', h.qimen.dun + ' · ju ' + q.ju + ' · ' + q.yuanEn + ' yuan',
         rows([
           ['Gate', h.gate + ' <small>' + h.gateEn + ' Gate</small>'],
-          ['Star', h.star + ' <small>' + (q.palaces.filter(function(x){return x.isDuty;})[0]||{}).starEn + '</small>'],
+          ['Star', (h.star && h.star.char ? h.star.char : h.star) + ' <small>' + (q.palaces.filter(function(x){return x.isDuty;})[0]||{}).starEn + '</small>'],
           ['Spirit', h.spirit],
           ['Face this way', '<b style="color:var(--celadon)">' + h.bestDirection + '</b>' +
             '<small>' + (q.best[0] ? q.best[0].gate + ' sits here' : '') + '</small>'],
@@ -657,6 +662,8 @@
             ['Solar term', d.term.name + ' <small>' + d.term.en + '</small>'],
             ['Clashes', d.clashAnimal + ' <small>people of this sign take extra care</small>'],
             ['Void branches', d.voids.join(' ') + ' <small>matters begun here tend not to hold</small>'],
+            ['Five Disharmony Hour 五不遇时', (function () { var w = S.wuBuYuHour(p.day.stem); return w.pillar + ' <small>' + w.range +
+              ' · the hour stem attacks the day stem; avoid it for anything important</small>'; })()],
             ['Day sound', p.day.nayin]
           ])) +
         block('Classical date selection', 'Dong Gong activities and the ruling mansion',

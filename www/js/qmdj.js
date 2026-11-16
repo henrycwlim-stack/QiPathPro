@@ -582,7 +582,7 @@
     checkGrave(plateStem(p.day), asker, 'This is your own seat.');
     checkGrave(plateStem(p.hour), findPalace(chart, 'stem', plateStem(p.hour)), 'This is the matter you asked about.');
 
-    var dh = S.disharmony(p.day.stem, p.hour.stem);
+    var dh = S.disharmony(p.day.stem, p.hour.stem, p.hour.branch);
     if (dh) findings.unshift({ tone: 'danger', label: dh.label, text: dh.text });
     var forms = S.formations(p, dt.m);
     // The books' panels for this kind of question, capped at ±4 so one topic's rules cannot decide the reading alone.
@@ -920,7 +920,7 @@
     ].filter(Boolean);
 
     return {
-      window: window_, palace: pal, formation: formation || null, disharmony: S.disharmony(p.day.stem, p.hour.stem),
+      window: window_, palace: pal, formation: formation || null, disharmony: S.disharmony(p.day.stem, p.hour.stem, p.hour.branch),
       goal: goal ? { key: goal.key, label: goal.label, cn: goal.cn, phrase: phrase } : null,
       stage: stage ? { key: stage.key, label: stage.label, cn: stage.cn } : null,
       intent: intent, deity: deity, quality: quality,
@@ -1032,7 +1032,7 @@
   function manifestRank(dt, goalKey, stageKey, fav) {
     var p = C.fourPillars(dt.y, dt.m, dt.d, dt.hour, dt.min === undefined ? 30 : dt.min), chart = S.qimen(p), forms = S.formations(p, dt.m);
     var goal = goalOf(goalKey), stage = stageOf(stageKey);
-    return { pillars: p, chart: chart, disharmony: S.disharmony(p.day.stem, p.hour.stem),
+    return { pillars: p, chart: chart, disharmony: S.disharmony(p.day.stem, p.hour.stem, p.hour.branch),
       list: OUTER.map(function (n) { return manifestScore(chart, forms, n, goal, stage, fav); }).filter(Boolean).sort(function (a, b) { return b.score - a.score; }) };
   }
   // The best hours across a date range, one best palace per hour. Five Disharmony hours are left out, as in every
@@ -1044,7 +1044,7 @@
       for (var b = 0; b < 12; b++) {
         if (opts && opts.daytime && (b === 0 || b === 1 || b === 2)) continue;
         var hh = b === 0 ? 23 : b * 2 - 1, p = C.fourPillars(gy, gm, gd, hh, 30);
-        if (S.disharmony(p.day.stem, p.hour.stem)) continue;
+        if (S.disharmony(p.day.stem, p.hour.stem, p.hour.branch)) continue;
         var chart = S.qimen(p), forms = S.formations(p, gm), best = null, second = null;
         OUTER.forEach(function (n) {
           var r = manifestScore(chart, forms, n, goal, stage, fav);
@@ -1588,7 +1588,7 @@
         var hf = [], open = locate(pc, 'door', '开门'), chief = locate(pc, 'chief', '');
         if (open && pc.palacesByNumber[open].gatePalace && pc.palacesByNumber[open].gatePalace.key === 'palace_compels') { s -= 2; hf.push('开门 controlled by its palace (主克客)'); }
         if (chief && pc.palacesByNumber[chief].starPalace && pc.palacesByNumber[chief].starPalace.key === 'dead') { s -= 2; hf.push('chief star controlled by its palace (主克客)'); }
-        if (!S.disharmony(r.pillars.day.stem, hp.stem) && (!best || s > best.score)) best = { pillar: hp.cn, score: Math.round(s * 10) / 10, why: why, flags: hf,
+        if (!S.disharmony(r.pillars.day.stem, hp.stem, hp.branch) && (!best || s > best.score)) best = { pillar: hp.cn, score: Math.round(s * 10) / 10, why: why, flags: hf,
           range: r.pillars.hourRange };
       }
       var acts = d.targets.filter(function (b) {
@@ -1664,7 +1664,7 @@
       var windows = [];
       if (verdict !== 'Clear') {
         windows = scan.map(function (x) {
-          var n = locate(x.res.chart, t.symbols[0][0], t.symbols[0][1]); if (!n || S.disharmony(x.res.pillars.day.stem, x.res.pillars.hour.stem)) return null;
+          var n = locate(x.res.chart, t.symbols[0][0], t.symbols[0][1]); if (!n || S.disharmony(x.res.pillars.day.stem, x.res.pillars.hour.stem, x.res.pillars.hour.branch)) return null;
           var pa2 = x.res.chart.palacesByNumber[n], ap = x.res.chart.palacesByNumber[x.asker];
           var aq = palaceQuality(x.res.chart, x.res.formations, x.asker, fav).score, sc;
           if (t.hazard) {
@@ -2146,7 +2146,7 @@
       var d0 = new Date(from.y, from.m - 1, from.d + i), dt = { y: d0.getFullYear(), m: d0.getMonth() + 1, d: d0.getDate() };
       for (var k = 0; k < 12; k++) {
         var when = { y: dt.y, m: dt.m, d: dt.d, hour: k * 2, min: 30 }, res = chartFor('hour', when), b = structureAt(res, fav);
-        if (!b || S.disharmony(res.pillars.day.stem, res.pillars.hour.stem)) continue;
+        if (!b || S.disharmony(res.pillars.day.stem, res.pillars.hour.stem, res.pillars.hour.branch)) continue;
         var pa = b.pa;
         all.push({ date: dt.y + '-' + pad(dt.m) + '-' + pad(dt.d), dt: when, range: res.pillars.hourRange, branch: k,
           hourPillar: res.pillars.hour.cn, dayPillar: res.pillars.day.cn, score: b.score,
@@ -2295,7 +2295,7 @@
         var total = r.attraction + r.desire + r.intimacy + dayScore + hScore;
         slots.push({ date: dt.y + '-' + pad(dt.m) + '-' + pad(dt.d), dayPillar: dp.cn, range: rc.pillars.hourRange, branch: k,
           attraction: r.attraction, desire: r.desire, intimacy: r.intimacy, total: Math.round(total * 10) / 10,
-          notes: dayNote.concat(hNote), warnings: r.warnings, activate: r.activate.dir, disharmony: !!S.disharmony(rc.pillars.day.stem, rc.pillars.hour.stem) });
+          notes: dayNote.concat(hNote), warnings: r.warnings, activate: r.activate.dir, disharmony: !!S.disharmony(rc.pillars.day.stem, rc.pillars.hour.stem, rc.pillars.hour.branch) });
       }
     }
     // Times are offered for planned time together, so only waking hours count: 辰 07:00 through 子 00:59.

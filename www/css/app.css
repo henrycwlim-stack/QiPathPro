@@ -949,3 +949,8 @@ details.pl-month > summary{font-size:.9rem;cursor:pointer}
 .block.flash{box-shadow:0 0 0 2px var(--brass);transition:box-shadow .3s}
 .plain-open{border-left:3px solid var(--brass);padding-left:10px}
 a[data-la]{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
+
+/* 五不遇时 on the hour strip */
+.hours .hr.wby{outline:1px dashed var(--cinnabar);outline-offset:-2px}
+.hours .hr.wby .b i{font-style:normal;color:var(--cinnabar);font-size:.7em;margin-left:2px}
+.wby-note{margin-top:8px}

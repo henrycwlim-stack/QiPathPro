@@ -51,7 +51,7 @@
     forms.filter(function (f) { return HAZARDS.indexOf(f.id) >= 0; }).forEach(function (f) { (f.palaces || []).forEach(function (n) { hazardNums.push(n); }); });
     var list = OUTER.map(function (n) { return sector(ch.palacesByNumber[n], act, forms, hazardNums); }).sort(function (a, b) { return (b.usable - a.usable) || (b.score - a.score); });
     var best = list[0] && list[0].usable && list[0].score > 0 ? list[0] : null;
-    var fanYin = forms.some(function (f) { return f.id === 'men_fan_yin'; }), dh = S.disharmony(p.day.stem, p.hour.stem), warnings = [];
+    var fanYin = forms.some(function (f) { return f.id === 'men_fan_yin'; }), dh = S.disharmony(p.day.stem, p.hour.stem, p.hour.branch), warnings = [];
     if (fanYin) warnings.push({ label: 'The doors are in Fan Yin 门反吟', text: 'The Compendium treats this hour as unusable, whatever a sector shows. Pick another hour if you can.' });
     if (dh) warnings.push({ label: dh.label, text: dh.text });
     return { when: when, activity: act, chart: ch, pillars: p, formations: forms, list: list, best: fanYin ? null : best, warnings: warnings, usableHour: !fanYin && !dh,

@@ -64,8 +64,11 @@
       dos.push('lean on ' + C.ELEM_EN[C.STEM_ELEM[p.hour.stem]].toLowerCase() + ' activities — your supportive element is present');
     }
 
+    // 五不遇时: the day's one Five Disharmony Hour. Kept out of the best hours and flagged; it matters most when choosing a time.
+    var wby = S.disharmony(p.day.stem, p.hour.stem, p.hour.branch);
+    if (wby) { score = Math.max(0, score - 3); avoid.unshift('starting anything important — this is the day\'s Five Disharmony Hour (五不遇时), when the hour stem ' + wby.hour + ' attacks the day stem ' + wby.day); }
     return {
-      pillars: p, qimen: q, score: score,
+      pillars: p, qimen: q, score: score, wuBuYu: wby,
       label: score >= 7 ? 'Favourable' : score >= 4 ? 'Mixed' : 'Guard',
       hourPillar: p.hour, range: p.hourRange,
       gate: gate, gateEn: duty.gateEn, star: duty.star, spirit: duty.spirit,
@@ -85,7 +88,9 @@
       // The hour mansion breaks ties in timing; it does not change the hour's own score.
       var xiu = global.QPXiu && r.pillars ? global.QPXiu.hourMansion(r.pillars) : null;
       out.push({ branch: b, branchCn: C.BRANCHES[b], range: C.HOUR_RANGE[b], xiu: xiu, timing: r.score + (xiu ? (xiu.auspicious ? 0.5 : -0.5) : 0),
-                 score: r.score, gate: r.gate, gateEn: r.gateEn, label: r.label,
+                 score: r.score, gate: r.gate, gateEn: r.gateEn, label: r.label, pillar: r.pillars ? r.pillars.hour.cn : '',
+                 // The 子 slot starts at 23:00, which belongs to the next day; this day's own 子 hour is 00:00-00:59.
+                 wuBuYu: !!r.wuBuYu || (b === 0 && !!S.disharmony.apply(null, (function () { var q = C.fourPillars(dt.y, dt.m, dt.d, 0, 30); return [q.day.stem, q.hour.stem, q.hour.branch]; })())),
                  direction: r.bestDirection });
     }
     return out;

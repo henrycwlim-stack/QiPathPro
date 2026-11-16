@@ -522,8 +522,17 @@
   /* 五不遇时: the hour stem counters the day stem at the same polarity. The compendium calls it highly unfavourable (p.754) but gives it
    * only minor influence on analysis and forecasting; it belongs mainly to date selection (p.163). So readings warn without rescoring,
    * and the tools that suggest a time leave these hours out. */
-  function disharmony(dayStem, hourStem) {
+  // The classical table names one hour for each day stem: 甲庚午 乙辛巳 丙壬辰 丁癸卯 戊甲寅 己乙丑 庚丙子 辛丁酉 壬戊申 癸己未.
+  // The stem rule alone would also catch 己日乙亥 and 庚日丙戌, so the hour branch is checked when it is known.
+  var WU_BU_YU_BRANCH = [6, 5, 4, 3, 2, 1, 0, 9, 8, 7];
+  /** The day's Five Disharmony Hour: its branch and pillar. */
+  function wuBuYuHour(dayStem) {
+    var b = WU_BU_YU_BRANCH[dayStem], s = (((dayStem % 5) * 2) + b) % 10;
+    return { branch: b, branchCn: C.BRANCHES[b], pillar: C.STEMS[s] + C.BRANCHES[b], range: b === 0 ? '00:00–00:59' : C.HOUR_RANGE[b] };
+  }
+  function disharmony(dayStem, hourStem, hourBranch) {
     if (!C.controls(C.STEM_ELEM[hourStem], C.STEM_ELEM[dayStem]) || C.STEM_YIN[hourStem] !== C.STEM_YIN[dayStem]) return null;
+    if (hourBranch !== undefined && hourBranch !== null && hourBranch !== WU_BU_YU_BRANCH[dayStem]) return null;
     return { day: C.STEMS[dayStem], hour: C.STEMS[hourStem], label: 'Five Disharmony Hour 五不遇时',
       text: 'The hour stem ' + C.STEMS[hourStem] + ' counters the day stem ' + C.STEMS[dayStem] + ', which makes this a Five Disharmony Hour. Host and Guest are out of harmony and the situation is unstable. This matters most when you choose a time to act, so use another hour if you can.' };
   }
@@ -1469,7 +1478,7 @@
     zwdsPeriod: zwdsPeriod, zwdsDecades: zwdsDecades, SIHUA: SIHUA, HUA: HUA, STAR_TONE: STAR_TONE,
     brightness: brightness, BRIGHT: BRIGHT, BRIGHT_EN: BRIGHT_EN, starEffect: starEffect,
     placeMinors: placeMinors, MINOR_EN: MINOR_EN, MINOR_ABBR: MINOR_ABBR, MINOR_TONE: MINOR_TONE,
-    qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
+    wuBuYuHour: wuBuYuHour, qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
     TRIGRAMS: TRIGRAMS, TRI_EN: TRI_EN,
     strengthOf: strengthOf, STRENGTH: STRENGTH, starSeason: starSeason, STAR_STAGE: STAR_STAGE, hostGuest: hostGuest, hostGuestRead: hostGuestRead, doorSeason: doorSeason, doorPalace: doorVsPalace, disharmony: disharmony, nobleGrave: nobleGrave, horsePalace: horsePalace, forecastRules: forecastRules, HEALTH_CARE: HEALTH_CARE,
     annualStar: annualStar, monthStar: monthStar, flyingStars: flyingStars,

@@ -49,6 +49,17 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.14 — Five Disharmony Hour 五不遇时 on the day
+Version folder 10.14.0 (versionCode 70), copied from 10.13.0.
+- **The classical table:** one hour per day stem — 甲庚午, 乙辛巳, 丙壬辰, 丁癸卯, 戊甲寅, 己乙丑, 庚丙子, 辛丁酉, 壬戊申, 癸己未. The rule
+  now checks the hour branch too, so it no longer also flags 己日乙亥 or 庚日丙戌. On 庚 days the hour is 丙子, 00:00–00:59, the
+  day's own 子 hour. Every Qimen tool that skips or warns on this hour (Manifest, Oracle, Forecast, Strategy, Execution, searches)
+  uses the same rule. Checked over 120 consecutive days.
+- **Now screen:** the hour strip marks the day's Five Disharmony Hour, a note names it with its clock time, the current hour is
+  flagged and scored down when it is that hour, and it is left out of the strongest hours.
+- **Tong Shu › Day:** a Five Disharmony Hour row with the hour pillar and time.
+- **Fix:** the Star row in "This hour in the Qimen plate" showed [object Object]; it now shows the star's name.
+
 ### 10.13 — Numbers: exact statistics, official odds, sharing check and a play budget
 Version folder 10.13.0 (versionCode 69), copied from 10.12.0. Checked against the full public archive (3,034 TOTO and 5,557 4D draws).
 - **Chi-square** on the TOTO analysis is adjusted for six numbers drawn without replacement (it averaged pool - 6, not pool - 1).

@@ -134,12 +134,12 @@
     var best = null;
     for (var k = 1; k <= 12; k++) {
       var w = addHours(when, k * 2), x = read(user, topic, w);
-      if (w.hour >= 7 && !S.disharmony(x.p.day.stem, x.p.hour.stem) && (!best || x.score > best.score)) best = { score: x.score, when: w, label: whenLabel(w), verdict: verdictOf(x.score) };
+      if (w.hour >= 7 && !S.disharmony(x.p.day.stem, x.p.hour.stem, x.p.hour.branch) && (!best || x.score > best.score)) best = { score: x.score, when: w, label: whenLabel(w), verdict: verdictOf(x.score) };
     }
     if (best && best.score >= r.score + 1 && topic !== 'health') todo.push('If you can wait, ' + best.label + ' reads better for this (' + best.verdict.toLowerCase() + ').');
     var pull = r.symbols.filter(function (s) { return s.value > 0; }).length, push = r.symbols.filter(function (s) { return s.value < 0; }).length;
     return { topic: topic, label: TOPICS[topic].label, cn: TOPICS[topic].cn, when: when, whenText: whenLabel(when), p: r.p, chart: ch, score: r.score, verdict: verdictOf(r.score),
-      clarity: pull && push ? 'The signs are mixed.' : 'The signs mostly agree.', what: what, why: r.why, todo: todo, hits: r.hits, seat: r.seat, symbols: r.symbols, better: best, disharmony: S.disharmony(r.p.day.stem, r.p.hour.stem), graves: r.graves, care: topic === 'health' ? S.HEALTH_CARE : null, note: TOPICS[topic].note || null };
+      clarity: pull && push ? 'The signs are mixed.' : 'The signs mostly agree.', what: what, why: r.why, todo: todo, hits: r.hits, seat: r.seat, symbols: r.symbols, better: best, disharmony: S.disharmony(r.p.day.stem, r.p.hour.stem, r.p.hour.branch), graves: r.graves, care: topic === 'health' ? S.HEALTH_CARE : null, note: TOPICS[topic].note || null };
   }
   global.QPOracle = { cast: cast, TOPICS: TOPICS, verdictOf: verdictOf };
 })(typeof window !== 'undefined' ? window : globalThis);

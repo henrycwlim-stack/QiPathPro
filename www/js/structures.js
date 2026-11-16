@@ -127,7 +127,7 @@
       var T = { '甲': ['甲子', '甲戌'], '己': ['甲子', '甲戌'], '乙': ['甲申'], '庚': ['甲申'], '丙': ['甲午'], '辛': ['甲午'], '丁': ['甲辰'], '壬': ['甲辰'], '戊': ['甲寅'], '癸': ['甲寅'] };
       return (T[m.dayStemCn] || []).indexOf(m.hourCn) >= 0;
     }),
-    Plate('wu_bu_yu', '五不遇时', 'Five Disharmony Hour', H, 'The hour stem counters the day stem. Very unfavourable: Host and Guest are out of harmony and the situation is unstable.', function (m) { return !!global.QPSystems.disharmony(m.dayStemIdx, m.hourStemIdx); }),
+    Plate('wu_bu_yu', '五不遇时', 'Five Disharmony Hour', H, 'The hour stem counters the day stem. Very unfavourable: Host and Guest are out of harmony and the situation is unstable.', function (m) { return !!global.QPSystems.disharmony(m.dayStemIdx, m.hourStemIdx, global.QPCore.BRANCHES.indexOf(String(m.hourCn || '').charAt(1))); }),
     Plate('yang_dong', '阳动', 'Dynamic Yang', N, 'A Yang hour stem favours bold action, pursuing wealth and starting something new.', function (m) { return global.QPCore.STEM_YIN[m.hourStemIdx] === 0; }),
     Plate('yin_jing', '阴静', 'Static Yin', N, 'A Yin hour stem favours planning, strategy, creativity and inward work.', function (m) { return global.QPCore.STEM_YIN[m.hourStemIdx] === 1; })
   ];

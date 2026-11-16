@@ -106,7 +106,7 @@
     // The verdict. Sun Tzu's rule is to fight only the battles you can win; a door 反吟 plate is "unusable" whatever else it holds (Compendium p.304).
     // The book's worked examples rest on the generals and the armies (p.71-76), so those two count double here.
     var weigh = function (who) { return criteria.reduce(function (s, c, i) { return s + (c.lean === who ? (i === 1 || i === 4 ? 2 : 1) : 0); }, 0); };
-    var fanYin = forms.some(function (f) { return f.id === 'men_fan_yin'; }), dh = S.disharmony(p.day.stem, p.hour.stem), gap = weigh('you') - weigh('rival'), verdict;
+    var fanYin = forms.some(function (f) { return f.id === 'men_fan_yin'; }), dh = S.disharmony(p.day.stem, p.hour.stem, p.hour.branch), gap = weigh('you') - weigh('rival'), verdict;
     if (fanYin) verdict = { key: 'avoid', tone: 'danger', title: 'Do not act in this hour', text: 'The doors are in Fan Yin, which the Compendium treats as unusable. Pick another hour and assess again.' };
     else if (gap >= 3 && qMatter.score >= 0) verdict = { key: 'advance', tone: 'good', title: 'Advance', text: 'You hold the main advantages, and the matter itself is sound. Move while they last.' };
     else if (gap >= 1) verdict = { key: 'careful', tone: 'good', title: 'Advance with care', text: 'You have the edge, but it is not decisive. Use your strengths, and shore up what the criteria below show as weak.' };
