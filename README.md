@@ -49,6 +49,16 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.15 — Shen Sha 神煞 in the BaZi module
+Version folder 10.15.0 (versionCode 71), copied from 10.14.0.
+- **33 stars**, up from 15. New: 天德合, 月德合, 國印貴人, 天醫, 學堂, 福星貴人, 天赦, 紅艷, 紅鸞, 天喜, 魁罡, 金神, 災煞, 天羅, 地網,
+  陰陽差錯, 十惡大敗 and 孤鸞. The Heavenly Nobleman is now read from the year stem as well as the day stem. Classical tables; where
+  schools differ, the most common table is used. Checked against 3,131 charts: the original 15 stars are unchanged.
+- **Shen Sha 神煞 section** on Destiny › BaZi: helpful stars, double-edged stars and stars to work with, each with where it sits,
+  what it means and how to use it, plus the stars the current luck pillar and this year switch on. Descriptions are QiPath's own.
+- **Fix:** the Structure, Hidden talents, Six houses, Useful god, Family stars and Work and wealth blocks no longer break their row
+  labels letter by letter on a phone.
+
 ### 10.14 — Five Disharmony Hour 五不遇时 on the day
 Version folder 10.14.0 (versionCode 70), copied from 10.13.0.
 - **The classical table:** one hour per day stem — 甲庚午, 乙辛巳, 丙壬辰, 丁癸卯, 戊甲寅, 己乙丑, 庚丙子, 辛丁酉, 壬戊申, 癸己未. The rule

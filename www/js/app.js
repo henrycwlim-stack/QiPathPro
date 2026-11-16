@@ -1743,11 +1743,11 @@
                 rows(top.map(function (g) { return [g.cn + '<small>' + g.en + '</small>', '<div class="plain">' + esc(g.gift) + '.</div><div class="plain"><b>Suits:</b> ' + esc(g.work) + '.</div><div class="plain"><b>Watch:</b> ' + esc(g.watch) + '.</div>']; })) : '') +
               '<div class="hint">Each god is scored from the visible stems and the hidden stems (main, middle and residual), with the month weighted most and each element adjusted for its season (旺相休囚死). 100% is your strongest god; the rest are measured against it.</div>') +
             block('Structure 格局', 'your working style, from the strongest group of gods',
-              rows([grp(st.primary, 'Primary'), grp(st.secondary, 'Secondary')]) +
+              xkRows([grp(st.primary, 'Primary'), grp(st.secondary, 'Secondary')]) +
               '<div class="plain" style="margin-top:8px">' + (st.extreme ? '<span class="bad-t">Extreme structure.</span> ' : '') + esc(st.extremeNote) +
               (st.missing.length ? ' Missing: ' + st.missing.map(function (g) { return g.cn + ' ' + g.en; }).join(', ') + '.' : '') + '</div>') +
             block('Hidden talents 月令藏干', 'what the month branch ' + t.branch + ' holds',
-              rows([tal(t.main, 'Main talent')].concat(t.subs.map(function (x) { return tal(x, 'Also'); }))) +
+              xkRows([tal(t.main, 'Main talent')].concat(t.subs.map(function (x) { return tal(x, 'Also'); }))) +
               '<div class="plain" style="margin-top:8px">' + esc(t.note) + '</div>') +
             block('Day pillar 日柱', d.cn + ' ' + d.en + ' · ' + d.nayin,
               '<div class="plain" style="margin-bottom:8px"><b>' + esc(d.image) + '</b></div>' +
@@ -1755,7 +1755,7 @@
               '<div class="plain" style="margin-bottom:6px">' + esc(d.stageText) + ' <small>(' + d.stage + ')</small></div>' +
               '<div class="plain">' + esc(d.spouse) + '</div>') +
             block('Six houses 六宮', 'the four pillars with the Life Palace 命宮 and Conception Palace 胎元',
-              rows(X.houses.map(function (h) {
+              xkRows(X.houses.map(function (h) {
                 return [h.cn + '<small>' + h.en + '</small>', h.pillar + ' <small>' + h.nayin + (h.realm ? ' · ' + esc(h.realm) : '') + '</small>' +
                   '<div class="plain"><b>Stem</b> (' + h.stemGod + '): ' + esc(h.stemMeans) + '.</div>' +
                   '<div class="plain"><b>Branch</b> (' + h.branchGod + '): ' + esc(h.branchMeans) + '.</div>'];
@@ -1764,14 +1764,14 @@
               'The Conception Palace is the month pillar moved one stem and three branches on. The Nayin element of each house shows which side of life it draws on.</div>') +
             block('Useful god in your chart 用神', 'your favourable elements as they actually appear',
               '<div class="plain" style="margin-bottom:8px">' + esc(u.note) + '</div>' +
-              (u.present.length ? rows(u.present.map(function (g) { return [g.cn + '<small>' + g.en + '</small>', bar(g.pct) + '<small>' + g.pct + '% · ' + g.elemEn + ' · ' + esc(g.where.slice(0, 3).join(', ')) + '</small>']; })) : '') +
+              (u.present.length ? xkRows(u.present.map(function (g) { return [g.cn + '<small>' + g.en + '</small>', bar(g.pct) + '<small>' + g.pct + '% · ' + g.elemEn + ' · ' + esc(g.where.slice(0, 3).join(', ')) + '</small>']; })) : '') +
               (u.absentElems.length ? '<div class="plain" style="margin-top:8px"><b>Favourable but not in the chart:</b> ' + esc(u.absentElems.join(', ')) + '. ' +
                 (u.luckBring ? 'Your luck pillar ' + u.luckBring.pillar + ' (ages ' + u.luckBring.from + '–' + u.luckBring.to + ') brings it.' :
                   'No coming luck pillar carries it on its stem, so look for it in years, months, people, colours and places.') + '</div>' : '') +
               '<h3 style="margin:14px 0 6px;font-size:.9rem">How actively you use it</h3>' +
               rows(u.actions.map(function (a) { return [a.cn + '<small>' + a.en + '</small>', '<div class="plain">' + esc(a.text) + '</div>']; }))) +
             block('Family stars 六親', 'each relative read through their Ten God',
-              rows(X.family.map(function (f) {
+              xkRows(X.family.map(function (f) {
                 var cls = f.tone === 'supportive' ? 'good-t' : f.tone === 'demanding' ? 'bad-t' : '';
                 return [f.cn + ' ' + esc(f.who) + '<small>' + esc(f.gods) + '</small>', '<span class="' + cls + '">' + f.presence + ' · ' + f.tone + '</span>' +
                   (f.palace ? ' <small>palace: ' + esc(f.palace) + '</small>' : '') + '<div class="plain">' + esc(f.text) + '</div>'];
@@ -1779,7 +1779,7 @@
               '<div class="hint">Relatives are found by shifting palaces: a man\'s children are the stars his wife\'s star produces (Officer), a woman\'s are the stars she produces (Output). ' +
               'The stars show the bond and what it asks of you, not the other person\'s fate.</div>') +
             block('Work and wealth 事業財運', 'how you work best and how money comes',
-              rows([
+              xkRows([
                 ['Best fit', w.best.cn + ' ' + esc(w.best.en) + '<div class="plain">From ' + esc(w.best.why) + '.</div>'],
                 ['Also suits', w.second.cn + ' ' + esc(w.second.en) + '<div class="plain">From ' + esc(w.second.why) + '.</div>'],
                 ['Income', '<div class="plain">' + esc(w.flow) + '</div>'],
@@ -1787,6 +1787,32 @@
                 ['Capacity', '<div class="plain">' + esc(w.capacity || '—') + ' ' + esc(w.earned) + '</div>'],
                 ['Partners', '<div class="plain">' + esc(w.partnersNote) + '</div>']
               ]));
+        })() +
+        (function () {
+          var st = (user.deep.stars || []), act = areasSafe(function () { return window.QPBazi.activeStars(user, now().y); }) || [];
+          if (!st.length && !act.length) return '';
+          var grp = function (tone, title) {
+            var xs = st.filter(function (s) { return s.tone === tone; });
+            if (!xs.length) return '';
+            return '<h3 style="margin:12px 0 6px;font-size:.9rem">' + title + '</h3>' + xkRows(xs.map(function (s) {
+              return [s.cn + '<small>' + esc(s.en) + ' · ' + s.at.join(', ') + '</small>',
+                '<div class="plain">' + esc(s.note) + '</div>' + (s.use ? '<div class="todo"><b>Use it:</b> ' + esc(s.use) + '</div>' : '')];
+            }));
+          };
+          var seen = {};
+          return block('Shen Sha 神煞', st.length + ' stars in your chart',
+            '<div class="plain" style="margin-bottom:6px">Shen Sha are symbolic stars that add colour to the reading: talents, protection and tendencies to watch. ' +
+              'They refine the picture from your Day Master and Ten Gods; they never override it.</div>' +
+            grp('good', 'Helpful stars 吉神') + grp('mixed', 'Double-edged stars') + grp('caution', 'Stars to work with 凶煞') +
+            (act.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Switched on now</h3>' + xkRows(act.filter(function (a) {
+                var k = a.key + a.via; if (seen[k]) return false; seen[k] = 1; return true;
+              }).map(function (a) {
+                return [a.cn + '<small>' + esc(a.en) + '</small>', '<span class="' + (a.tone === 'good' ? 'good-t' : a.tone === 'caution' ? 'bad-t' : '') + '">' + esc(a.via) + '</span>' +
+                  '<div class="plain">' + esc(a.use || a.note) + '</div>'];
+              })) : '') +
+            '<div class="hint">Stars are found from your day stem (and the year stem for the Nobleman), the year and day branch groups, the month branch for the Virtue stars ' +
+              'and the Heavenly Doctor, and the day pillar itself for 魁罡, 金神, 陰陽差錯, 十惡大敗, 孤鸞 and 天赦. Schools differ on a few tables; QiPath uses the most common. ' +
+              'The descriptions are QiPath\'s own.</div>');
         })() +
         block('滴天髓 reading', 'the classical frame',
           (function () {

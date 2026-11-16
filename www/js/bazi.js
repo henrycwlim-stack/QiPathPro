@@ -132,6 +132,23 @@
   var MONTH_VIRTUE = { 2:'丙',6:'丙',10:'丙', 8:'壬',0:'壬',4:'壬',
                        11:'甲',3:'甲',7:'甲', 5:'庚',9:'庚',1:'庚' };
 
+
+  // More stars, from the classical tables.
+  var HV_COMBO = { 2:'壬', 3:'巳', 4:'丁', 5:'丙', 6:'寅', 7:'己', 8:'戊', 9:'亥', 10:'辛', 11:'庚', 0:'申', 1:'乙' };  // 天德合, by month branch
+  var MV_COMBO = { fire:'辛', water:'丁', wood:'己', metal:'乙' };                                                // 月德合, by the month's triad
+  var GUO_YIN  = { 0:10, 1:11, 2:1, 3:2, 4:1, 5:2, 6:4, 7:5, 8:7, 9:8 };                                         // 國印, by day stem
+  var XUE_TANG = { 0:11, 1:6, 2:2, 3:9, 4:2, 5:9, 6:5, 7:0, 8:8, 9:3 };                                          // 學堂: the day stem's 長生
+  var FU_XING  = { 0:[2,0], 2:[2,0], 1:[3,1], 9:[3,1], 4:[8], 5:[7], 3:[11], 6:[6], 7:[5], 8:[4] };            // 福星貴人
+  var HONG_YAN = { 0:6, 1:8, 2:2, 3:7, 4:4, 5:4, 6:10, 7:9, 8:0, 9:8 };                                          // 紅艷, by day stem
+  var ZAI_SHA  = { water:6, fire:0, metal:3, wood:9 };                                                           // 災煞
+  var KUI_GANG = ['庚辰', '庚戌', '壬辰', '戊戌'];
+  var JIN_SHEN = ['乙丑', '己巳', '癸酉'];
+  var YIN_YANG_CHA = ['丙子', '丁丑', '戊寅', '辛卯', '壬辰', '癸巳', '丙午', '丁未', '戊申', '辛酉', '壬戌', '癸亥'];
+  var SHI_E = ['甲辰', '乙巳', '丙申', '丁亥', '戊戌', '己丑', '庚辰', '辛巳', '壬申', '癸亥'];
+  var GU_LUAN = ['乙巳', '丁巳', '辛亥', '戊申', '甲寅', '壬子', '丙午', '戊午'];
+  var TIAN_SHE = { spring: '戊寅', summer: '甲午', autumn: '戊申', winter: '甲子' };                          // 天赦, by season of the month
+  function seasonOf(mb) { return [2, 3, 4].indexOf(mb) >= 0 ? 'spring' : [5, 6, 7].indexOf(mb) >= 0 ? 'summer' : [8, 9, 10].indexOf(mb) >= 0 ? 'autumn' : 'winter'; }
+
   function triadKey(b) {
     if ([8,0,4].indexOf(b) >= 0) return 'water';
     if ([2,6,10].indexOf(b) >= 0) return 'fire';
@@ -180,60 +197,179 @@
     lonely:     { cn:'孤辰', en:'Solitary Star', tone:'caution',
       note:'A tendency to stand apart. Not misfortune, but company must be chosen deliberately.' },
     widow:      { cn:'寡宿', en:'Widow Star', tone:'caution',
-      note:'Emotional self-containment; closeness takes longer to build.' }
+      note:'Emotional self-containment; closeness takes longer to build.' },
+    heavenVirtueCombo: { cn:'天德合', en:'Heavenly Virtue Combination', tone:'good',
+      note:'A softer echo of Heavenly Virtue: trouble tends to ease, and goodwill comes back to you.' },
+    monthVirtueCombo: { cn:'月德合', en:'Monthly Virtue Combination', tone:'good',
+      note:'A softer echo of Monthly Virtue: a calm temper and a good name that protect you in disputes.' },
+    guoYin:     { cn:'國印貴人', en:'National Seal', tone:'good',
+      note:'Trust from institutions: suits positions of responsibility, official roles and anything that needs a seal of approval.' },
+    tianYi:     { cn:'天醫', en:'Heavenly Doctor', tone:'good',
+      note:'An affinity with healing, care and helping others recover; good for health, therapy and counselling work.' },
+    xueTang:    { cn:'學堂', en:'Study Hall', tone:'good',
+      note:'A natural home for learning: knowledge sticks, and teaching or research suits you.' },
+    fuXing:     { cn:'福星貴人', en:'Fortune Star', tone:'good',
+      note:'A contented nature and enough of what you need; small blessings arrive steadily.' },
+    tianShe:    { cn:'天赦', en:'Heavenly Pardon', tone:'good',
+      note:'Mistakes are forgiven and fresh starts come easily; a strong protective sign.' },
+    kuiGang:    { cn:'魁罡', en:'Kui Gang', tone:'mixed',
+      note:'A commanding, decisive and uncompromising nature. Excellent for leadership; relationships need deliberate warmth.' },
+    jinShen:    { cn:'金神', en:'Golden Spirit', tone:'mixed',
+      note:'Toughness and a strong will. Brings out the best in hard conditions; Fire in the chart refines it.' },
+    hongYan:    { cn:'紅艷', en:'Red Flirt', tone:'mixed',
+      note:'Charm and romantic appeal. Good for presence and the arts; keep clear boundaries in close relationships.' },
+    hongLuan:   { cn:'紅鸞', en:'Red Phoenix (romance)', tone:'good',
+      note:'Romance, courtship and celebrations; a sign of marriage when it is activated by a year or luck pillar.' },
+    tianXi:     { cn:'天喜', en:'Heavenly Happiness', tone:'good',
+      note:'Joyful news and celebrations: weddings, births and good announcements.' },
+    zaiSha:     { cn:'災煞', en:'Calamity Star', tone:'caution',
+      note:'Sudden upsets and accidents of haste. Slow down, check safety and keep things insured.' },
+    tianLuo:    { cn:'天羅', en:'Heaven\u2019s Net', tone:'caution',
+      note:'Feeling held back by circumstances. Patience and staying within the rules help you through.' },
+    diWang:     { cn:'地網', en:'Earth\u2019s Net', tone:'caution',
+      note:'Feeling tangled in obligations. Keep your affairs clear and avoid grey areas.' },
+    yinYangCha: { cn:'陰陽差錯', en:'Yin-Yang Mismatch', tone:'caution',
+      note:'Relationships and family ties can be out of step. Talk early and agree expectations clearly.' },
+    shiE:       { cn:'十惡大敗', en:'Ten Evils (Great Loss)', tone:'caution',
+      note:'Savings can drain easily. Build reserves, avoid lending and speculation, and money holds.' },
+    guLuan:     { cn:'孤鸞', en:'Lonely Phoenix', tone:'caution',
+      note:'Partnership takes more effort or comes later. Invest in shared time and choose a partner patiently.' }
+  };
+
+
+  // How to work with each star: a short, practical line.
+  var STAR_USE = {
+    nobleman: 'Ask for help and introductions; work through mentors and intermediaries.',
+    academic: 'Invest in qualifications, writing and study; sit exams when it is activated.',
+    prosperity: 'Build income from your own skills; self-employment suits you.',
+    heavenVirtue: 'Act with integrity; it is what keeps the protection working.',
+    monthVirtue: 'Keep your reputation clean; settle disputes by mediation.',
+    goldenCart: 'Partnerships and marriage bring comfort; choose partners well.',
+    general: 'Take the lead and organise others.',
+    peach: 'Use charm in public-facing work; be clear about commitment.',
+    horse: 'Use travel and moves for opportunity; settle the chart with a stable base.',
+    canopy: 'Make time for study, art or spiritual practice; keep a few close friends.',
+    blade: 'Channel the drive into sport, surgery-like precision or competition; avoid recklessness.',
+    robbery: 'Guard assets and contracts; avoid lending and haste.',
+    loss: 'Keep track of money and attention; double-check details.',
+    lonely: 'Choose your company deliberately and stay in touch.',
+    widow: 'Give closeness time; say what you feel.',
+    heavenVirtueCombo: 'Return goodwill; it multiplies for you.',
+    monthVirtueCombo: 'Stay calm in conflict; your good name does the work.',
+    guoYin: 'Aim for roles with authority, signatures or official trust.',
+    tianYi: 'Healing, care and counselling suit you, as a career or a calling.',
+    xueTang: 'Keep learning all your life; teaching suits you.',
+    fuXing: 'Appreciate what you have; contentment draws more.',
+    tianShe: 'Start again without fear after a setback.',
+    kuiGang: 'Lead with decisiveness; soften your tone at home.',
+    jinShen: 'Take on hard challenges; warmth and passion (Fire) bring out the best in it.',
+    hongYan: 'Use your appeal in presentation and the arts; keep boundaries clear.',
+    hongLuan: 'A good sign for romance and weddings when activated.',
+    tianXi: 'Celebrate and share good news; good timing for happy events.',
+    zaiSha: 'Slow down, drive and travel carefully, and keep insurance up to date.',
+    tianLuo: 'Be patient with delays and follow procedures.',
+    diWang: 'Keep paperwork clean and stay away from grey areas.',
+    yinYangCha: 'Talk about expectations in relationships early and often.',
+    shiE: 'Save first and spend later; avoid lending and speculation.',
+    guLuan: 'Invest in your relationship deliberately; marry when ready, not when pressed.'
   };
 
   function findStars(p, gender) {
     var out = [];
     var branches = [p.year.branch, p.month.branch, p.day.branch, p.hour.branch];
     var labels = ['Year','Month','Day','Hour'];
+    var pillars = [p.year, p.month, p.day, p.hour];
     var dm = p.day.stem;
 
     function add(key, at) {
       var m = STAR_META[key];
       var e = out.filter(function (x) { return x.key === key; })[0];
       if (e) { if (e.at.indexOf(at) < 0) e.at.push(at); return; }
-      out.push({ key: key, cn: m.cn, en: m.en, tone: m.tone, note: m.note, at: [at] });
+      out.push({ key: key, cn: m.cn, en: m.en, tone: m.tone, note: m.note, use: STAR_USE[key] || '', at: [at] });
     }
 
-    branches.forEach(function (b, i) {
-      if ((NOBLEMAN[dm] || []).indexOf(b) >= 0) add('nobleman', labels[i]);
-      if (ACADEMIC[dm] === b) add('academic', labels[i]);
-      if (PROSPERITY[dm] === b) add('prosperity', labels[i]);
-      if (BLADE[dm] === b) add('blade', labels[i]);
-      if (GOLDEN_CART[dm] === b) add('goldenCart', labels[i]);
-    });
-
-    // Triad-based stars are taken from the year and day branches, as is usual.
-    [p.year.branch, p.day.branch].forEach(function (base) {
-      var k = triadKey(base);
-      branches.forEach(function (b, i) {
-        if (PEACH[k] === b) add('peach', labels[i]);
-        if (HORSE[k] === b) add('horse', labels[i]);
-        if (CANOPY[k] === b) add('canopy', labels[i]);
-        if (GENERAL[k] === b) add('general', labels[i]);
-        if (ROBBERY[k] === b) add('robbery', labels[i]);
-        if (LOSS[k] === b) add('loss', labels[i]);
-      });
-    });
-
-    var lw = LONELY[p.year.branch] || [];
-    branches.forEach(function (b, i) {
-      if (lw[0] === b) add('lonely', labels[i]);
-      if (lw[1] === b) add('widow', labels[i]);
-    });
+    branchHits(p, branches).forEach(function (h) { add(h.key, labels[h.i]); });
 
     // Virtue stars sit on the month branch and may appear as a stem or a branch.
-    var hv = HEAVEN_VIRTUE[p.month.branch];
-    var mv = MONTH_VIRTUE[p.month.branch];
-    [p.year, p.month, p.day, p.hour].forEach(function (q, i) {
+    var hv = HEAVEN_VIRTUE[p.month.branch], mv = MONTH_VIRTUE[p.month.branch];
+    var hvc = HV_COMBO[p.month.branch], mvc = MV_COMBO[triadKey(p.month.branch)];
+    pillars.forEach(function (q, i) {
       if (C.STEMS[q.stem] === hv || C.BRANCHES[q.branch] === hv) add('heavenVirtue', labels[i]);
       if (C.STEMS[q.stem] === mv) add('monthVirtue', labels[i]);
+      if (C.STEMS[q.stem] === hvc || C.BRANCHES[q.branch] === hvc) add('heavenVirtueCombo', labels[i]);
+      if (C.STEMS[q.stem] === mvc) add('monthVirtueCombo', labels[i]);
     });
+
+    // Stars of the day pillar itself (and 金神 also on the hour).
+    var dp = C.STEMS[p.day.stem] + C.BRANCHES[p.day.branch], hp = C.STEMS[p.hour.stem] + C.BRANCHES[p.hour.branch];
+    if (KUI_GANG.indexOf(dp) >= 0) add('kuiGang', 'Day');
+    if (JIN_SHEN.indexOf(dp) >= 0) add('jinShen', 'Day');
+    if (JIN_SHEN.indexOf(hp) >= 0) add('jinShen', 'Hour');
+    if (YIN_YANG_CHA.indexOf(dp) >= 0) add('yinYangCha', 'Day');
+    if (SHI_E.indexOf(dp) >= 0) add('shiE', 'Day');
+    if (GU_LUAN.indexOf(dp) >= 0) add('guLuan', 'Day');
+    if (TIAN_SHE[seasonOf(p.month.branch)] === dp) add('tianShe', 'Day');
+
+    // 天羅 (戌 with 亥) and 地網 (辰 with 巳) when both branches stand in the chart.
+    var has = function (b) { return branches.indexOf(b) >= 0; };
+    if (has(10) && has(11)) branches.forEach(function (b, i) { if (b === 10 || b === 11) add('tianLuo', labels[i]); });
+    if (has(4) && has(5)) branches.forEach(function (b, i) { if (b === 4 || b === 5) add('diWang', labels[i]); });
 
     var order = { good: 0, mixed: 1, caution: 2 };
     out.sort(function (a, b) { return order[a.tone] - order[b.tone]; });
     void gender;
+    return out;
+  }
+
+  /** The branch-based stars a set of branches carries, read from this chart's day stem, year stem and year/day triads. */
+  function branchHits(p, branches) {
+    var out = [], dm = p.day.stem, ys = p.year.stem;
+    var put = function (key, i) { if (!out.some(function (h) { return h.key === key && h.i === i; })) out.push({ key: key, i: i }); };
+    var lw = LONELY[p.year.branch] || [], rs = romanceStars(p.year.branch);
+    branches.forEach(function (b, i) {
+      if ((NOBLEMAN[dm] || []).indexOf(b) >= 0 || (NOBLEMAN[ys] || []).indexOf(b) >= 0) put('nobleman', i);
+      if (ACADEMIC[dm] === b) put('academic', i);
+      if (PROSPERITY[dm] === b) put('prosperity', i);
+      if (BLADE[dm] === b) put('blade', i);
+      if (GOLDEN_CART[dm] === b) put('goldenCart', i);
+      if (GUO_YIN[dm] === b) put('guoYin', i);
+      if (XUE_TANG[dm] === b) put('xueTang', i);
+      if ((FU_XING[dm] || []).indexOf(b) >= 0) put('fuXing', i);
+      if (HONG_YAN[dm] === b) put('hongYan', i);
+      if ((p.month.branch + 11) % 12 === b && b !== p.month.branch) put('tianYi', i);
+      if (lw[0] === b) put('lonely', i);
+      if (lw[1] === b) put('widow', i);
+      if (rs.hongLuan === b) put('hongLuan', i);
+      if (rs.tianXi === b) put('tianXi', i);
+      // Triad-based stars are taken from the year and day branches, as is usual.
+      [p.year.branch, p.day.branch].forEach(function (base) {
+        var k = triadKey(base);
+        if (PEACH[k] === b) put('peach', i);
+        if (HORSE[k] === b) put('horse', i);
+        if (CANOPY[k] === b) put('canopy', i);
+        if (GENERAL[k] === b) put('general', i);
+        if (ROBBERY[k] === b) put('robbery', i);
+        if (LOSS[k] === b) put('loss', i);
+        if (ZAI_SHA[k] === b) put('zaiSha', i);
+      });
+    });
+    return out;
+  }
+
+  /** The stars the current luck pillar and a given year switch on for this chart. */
+  function activeStars(user, year) {
+    var p = user.pillars, out = [], age = year - user.birth.y, lp = null;
+    (user.luck && user.luck.pillars || []).forEach(function (l) { if (age >= l.from && age < l.to) lp = l; });
+    var yb = ((year - 1984) % 12 + 12) % 12;
+    var src = [];
+    if (lp) src.push({ label: 'Luck pillar ' + lp.pillar.cn + ' (ages ' + lp.from + '–' + lp.to + ')', b: lp.pillar.branch });
+    src.push({ label: year + ' (' + C.BRANCHES[yb] + ' year)', b: yb });
+    src.forEach(function (s) {
+      branchHits(p, [s.b]).forEach(function (h) {
+        var m = STAR_META[h.key];
+        out.push({ key: h.key, cn: m.cn, en: m.en, tone: m.tone, note: m.note, use: STAR_USE[h.key] || '', via: s.label });
+      });
+    });
     return out;
   }
 
@@ -1930,7 +2066,7 @@
   global.QPBazi = {
     compatibility: compatibility, AREAS: AREAS, AREA_ADVICE: AREA_ADVICE, AREA_ADVICE_NATAL: AREA_ADVICE_NATAL, areaResults: areaResults, areaLevel: areaLevel,
     areasNatal: areasNatal, areasYear: areasYear, areasMonth: areasMonth, branchStars: branchStars, SIX_UNION: SIX_UNION, STEM_UNION: STEM_UNION, areasRelations: areasRelations, areasTogether: areasTogether,
-    analyse: analyse, stageOf: stageOf, findStars: findStars, findRelations: findRelations,
+    analyse: analyse, stageOf: stageOf, findStars: findStars, activeStars: activeStars, STAR_USE: STAR_USE, findRelations: findRelations,
     assessStrength: assessStrength, diagnose: diagnose,
     STAGES: STAGES, STAR_META: STAR_META, DOMAIN_DEF: DOMAIN_DEF, TIAO_HOU: TIAO_HOU,
     SIX_DESTRUCTION: SIX_DESTRUCTION, HARM_KIND: HARM_KIND, fourHarms: fourHarms, timingHarms: timingHarms,
