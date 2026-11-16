@@ -49,6 +49,21 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.18 — Crisis navigator: Qimen hour plates with BaZi symbolic stars, live
+Version folder 10.18.0 (versionCode 74), copied from 10.17.0. A new engine, `crisis.js` (`window.QPCrisis`), and a new Consult tab.
+- **Safety first:** the screen opens with the local emergency number and crisis lines, and says plainly that danger and health
+  are never timed: get help now.
+- **Eight kinds of crisis** (cash flow, blocked funding, dispute or legal threat, pressured negotiation, job loss, relationship,
+  business shake-up, stranded travel), each mapped to a Qimen forecast scenario and a Shen Sha goal.
+- **Right now:** the current two-hour window's call (Act, Prepare or Hold) from the Qimen forecast score plus the person's
+  goal-weighted Shen Sha, the direction to move or face, the direction to avoid, what the plate says, and the stars in the hour.
+  The Five Disharmony Hour is always Hold.
+- **Your plan:** what to do this window, the next window to act, which way to turn and when to call for help (Nobleman hours and
+  directions, the day's and the person's own), the Horse direction when the crisis needs movement, and three steadying steps for
+  the kind of crisis.
+- **The next hours:** seven windows with their call, verdict, direction and star tags. The screen re-reads itself every minute
+  while it is open and repaints when the hour changes.
+
 ### 10.17 — Shen Sha in Qimen tactical timing
 Version folder 10.17.0 (versionCode 73), copied from 10.16.0.
 - **Hour scoring:** the Manifest hour search now adds Shen Sha to each window's Qimen score, read from the candidate day and from the

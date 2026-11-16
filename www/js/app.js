@@ -4261,7 +4261,7 @@
     }
     return null;
   }
-  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1, coach: 1 };
+  var NO_OPENING = { areas: 1, palm: 1, face: 1, compass: 1, coach: 1, crisis: 1 };
   function plainOpening(screen) {
     if (!user) return;
     var host = $(screen === 'chart' ? 'chartBody' : 'consultBody'), key = screen === 'chart' ? chartK : consultK;
@@ -4822,6 +4822,7 @@
     if (consultK === 'monthly') { renderMonthly(host); return; }
     if (consultK === 'oracle') { renderOracle(host); return; }
     if (consultK === 'liuyao') { renderLiuYao(host); return; }
+    if (consultK === 'crisis') { renderCrisis(host); return; }
     if (consultK === 'warcraft') { renderWar(host); return; }
     if (consultK === 'execution') { renderExec(host); return; }
     if (consultK === 'sevenstar') { renderSeven(host); return; }
@@ -6586,6 +6587,58 @@
     return '<div class="panel" style="margin-top:10px;font-size:.88rem;line-height:1.6"><b>Chance of sharing a prize: <span class="' + cls + '">' + s.level + '</span></b><br>' + esc(s.text) +
       (s.notes.length ? '<br><small>' + esc(s.notes.join('; ')) + '.</small>' : '') +
       '<br><small style="color:var(--muted)">This never changes the odds of winning. It only affects how many people would split Groups 1 to 4.</small></div>';
+  }
+
+  /* ---------------- Consult › Crisis: Qimen hour plate and Shen Sha, live ---------------- */
+  var crisisState = { type: 'cash', timer: null, slot: null };
+  function crisisSafetyHtml() {
+    var CO = window.QPCoach, cc = CO ? CO.detectCountry() : 'OTHER', H = CO ? CO.HELPLINES[cc] : null;
+    return '<div class="notice crisis-safe"><b>If anyone is in danger, hurt, or thinking of harming themselves, stop here.</b> ' +
+      'Call ' + esc(H ? H.emergency : 'your local emergency number') + ' now' +
+      (H && H.crisis && H.crisis.length ? ', or ' + H.crisis.map(function (c) { return esc(c[0]) + ' <a href="tel:' + c[1].replace(/[^0-9+]/g, '') + '">' + esc(c[1]) + '</a>'; }).join(', ') : '') + '. ' +
+      'For any health emergency, get medical help now: never wait for a better hour. This tool is for timing practical steps, not for safety.</div>';
+  }
+  function renderCrisis(host) {
+    var CR = window.QPCrisis, st = crisisState, t = now();
+    var r = areasSafe(function () { return CR.navigate(user, t, st.type, 7); });
+    st.slot = r && r.now ? r.now.hourPillar : null;
+    var callCls = { Act: 'good-t', Prepare: '', Hold: 'bad-t' };
+    var typeOpts = CR.TYPES.map(function (x) { return '<option value="' + x.key + '"' + (x.key === st.type ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('');
+    host.innerHTML = crisisSafetyHtml() +
+      block('Crisis navigator 危机导航', 'the Qimen hour plate and your Shen Sha, right now',
+        '<label for="crType">What is happening</label><select id="crType">' + typeOpts + '</select>' +
+        '<div class="two"><button class="btn ghost" id="crRefresh">Refresh now</button><span class="hint" style="align-self:center">Updates by itself while this screen is open. Last read ' +
+          String(t.hour).padStart(2, '0') + ':' + String(t.min).padStart(2, '0') + '.</span></div>') +
+      (!r ? '<div class="notice">The hour could not be read. Try Refresh.</div>' :
+        block('Right now', r.now.label + ' · ' + r.now.hourPillar + ' hour',
+          '<div class="verdictbar"><span class="big ' + (r.now.call === 'Act' ? 'good' : r.now.call === 'Hold' ? 'bad' : 'mid') + '">' + r.now.call + '</span>' +
+            '<span class="sub">Qimen ' + esc(r.now.verdict) + ' · Shen Sha ' + (r.now.shenSha.score > 0 ? '+' : '') + r.now.shenSha.score + (r.now.wuBuYu ? ' · Five Disharmony Hour' : '') + '</span></div>' +
+          xkRows([
+            ['Move or face', '<b class="good-t">' + esc(r.now.direction) + '</b><small>the useful symbol\'s direction this hour</small>'],
+            ['Avoid', '<b class="bad-t">' + esc(r.now.worstDirection) + '</b>'],
+            ['Qimen says', '<div class="plain">' + esc(r.now.advice) + '</div>'],
+            ['Your stars now', r.now.shenSha.stars.length ? r.now.shenSha.stars.map(function (s) {
+              return '<span class="' + (s.tone === 'good' ? 'good-t' : 'bad-t') + '">' + s.cn + '</span> <small style="display:inline">' + esc(s.why) + '</small>'; }).join('<br>') : '<small>none this hour</small>']
+          ])) +
+        block('Your plan', 'in plain English', '<ol class="cr-plan">' + r.plan.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+          '<h3 style="margin:12px 0 6px;font-size:.9rem">Steady the situation first</h3><ul class="cr-plan">' + r.steady.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>') +
+        block('The next hours', 'each two-hour window, Qimen plus your stars',
+          xkRows(r.list.map(function (x) {
+            return [esc(x.label) + '<small>' + x.hourPillar + '</small>', '<b class="' + callCls[x.call] + '">' + x.call + '</b> <small style="display:inline">' + esc(x.verdict) + ' · ' + esc(x.direction) + '</small>' +
+              (x.shenSha.stars.length ? '<div class="ss-chips">' + x.shenSha.stars.map(function (s) { return '<span class="tag' + (s.tone === 'good' ? ' on' : ' off') + '" title="' + esc(s.why) + '">' + s.cn + '</span>'; }).join('') + '</div>' : '') +
+              (x.wuBuYu ? '<div><small class="bad-t">Five Disharmony Hour</small></div>' : '')];
+          })) +
+          '<div class="hint">Act means the plate and your stars both support a move; Prepare means steady and get ready; Hold means do not escalate. ' +
+            'The Qimen reading uses the ' + esc(r.type.label.toLowerCase()) + ' symbols; your stars are weighted for what this crisis needs. Timing helps, but it never replaces professional, legal, financial or medical help.</div>'));
+    $('crType').onchange = function () { st.type = this.value; renderCrisis(host); };
+    $('crRefresh').onclick = function () { renderCrisis(host); };
+    // Live: re-read every minute while this screen is showing, and repaint when the hour window changes.
+    if (st.timer) clearInterval(st.timer);
+    st.timer = setInterval(function () {
+      if (current !== 'consult' || consultK !== 'crisis' || !document.getElementById('crType')) { clearInterval(st.timer); st.timer = null; return; }
+      var tt = now(), p = C.fourPillars(tt.y, tt.m, tt.d, tt.hour, tt.min);
+      if (p.hour.cn !== st.slot) renderCrisis(host);
+    }, 60000);
   }
   function renderNumbers() {
     var dt = now(), host = $('numbersBody');
@@ -10124,7 +10177,7 @@
       { label: 'BaZi Luck', s: 'chart', k: 'luck' }, { label: 'Zi Wei Periods', s: 'chart', k: 'zwperiods' },
       { label: 'Qimen Year and Month', s: 'chart', k: 'qmseason' }, { label: 'Cast Qimen', s: 'consult', k: 'qimen' }, { label: 'Zodiac', s: 'chart', k: 'zodiac' }, { label: 'Tong Shu', s: 'almanac', k: '' }] },
     { id: 'strategy', ic: '策', en: 'Strategy', cn: '策略', items: [
-      { label: 'Yijing', s: 'consult', k: 'yijing' }, { label: 'Six Lines', s: 'consult', k: 'liuyao' }, { label: 'Forecast', s: 'consult', k: 'forecast' }, { label: 'Oracle', s: 'consult', k: 'oracle' },
+      { label: 'Yijing', s: 'consult', k: 'yijing' }, { label: 'Six Lines', s: 'consult', k: 'liuyao' }, { label: 'Crisis', s: 'consult', k: 'crisis' }, { label: 'Forecast', s: 'consult', k: 'forecast' }, { label: 'Oracle', s: 'consult', k: 'oracle' },
       { label: 'Date Selection', s: 'consult', k: 'plan' }, { label: 'Formations', s: 'consult', k: 'search' }, { label: 'Structures', s: 'consult', k: 'structures' },
       { label: 'Windows', s: 'consult', k: 'strategy' }, { label: 'San Cai', s: 'consult', k: 'sancai' }, { label: 'Execution', s: 'consult', k: 'execution' },
       { label: 'Warcraft', s: 'consult', k: 'warcraft' }, { label: 'Counter', s: 'consult', k: 'counter' }, { label: '7 Stars', s: 'consult', k: 'sevenstar' },
