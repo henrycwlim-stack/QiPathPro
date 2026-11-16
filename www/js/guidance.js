@@ -66,9 +66,21 @@
 
     // 五不遇时: the day's one Five Disharmony Hour. Kept out of the best hours and flagged; it matters most when choosing a time.
     var wby = S.disharmony(p.day.stem, p.hour.stem, p.hour.branch);
+    // 天乙貴人: the day's Nobleman hour, and the person's own (from their birth day stem).
+    var dayNoble = S.noblemen(p.day.stem).some(function (n) { return n.branch === p.hour.branch; });
+    var myNoble = !!(profile && profile.pillars) && S.noblemen(profile.pillars.day.stem).some(function (n) { return n.branch === p.hour.branch; });
+    var dayHorse = S.horseOf(p.day.branch).branch === p.hour.branch;
+    var myHorse = !!(profile && profile.pillars) && S.myHorses(profile.pillars).some(function (h) { return h.branch === p.hour.branch; });
+    if (dayHorse || myHorse) dos.push('travel, a move, a sales call or sending something out — this is ' +
+      (dayHorse && myHorse ? 'both the day\'s and your own' : dayHorse ? 'the day\'s' : 'your own') + ' Travelling Horse hour (驛馬)');
+    if (dayNoble || myNoble) {
+      score = Math.min(10, score + 1);
+      dos.unshift('ask for help, an introduction or a favour — this is ' + (dayNoble && myNoble ? 'both the day\'s and your own' : dayNoble ? 'the day\'s' : 'your own') +
+        ' Heavenly Nobleman hour (天乙貴人)');
+    }
     if (wby) { score = Math.max(0, score - 3); avoid.unshift('starting anything important — this is the day\'s Five Disharmony Hour (五不遇时), when the hour stem ' + wby.hour + ' attacks the day stem ' + wby.day); }
     return {
-      pillars: p, qimen: q, score: score, wuBuYu: wby,
+      pillars: p, qimen: q, score: score, wuBuYu: wby, noble: dayNoble, myNoble: myNoble, horse: dayHorse, myHorse: myHorse,
       label: score >= 7 ? 'Favourable' : score >= 4 ? 'Mixed' : 'Guard',
       hourPillar: p.hour, range: p.hourRange,
       gate: gate, gateEn: duty.gateEn, star: duty.star, spirit: duty.spirit,
@@ -89,6 +101,7 @@
       var xiu = global.QPXiu && r.pillars ? global.QPXiu.hourMansion(r.pillars) : null;
       out.push({ branch: b, branchCn: C.BRANCHES[b], range: C.HOUR_RANGE[b], xiu: xiu, timing: r.score + (xiu ? (xiu.auspicious ? 0.5 : -0.5) : 0),
                  score: r.score, gate: r.gate, gateEn: r.gateEn, label: r.label, pillar: r.pillars ? r.pillars.hour.cn : '',
+                 noble: !!r.noble, myNoble: !!r.myNoble, horse: !!r.horse, myHorse: !!r.myHorse,
                  // The 子 slot starts at 23:00, which belongs to the next day; this day's own 子 hour is 00:00-00:59.
                  wuBuYu: !!r.wuBuYu || (b === 0 && !!S.disharmony.apply(null, (function () { var q = C.fourPillars(dt.y, dt.m, dt.d, 0, 30); return [q.day.stem, q.hour.stem, q.hour.branch]; })())),
                  direction: r.bestDirection });
@@ -133,6 +146,8 @@
       mansionSuitable: mansion.suitable || [], mansionUnsuitable: mansion.unsuitable || []
     };
 
+    var horseDay = !!(profile && profile.pillars) && S.myHorses(profile.pillars).some(function (h) { return h.branch === p.day.branch; });
+    if (horseDay) dos.push('travel, relocation, a job move or new outreach — today is your Travelling Horse day (驛馬)');
     var clashAnimal = C.ZODIAC[C.branchClash(p.day.branch)];
     if (profile && profile.zodiacBranch !== undefined) {
       if (p.day.branch === C.branchClash(profile.zodiacBranch)) {
@@ -156,7 +171,7 @@
       pillars: p, lunar: lunar, officer: off, mansion: mansion, duty: duty,
       hexagram: hexagram, score: score, classical: classical,
       label: score >= 68 ? 'Strong day' : score >= 45 ? 'Workable day' : 'Low-key day',
-      clashAnimal: clashAnimal,
+      clashAnimal: clashAnimal, horseDay: horseDay, horse: S.horseOf(p.day.branch),
       voids: C.voidBranches(p.day.i).map(function (b) { return C.BRANCHES[b]; }),
       do: dos.slice(0, 5), avoid: avoid.slice(0, 5),
       hours: hours, bestHours: ranked.slice(0, 3), worstHours: ranked.slice(-2),

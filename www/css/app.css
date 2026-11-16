@@ -954,3 +954,11 @@ a[data-la]{color:inherit;text-decoration:underline dotted;text-underline-offset:
 .hours .hr.wby{outline:1px dashed var(--cinnabar);outline-offset:-2px}
 .hours .hr.wby .b i{font-style:normal;color:var(--cinnabar);font-size:.7em;margin-left:2px}
 .wby-note{margin-top:8px}
+
+/* 天乙貴人 on the hour strip */
+.hours .hr.noble{box-shadow:inset 0 0 0 1px var(--brass)}
+.hours .hr .b i.nb{font-style:normal;color:var(--brass);font-size:.7em;margin-left:2px}
+.noble-note{margin-top:6px}
+
+.hours .hr .b i.hs{font-style:normal;color:var(--celadon);font-size:.62em;margin-left:2px}
+.horse-note{margin-top:6px}

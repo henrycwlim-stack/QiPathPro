@@ -49,6 +49,17 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.16 — Heavenly Nobleman 天乙貴人 and Travelling Horse 驛馬 in daily timing
+Version folder 10.16.0 (versionCode 72), copied from 10.15.0. Both stars were already in the BaZi chart's Shen Sha; they now drive
+the day as well.
+- **天乙貴人:** the day's Nobleman hours from the day stem (甲戊庚 丑未, 乙己 子申, 丙丁 亥酉, 辛 午寅, 壬癸 卯巳) and the person's own from
+  their Day Master, each with its hour and compass direction. The Now screen marks them ★ on the hour strip with a note; the current
+  hour gains a point and an 'ask for help' line when it is one; Tong Shu › Day lists both.
+- **驛馬:** the day's Horse hour from the day branch's group (申子辰 寅, 寅午戌 申, 巳酉丑 亥, 亥卯未 巳) and the person's own from their
+  year and day branches. Marked 馬 on the hour strip with a note, flagged on the current hour, listed in Tong Shu › Day, and a
+  'your Travelling Horse day' line on days whose branch is the person's Horse.
+- Checked across a full 60-day cycle against both tables.
+
 ### 10.15 — Shen Sha 神煞 in the BaZi module
 Version folder 10.15.0 (versionCode 71), copied from 10.14.0.
 - **33 stars**, up from 15. New: 天德合, 月德合, 國印貴人, 天醫, 學堂, 福星貴人, 天赦, 紅艷, 紅鸞, 天喜, 魁罡, 金神, 災煞, 天羅, 地網,

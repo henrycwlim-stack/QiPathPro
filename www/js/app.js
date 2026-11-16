@@ -561,6 +561,27 @@
   }
 
   /* ---------------- screens ---------------- */
+  /** The day's and the person's own Heavenly Nobleman hours, with directions. */
+  function nobleList(stem) {
+    return S.noblemen(stem).map(function (n) { return n.branchCn + ' ' + n.range + ' (' + n.dir + ')'; }).join(' and ');
+  }
+  function nobleNote(dayStem, h) {
+    var mine = user && user.pillars ? user.pillars.day.stem : null;
+    return '<div class="hint noble-note"><b>天乙貴人 Heavenly Nobleman hours today:</b> ' + nobleList(dayStem) + ', from the ' + C.STEMS[dayStem] + ' day. ' +
+      (mine !== null ? 'Your own, from your ' + C.STEMS[mine] + ' Day Master: ' + nobleList(mine) + '. ' : '') +
+      'Use these hours to ask for help, meet decision-makers or make introductions, and face the direction shown when you do.' +
+      (h && (h.noble || h.myNoble) ? ' <b class="good-t">The current hour is one of them.</b>' : '') + '</div>';
+  }
+  /** The day's and the person's own Travelling Horse hours, with directions. */
+  function horseText(x) { return x.branchCn + ' ' + x.range + ' (' + x.dir + ')'; }
+  function horseNote(d, h) {
+    var day = S.horseOf(d.pillars.day.branch), mine = user && user.pillars ? S.myHorses(user.pillars) : [];
+    return '<div class="hint horse-note"><b>驛馬 Travelling Horse today:</b> ' + horseText(day) + ', from the ' + C.BRANCHES[d.pillars.day.branch] + ' day. ' +
+      (mine.length ? 'Yours, from your year and day branches: ' + mine.map(horseText).join(' and ') + '. ' : '') +
+      'Good hours and directions for travel, moving, outreach and anything that needs to get going.' +
+      (d.horseDay ? ' <b class="good-t">Today is your own Horse day.</b>' : '') +
+      (h && (h.horse || h.myHorse) ? ' <b class="good-t">The current hour is a Horse hour.</b>' : '') + '</div>';
+  }
   function renderNow() {
     var dt = now();
     var h = G.hourly(dt, user);
@@ -570,15 +591,16 @@
     var strip = '<div class="hours">' + d.hours.map(function (x) {
       var cls = x.score >= 7 ? 'g' : x.score >= 4 ? 'm' : 'b';
       var isNow = x.branch === h.pillars.hourBranch;
-      return '<div class="hr ' + cls + (isNow ? ' now' : '') + (x.wuBuYu ? ' wby' : '') + '"' + (x.wuBuYu ? ' title="Five Disharmony Hour 五不遇时"' : '') + '>' +
-             '<div class="b">' + x.branchCn + (x.wuBuYu ? '<i>✕</i>' : '') + '</div>' +
+      return '<div class="hr ' + cls + (isNow ? ' now' : '') + (x.wuBuYu ? ' wby' : '') + (x.noble || x.myNoble ? ' noble' : '') + '"' +
+             (x.wuBuYu ? ' title="Five Disharmony Hour 五不遇时"' : x.noble || x.myNoble ? ' title="Heavenly Nobleman hour 天乙貴人"' : '') + '>' +
+             '<div class="b">' + x.branchCn + (x.wuBuYu ? '<i>✕</i>' : '') + (x.noble || x.myNoble ? '<i class="nb">★</i>' : '') + (x.horse || x.myHorse ? '<i class="hs">馬</i>' : '') + '</div>' +
              '<div class="s">' + x.range.slice(0, 5) + '</div>' +
              '<div class="bar" style="width:' + (x.score * 10) + '%"></div></div>';
     }).join('') + '</div>' + (function () {
       var w = S.wuBuYuHour(d.pillars.day.stem);
       return '<div class="hint wby-note"><b>五不遇时 Five Disharmony Hour today:</b> ' + w.branchCn + ' ' + w.range + ' (' + w.pillar + ' on a ' + C.STEMS[d.pillars.day.stem] + ' day). ' +
         'The hour stem attacks the day stem with the same polarity, so plans started then tend to meet resistance. Choose another hour for anything important.' +
-        (h.wuBuYu ? ' <b class="bad-t">That is the current hour.</b>' : '') + '</div>';
+        (h.wuBuYu ? ' <b class="bad-t">That is the current hour.</b>' : '') + '</div>' + nobleNote(d.pillars.day.stem, h) + horseNote(d, h);
     })();
 
     var q = h.qimen;
@@ -662,6 +684,10 @@
             ['Solar term', d.term.name + ' <small>' + d.term.en + '</small>'],
             ['Clashes', d.clashAnimal + ' <small>people of this sign take extra care</small>'],
             ['Void branches', d.voids.join(' ') + ' <small>matters begun here tend not to hold</small>'],
+            ['Heavenly Nobleman 天乙貴人', nobleList(p.day.stem).replace(/ and /g, '<br>') + '<small>the day\'s Nobleman hours and directions; ' +
+              'good for asking help and meeting decision-makers' + (user && user.pillars ? '. Yours: ' + nobleList(user.pillars.day.stem) : '') + '</small>'],
+            ['Travelling Horse 驛馬', horseText(S.horseOf(p.day.branch)) + '<small>the day\'s Horse hour and direction; good for travel, moves and outreach' +
+              (user && user.pillars ? '. Yours: ' + S.myHorses(user.pillars).map(horseText).join(' and ') + (d.horseDay ? '. Today is your Horse day' : '') : '') + '</small>'],
             ['Five Disharmony Hour 五不遇时', (function () { var w = S.wuBuYuHour(p.day.stem); return w.pillar + ' <small>' + w.range +
               ' · the hour stem attacks the day stem; avoid it for anything important</small>'; })()],
             ['Day sound', p.day.nayin]

@@ -525,6 +525,26 @@
   // The classical table names one hour for each day stem: 甲庚午 乙辛巳 丙壬辰 丁癸卯 戊甲寅 己乙丑 庚丙子 辛丁酉 壬戊申 癸己未.
   // The stem rule alone would also catch 己日乙亥 and 庚日丙戌, so the hour branch is checked when it is known.
   var WU_BU_YU_BRANCH = [6, 5, 4, 3, 2, 1, 0, 9, 8, 7];
+  /* 天乙貴人: the Heavenly Nobleman branches of a day stem (甲戊庚 丑未, 乙己 子申, 丙丁 亥酉, 辛 午寅, 壬癸 卯巳).
+   * Each branch gives an hour and a compass direction, read from the branch's place on the 24 mountains. */
+  var NOBLE_BRANCHES = { 0: [1, 7], 4: [1, 7], 6: [1, 7], 1: [0, 8], 5: [0, 8], 2: [11, 9], 3: [11, 9], 7: [6, 2], 8: [3, 5], 9: [3, 5] };
+  var BRANCH_DIR = ['north', 'north-north-east', 'east-north-east', 'east', 'east-south-east', 'south-south-east',
+    'south', 'south-south-west', 'west-south-west', 'west', 'west-north-west', 'north-north-west'];
+  function noblemen(dayStem) {
+    return (NOBLE_BRANCHES[dayStem] || []).slice().sort(function (a, b) { return a - b; }).map(function (b) {
+      return { branch: b, branchCn: C.BRANCHES[b], range: C.HOUR_RANGE[b], dir: BRANCH_DIR[b], bearing: b * 30 };
+    });
+  }
+  /* 驛馬: the Travelling Horse of a branch's group of three (申子辰 寅, 寅午戌 申, 巳酉丑 亥, 亥卯未 巳), with its hour and direction. */
+  function horseOf(branch) {
+    var b = [8, 0, 4].indexOf(branch) >= 0 ? 2 : [2, 6, 10].indexOf(branch) >= 0 ? 8 : [5, 9, 1].indexOf(branch) >= 0 ? 11 : 5;
+    return { branch: b, branchCn: C.BRANCHES[b], range: C.HOUR_RANGE[b], dir: BRANCH_DIR[b], bearing: b * 30 };
+  }
+  /** A person's own Horse branches: from the year branch and the day branch (one or two). */
+  function myHorses(pillars) {
+    var out = [horseOf(pillars.year.branch), horseOf(pillars.day.branch)];
+    return out[0].branch === out[1].branch ? [out[0]] : out;
+  }
   /** The day's Five Disharmony Hour: its branch and pillar. */
   function wuBuYuHour(dayStem) {
     var b = WU_BU_YU_BRANCH[dayStem], s = (((dayStem % 5) * 2) + b) % 10;
@@ -1478,7 +1498,7 @@
     zwdsPeriod: zwdsPeriod, zwdsDecades: zwdsDecades, SIHUA: SIHUA, HUA: HUA, STAR_TONE: STAR_TONE,
     brightness: brightness, BRIGHT: BRIGHT, BRIGHT_EN: BRIGHT_EN, starEffect: starEffect,
     placeMinors: placeMinors, MINOR_EN: MINOR_EN, MINOR_ABBR: MINOR_ABBR, MINOR_TONE: MINOR_TONE,
-    wuBuYuHour: wuBuYuHour, qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
+    wuBuYuHour: wuBuYuHour, noblemen: noblemen, horseOf: horseOf, myHorses: myHorses, qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
     TRIGRAMS: TRIGRAMS, TRI_EN: TRI_EN,
     strengthOf: strengthOf, STRENGTH: STRENGTH, starSeason: starSeason, STAR_STAGE: STAR_STAGE, hostGuest: hostGuest, hostGuestRead: hostGuestRead, doorSeason: doorSeason, doorPalace: doorVsPalace, disharmony: disharmony, nobleGrave: nobleGrave, horsePalace: horsePalace, forecastRules: forecastRules, HEALTH_CARE: HEALTH_CARE,
     annualStar: annualStar, monthStar: monthStar, flyingStars: flyingStars,
