@@ -6942,6 +6942,17 @@
     'Phase 3 · Yield': { what: 'Where the profit is (the Life Door 生门) and how easily it reaches your capital.',
       read: 'High yield: profit flows to you. High effort: you have to work the position. Frictional: costs eat the margin. Zero: the Life Door is void, so expected returns may not arrive.',
       words: [['Life Door 生門', 'the door of growth, profit and yield.'], ['Produces / controls', 'in the five elements, wood feeds fire, fire feeds earth, earth feeds metal, metal feeds water and water feeds wood; each controls the one two steps on.']] },
+    'Who is moving the market': { what: 'The deity next to the profit (Life Door) and next to your capital (戊) shows who is moving prices and how.',
+      read: 'Green deities are smart money (quiet buying, deep value, big institutions). Red ones are traps (manipulation, fraud). The rest are movers (deals, hype peaks, attacks). The Black Tortoise cancels every bullish sign. In a Rob Wealth year or luck pillar it becomes a fraud lockdown.',
+      words: [['Eight Deities 八神', 'eight spirits on the plate showing hidden forces: backing, deception, alliances, attack.'], ['Rob Wealth 劫財', 'the Ten God of rivals and peers taking your money; its periods bring fear of missing out and scams.'],
+        ['Black Tortoise 玄武', 'the deity of theft, deception and illusions.']] },
+    'Crash protocol': { what: 'What to do in a crash: survive the White Tiger, wait for the Chief to build a floor, then re-enter when the Nine Heavens arrives with a good door.',
+      read: 'The White Tiger over your money in a falling market is the danger sign; with a Seven Killings period it becomes the leveraged trap. The Chief\'s hours are when to restructure. The Nine Heavens with the Open or Life Door is the signal to start re-entering.',
+      words: [['White Tiger 白虎', 'the deity of force, injury and violent falls.'], ['Seven Killings 七殺', 'the Ten God of pressure and aggression: the urge to fight back with leverage.'],
+        ['Chief 值符', 'the leading deity: authority, backing, protection.'], ['Nine Heavens 九天', 'the deity of bold upward movement.']] },
+    'Nine Earth accumulation': { what: 'Nine Earth with the profit or capital is the quiet, boring stage when patient money buys at a discount, before a breakout.',
+      read: 'Accumulation is confirmed when capital (戊) is in season and not void or in its tomb. Buy slowly with limit orders. When the Nine Heavens or the Traveling Horse reaches the same palace, switch to following the trend.',
+      words: [['Nine Earth 九地', 'the deity of depth, concealment and stability.'], ['Traveling Horse 驛馬', 'the sign of movement and travel; it brings things into motion.'], ['ATR', 'average true range: a measure of how much the price swings.']] },
     'Strategy patterns': { what: 'Classic combinations of a door, a deity and a star in one box, each suiting a trading or investing style.',
       read: 'A full match (3 of 3) is a strong traditional signal for that style; 2 of 3 is partial. A pattern in a void box, or when capital is blocked, does not count.',
       words: [['Door', 'the type of action (Harm Door: cutting in fast; Death Door: endings and bottoms; Rest Door: passive income).'],
@@ -6999,7 +7010,10 @@
       'Verdict for this ' + (tech ? 'two-hour period' : 'day') + ': ' + r.verdict.toLowerCase() + '.',
       cap.status === 'SECURE' ? 'Your capital (戊) is clear this period: no trap, lock-up or pressure on it.' :
         (cap.status === 'BLOCKED' ? 'Capital is blocked this period. ' : 'Capital needs care this period. ') + cap.alerts.map(function (a) { return a.title + ': ' + a.text; }).join(' '),
+      r.lockdown ? 'Fraud lockdown: a Rob Wealth period meets the Black Tortoise over your ' + r.lockdown.at.join(' and ') + '. Send no money and treat every new opportunity as a likely scam.' :
+        r.fraudAt.length ? 'The Black Tortoise (fraud signal) sits over your ' + r.fraudAt.join(' and ') + ': stand aside whatever else looks good.' : '',
       'Profit: ' + y.text,
+      r.deities.life ? 'At the profit palace: ' + r.deities.life.title.toLowerCase() + ' (' + r.deities.life.deity + '). ' + r.deities.life.action : '',
       bestS && bestS.score >= 60 ? 'Pattern: "' + bestS.name + '" forms in the ' + bestS.palace + ' (' + bestS.matched + ' of 3).' : 'No ' + (tech ? 'trading' : 'investing') + ' pattern forms strongly this period.',
       life ? 'The profit centre is ' + life.sector.split(':')[0].toLowerCase() + ' (' + life.star + ', ' + life.season + ')' + (life.status !== 'OK' ? ', but it is flagged ' + life.status.replace(/_/g, ' ').toLowerCase() : '') + '.' : '',
       topSec ? 'Best fit for you overall: ' + topSec.sector.split(':')[0].toLowerCase() + ' (' + topSec.fit.toLowerCase() + ').' : '',
@@ -7017,6 +7031,93 @@
           : '<div class="plain">No void, tomb or 庚 pressure on your capital.</div>')) +
       block('Phase 3 · Yield 生门', y.palace ? 'Life Door in the ' + y.palace + ' palace (' + y.element + ')' : 'not placed',
         '<div class="plain">Status: <b class="' + stCls(y.status) + '">' + y.status.replace(/_/g, ' ') + '</b>. ' + esc(y.text) + '</div>') +
+      (function () {
+        var D = r.deities, card = function (label, d) {
+          if (!d) return [label, '<small>Not placed.</small>'];
+          var cls = d.group === 'trap' ? 'bad-t' : d.group === 'smart' ? 'good-t' : '';
+          return [label + '<small>' + d.deity + (d.shown !== d.deity ? ' (shown as ' + d.shown + ')' : '') + ' · ' + esc(d.en) + ' · ' + esc(d.palace) + '</small>',
+            '<b class="' + cls + '">' + esc(d.title) + '</b> <small style="display:inline">' + d.code + '</small><div class="plain">' + esc(d.market) + '</div><div class="plain"><b>What to do:</b> ' + esc(d.action) + '</div>' +
+            (d.combo ? '<small>Stems here: ' + esc(d.combo) + '</small>' : '')];
+        };
+        var lock = r.lockdown ? '<div class="notice" style="margin-bottom:8px"><b>Fraud lockdown.</b> A Rob Wealth (劫财) period, from ' + esc(r.lockdown.rob.join(' and ')) + ', meets the Black Tortoise (玄武) over your ' +
+          esc(r.lockdown.at.join(' and ')) + ' in the ' + esc(r.lockdown.palace) + '. Treat any new opportunity as a likely scam:<ul class="cr-plan" style="margin-top:6px">' +
+          ['Send no money and approve no transfers, wallet connections or smart-contract permissions.',
+           'Be most wary of tips from friends, groups, "exclusive" networks, MLM structures and influencers: that is the route this pattern uses.',
+           'If it looks like a flawless inefficiency or a guaranteed yield, assume it is the trap.',
+           'Check the platform is licensed with your financial regulator before anything else.',
+           'Review anything you already hold in the flagged sector, and talk to an adviser before acting.'].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'
+          : r.robWealth ? '<div class="plain" style="margin-bottom:8px"><b class="bad-t">Rob Wealth period</b> (' + esc(r.robWealth.join(', ')) + '): you are more open to scams, fear of missing out and "exclusive" tips. Slow every decision down.</div>' : '';
+        // The Chief's override: zero-trust verification, the Chief's time-lock, the Chief's direction, and a whitelist.
+        var secLock = r.sectors.filter(function (s) { return s.status === 'HARD_LOCKDOWN'; });
+        var zt = '';
+        if (r.lockdown || secLock.length) {
+          var cpz = areasSafe(function () { return window.QPInvest.crashProtocol(user, t, opts); });
+          var nextChief = cpz && cpz.chiefHours.filter(function (h) { return h.label.indexOf('Now') !== 0; })[0];
+          zt = '<div class="panel" style="margin-bottom:8px"><b>The Chief\'s override 值符: zero trust</b>' +
+            (secLock.length && !r.lockdown ? '<div class="plain" style="margin-top:4px">Critical fraud alert in ' + esc(secLock.map(function (s) { return s.star + ' ' + s.sector.split(':')[0]; }).join('; ')) + ': a Rob Wealth period meets the Black Tortoise there.</div>' : '') +
+            '<div class="plain" style="margin-top:6px"><b>Act like an auditor, not a buyer.</b> Before any money moves, the opportunity must pass all three:</div>' +
+            '<ol class="cr-plan"><li>Are its accounts audited by a recognised, independent firm?</li><li>Is it licensed and supervised by a real regulator (for example the SEC, the FCA or MAS), which you have checked on the regulator\'s own website?</li>' +
+            '<li>Is the money held by a regulated, named custodian, not by the promoter or an anonymous wallet?</li></ol>' +
+            '<div class="plain">If any answer is no or unclear, the answer is no. Stop.</div>' +
+            xkRows([
+              ['Time-lock', nextChief ? '<div class="plain">Wait at least until the next Chief hour, <b>' + esc(nextChief.label) + '</b> (' + nextChief.pillar + '), before deciding. Urgency is the trap; a real opportunity survives a wait.</div>'
+                : '<div class="plain">Wait at least a day before deciding. Urgency is the trap; a real opportunity survives a wait.</div>'],
+              ['Face the Chief', cpz && cpz.chiefNow ? '<b>' + esc(cpz.chiefNow.dir) + '</b><div class="plain">Face this way when you review the pitch, say no, or exit.</div>' : '—'],
+              ['Allowed meanwhile', '<div class="plain">Only what the Chief stands for: government T-bills and bonds, top-rated bonds and the largest, regulated market leaders. Nothing over the counter, decentralised or micro-cap.</div>']
+            ]) + '</div>';
+        }
+        return block('Who is moving the market 八神', 'the deities at profit and at capital',
+          lock + zt + xkRows([card('At profit (生门)', D.life), card('At capital (戊)', D.capital)]) +
+          '<div class="hint">Smart money: 太阴, 九地, 值符. Traps: 螣蛇, 玄武 (the Black Tortoise overrides every bullish sign). Movers: 六合, 九天, 白虎. On Yang plates the 白虎 and 玄武 slots are shown as 勾陈 and 朱雀.</div>');
+      })() +
+      (function () {
+        var cp = areasSafe(function () { return window.QPInvest.crashProtocol(user, t, opts); });
+        if (!cp) return '';
+        var PH = { TIGER: 'White Tiger: survive', CHIEF_FLOOR: 'Chief: the floor is forming', WAITING: 'Waiting for the floor' };
+        var li = function (a) { return '<ul class="cr-plan" style="margin-top:6px">' + a.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; };
+        var cv = cp.convergence, conv = cv ? '<div class="notice" style="margin-bottom:8px"><b>Leveraged trap: ' + (cv.mode === 'HARD_LOCKDOWN' ? 'lockdown' : 'disciplined mode') + '.</b> The White Tiger sits over your ' +
+            esc(cv.at.join(' and ')) + ' in a falling market, in a Seven Killings (七杀) period, from ' + esc(cv.sk.join(' and ')) + ',' + (cv.mode === 'HARD_LOCKDOWN' ? ' your chart does not carry well.' : ' a strong chart can carry.') +
+            (cv.mode === 'HARD_LOCKDOWN' ? li(['Cut margin and leveraged positions now; never add margin to a losing position.', 'Do not try to short the crash.', 'Move what is exposed to cash or T-bills until the Tiger has passed.'])
+              : li(['Never add margin to a losing position: the Seven Killings urge to fight back is the trap.', 'A hedge or short only inside a plan with a fixed, affordable maximum loss and no leverage you cannot cover.', 'Stepping aside in cash is still a sound choice.'])) + '</div>'
+          : '<div class="plain" style="margin-bottom:8px">' + (cp.tigerAt.length ? 'The White Tiger sits over your ' + esc(cp.tigerAt.join(' and ')) + ' this hour.' : 'No White Tiger over your capital or profit this hour.') +
+            (cp.sevenKillings ? ' Seven Killings period, from ' + esc(cp.sevenKillings.join(' and ')) + ': beware the urge to fight the market with leverage.' : '') + (cp.falling ? '' : ' The lockdown applies when you set the market trend to Falling.') + '</div>';
+        return block('Crash protocol 白虎 → 值符 → 九天', 'survive, find the floor, then re-enter',
+          '<div class="verdictbar"><span class="big ' + (cp.phase === 'TIGER' ? 'bad' : 'mid') + '">' + PH[cp.phase] + '</span><span class="sub">' +
+            (cp.stabilised ? 'The Chief anchors capital on the day plate' : 'The Chief is not over capital on the day plate') + '</span></div>' + conv +
+          '<h3 style="margin:12px 0 6px;font-size:.9rem">The Chief\'s countermeasures</h3>' +
+          xkRows([
+            ['Restructure in the Chief\'s hour', cp.chiefHours.length ? cp.chiefHours.map(function (h) { return '<div><b>' + esc(h.label) + '</b> <small style="display:inline">' + h.pillar + ' · over ' + esc(h.over) + ' · face ' + esc(h.dir) + (h.isVoid ? ' · void' : '') + '</small></div>'; }).join('') +
+              '<div class="plain">Make exits, hedges and changes in these hours, when the big players supply liquidity.</div>' : '<div class="plain">No Chief hour over your capital or Day Stem in the next day.</div>'],
+            ['Face the Chief', cp.chiefNow ? '<b>' + esc(cp.chiefNow.dir) + '</b><div class="plain">Face this way when you log in and make changes: a steady, in-command posture instead of panic.</div>' : '—'],
+            ['Flight to quality', '<div class="plain">Move exposed money towards what the Chief stands for: government T-bills and bonds, and the largest, cash-rich market leaders.</div>'],
+            ['Financial Dun Jia 遁甲', '<div class="plain">Hide the commander: move principal out of harm\'s way: insured deposits, fixed-term deposits, and crypto into your own cold storage, off exchanges that could freeze.</div>']
+          ]) +
+          '<h3 style="margin:12px 0 6px;font-size:.9rem">The handoff to the Nine Heavens</h3>' +
+          xkRows([
+            ['1 · Stabilised?', '<b class="' + (cp.stabilised ? 'good-t' : '') + '">' + (cp.stabilised ? 'Yes' : 'Not yet') + '</b><div class="plain">The White Tiger has left capital and the Chief anchors 戊 on the day plate. Until then capital is safe but stagnant: do not deploy aggressively.</div>'],
+            ['2 · Day gate', cp.dayGate ? '<b>' + esc(cp.dayGate.label) + '</b> <small style="display:inline">' + cp.dayGate.pillar + ' · 九天 with ' + cp.dayGate.door + ' · ' + esc(cp.dayGate.dir) + '</small>' : '<small>No day in the next two weeks.</small>'],
+            ['3 · Hour gate', cp.hourGate ? '<b>' + esc(cp.hourGate.label) + '</b> <small style="display:inline">' + cp.hourGate.pillar + ' · 九天 with ' + cp.hourGate.door + ' · ' + esc(cp.hourGate.dir) + '</small>' : '<small>No hour in the next two days.</small>'],
+            ['What to hold', '<div class="plain">On the Chief\'s floor: quality leaders and deep value (天心, 天任). After the Nine Heavens gate: rotate gradually towards growth (天英, 天冲), in thirds as in the all-clear plan.</div>']
+          ]) + '<div class="hint">The app cannot see prices or volatility; the gates are traditional timing to be confirmed by what the market is actually doing.</div>');
+      })() +
+      (function () {
+        var ne = areasSafe(function () { return window.QPInvest.nineEarth(user, t, opts); });
+        if (!ne) return '';
+        if (!ne.found) return block('Nine Earth accumulation 九地', 'the compressed spring', '<div class="plain">Nine Earth is not with the Life Door or with capital (戊) on the ' + (tech ? 'hour or day' : 'day') + ' plate now. No shadow accumulation set-up.</div>');
+        var stCls = ne.status === 'DEEP_VALUE_ACCUMULATION' ? 'good-t' : ne.status === 'REJECTED' ? 'bad-t' : '';
+        var cat = function (c) { return '<div><b>' + esc(c.label) + '</b> <small style="display:inline">' + esc(c.by) + '</small>' + (c.fake.length ? '<div><small class="bad-t">Fake-out risk: ' + esc(c.fake.join(', ')) + ' here. Keep a tight trailing stop.</small></div>' : '') + '</div>'; };
+        return block('Nine Earth accumulation 九地', 'the compressed spring before the breakout',
+          '<div class="verdictbar"><span class="big ' + (ne.status === 'DEEP_VALUE_ACCUMULATION' ? 'good' : ne.status === 'REJECTED' ? 'bad' : 'mid') + '">' + ne.status.replace(/_/g, ' ') + '</span>' +
+            '<span class="sub">九地 at ' + ne.at + ' · ' + esc(ne.palace) + ' · ' + ne.door + ' · ' + ne.plate + ' plate<br>戊 in season: ' + esc(ne.season) + '</span></div>' +
+          (ne.rejected.length ? '<div class="plain bad-t" style="margin:8px 0">' + esc(ne.rejected.join(' ')) + '</div>' : '') +
+          xkRows([
+            ['Sector', ne.sector ? ne.star + '<div class="plain">' + esc(ne.sector) + '</div>' : '<small>No sector star in this palace.</small>'],
+            ['Check the chart', '<div class="plain">Only valid if the price chart is flat and quiet: volatility (ATR) near a multi-month low. If the price is swinging hard, ignore the signal.</div>'],
+            ['How to buy', '<div class="plain">Limit orders only, never market orders. Spread purchases over days or weeks (time- or volume-weighted). Rest some limit orders below support to catch sharp dips.</div>'],
+            ['The catalyst', (ne.catalysts.length ? ne.catalysts.map(cat).join('') : '<small>No day in the next two weeks.</small>') + (ne.monthCatalyst ? cat(ne.monthCatalyst) : '') +
+              '<div class="plain">When the Nine Heavens or the Traveling Horse reaches this palace, stop accumulating, raise stops to break-even and follow the trend.</div>']
+          ]) + '<div class="hint">The Delusion Door is 杜门 in this app\'s naming (Joey Yap\'s); 惊门 (Jing Men) is the Fear Door. Both are treated as fake-out signs, with 螣蛇.</div>');
+      })() +
       block('Strategy patterns', tech ? 'the Guest: speed and momentum' : 'the Host: accumulation and endurance',
         xkRows(r.strategies.map(function (s) {
           return [esc(s.name) + '<small>' + s.cn + '</small>', '<b class="' + (s.score >= 60 ? 'good-t' : '') + '">' + s.matched + ' of 3 · score ' + s.score + '</b> <small style="display:inline">' + esc(s.palace) + '</small>' +
@@ -7028,6 +7129,7 @@
           return [(i === 0 ? '<b class="good-t">Top</b> ' : '') + s.star + (s.isLife ? ' <b class="good-t">生门</b>' : '') + '<small>' + esc(s.en) + ' · ' + s.element + '</small>',
             '<b class="' + stCls(s.status) + '">' + s.score + '</b> <small style="display:inline">' + esc(s.palace) + ' · ' + s.door + ' · ' + esc(s.season) + ' ×' + s.seasonMult + (s.role ? ' · ' + esc(s.role) + ' ×' + s.personal : '') + '</small>' +
             '<div class="plain">' + esc(s.sector) + '</div><small>' + esc(s.style) + ' Season: ' + esc(s.seasonRead) + '. ' + esc(s.fit) + '.</small>' +
+            (s.deity ? '<div><small class="' + (s.deity.group === 'trap' ? 'bad-t' : s.deity.group === 'smart' ? 'good-t' : '') + '">' + s.deity.deity + ' ' + esc(s.deity.title) + ': ' + esc(s.deity.action) + '</small></div>' : '') +
             (s.flags.length || s.status !== 'OK' ? '<div><small class="bad-t">' + esc([s.status !== 'OK' ? s.status.replace(/_/g, ' ') : ''].concat(s.flags).filter(Boolean).join(' · ')) + '</small></div>' : '')];
         })) + '<div class="hint">Score = door base (Life Door 100) × season (Prosperous 2.0, Strong 1.5, Weak 0.8, Trapped 0.5, Dead 0) × personal fit (favourable Wealth 2.0, Output 1.5, ' +
           'Resource 1.2, unfavourable 0). Star seasons follow the Smoky Fisherman\'s Song: a star is Prosperous when it produces the month\'s element.</div>') +

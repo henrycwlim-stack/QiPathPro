@@ -49,6 +49,24 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.28 — Invest: the Eight Deities, fraud lockdown, crash protocol and Nine Earth
+Version folder 10.28.0 (versionCode 87), copied from 10.27.0. Three new sections on Consult › Invest, and the deities in the sectors.
+- **Who is moving the market 八神:** the deity at the Life Door and at 戊, read as smart money (太阴 dark-pool accumulation, 九地 deep
+  value, 值符 market maker), traps (螣蛇 volatility trap, 玄武 fraud) or movers (六合 deals or crowded trades by the stem pair, 九天
+  blow-off, 白虎 attack), with what to do for each style. Each sector row shows its deity too. 玄武 at profit or capital overrides
+  every bullish sign; 螣蛇 removes a sector for value investors. Yang-plate 勾陈, 朱雀 and the spelling 腾蛇 are read as their slots.
+- **Fraud lockdown:** a Rob Wealth (劫财) year or luck pillar with 玄武 at profit or capital: send no money, approve no transfers or
+  contracts, distrust tips from peers and influencers. The Chief's override adds a zero-trust audit (independent audit, real
+  regulator, named custodian), a wait until the next Chief hour, the Chief's direction, and a whitelist of plain sovereign and
+  top-rated assets. A sector in 玄武's palace in a Rob Wealth period is a critical fraud alert.
+- **Crash protocol 白虎 → 值符 → 九天:** the White Tiger at profit or capital in a Seven Killings (七杀) period in a falling market
+  is the leveraged trap: lockdown for a chart that cannot carry 七杀; for one that can, a hedge only with a fixed maximum loss.
+  The Chief's hours over 戊 or the Day Stem for restructuring, its direction, flight to quality and financial Dun Jia. The handoff:
+  stabilised when the Chief anchors 戊 on the day plate, then the next Nine Heavens with the Open or Life Door, by day and by hour.
+- **Nine Earth accumulation 九地:** 九地 at profit or capital; rejected if 戊 is in its tomb or the palace is void; confirmed when
+  戊 is in season. Limit orders only, bought slowly; the catalyst is the Nine Heavens or the Traveling Horse reaching that palace
+  on a later day or month plate, with 杜门, 惊门 or 螣蛇 there as a fake-out warning.
+
 ### 10.27 — Invest: instruments, monthly circuit breaker, all-clear and audit log
 Version folder 10.27.0 (versionCode 86), copied from 10.26.0. Four new sections on Consult › Invest.
 - **Your instruments 十神:** the ten Ten Gods mapped to ten instrument types (safe haven, alternative, cash flow, windfall,

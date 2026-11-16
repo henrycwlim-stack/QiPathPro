@@ -164,6 +164,159 @@
     return out;
   }
 
+
+  /* ---------- the Eight Deities: who is moving the market, and how ----------
+   * Read for the deity sharing the Life Door's palace (profit) and 戊's palace (capital), and for each sector's palace.
+   * On Yang plates the 白虎 and 玄武 slots are shown as 勾陈 and 朱雀; the slot is what is read. */
+  var DEITY = {
+    '太阴': { en: 'Great Moon', group: 'smart', code: 'SHADOW_ACCUMULATE', title: 'The dark-pool signal',
+      market: 'Quiet accumulation: block trades and insiders buying while the price is held in a tight range.',
+      tech: 'No breakout yet; do not chase. If you trade it, build slowly and expect waiting.', value: 'Build a position slowly over time; expect a long wait before any mark-up.' },
+    '九地': { en: 'Nine Earth', group: 'smart', code: 'LONG_TERM_ACCUMULATE', title: 'The deep-value moat',
+      market: 'Bottomed out: volatility has died and patient money is buying at distressed prices.',
+      tech: 'Little momentum to trade here.', value: 'A multi-quarter accumulation: ignore short-term noise.' },
+    '值符': { en: 'Chief', group: 'smart', code: 'TREND_FOLLOW', title: 'The market maker',
+      market: 'Large institutions driving the trend in plain sight: the most liquid, best-backed setting.',
+      tech: 'Follow the trend with your normal position size and stops.', value: 'Quality assets with strong backing.' },
+    '螣蛇': { en: 'Soaring Snake', group: 'trap', code: 'CAUTION_TIGHTEN_STOPS', title: 'The volatility trap',
+      market: 'Spoofing, wash trading, fake catalysts and squeezes, built to trigger fear of missing out and stop-losses at once.',
+      tech: 'Do not trust the trend: halve holding times and keep stops tight.', value: 'Skip it entirely.', skipValue: true },
+    '玄武': { en: 'Black Tortoise', group: 'trap', code: 'FRAUD_FLAG', title: 'The fraud signal', fraud: true,
+      market: 'Deception: hidden debt, dilution, rug pulls, profits that are a mirage designed to catch incoming money.',
+      tech: 'Overrides every bullish signal: do not open a position; if you hold one, review it urgently.', value: 'Do not invest; if you hold, review the position urgently.' },
+    '六合': { en: 'Six Harmony', group: 'mover', code: 'DEAL_ARBITRAGE', title: 'Mergers and crowded trades',
+      market: 'Pending mergers, joint ventures or a crowded consensus trade.',
+      good: 'With favourable stems: a deal in the making; patience can be rewarded.', bad: 'With unfavourable stems: a crowded retail trade that institutions may dump.' },
+    '九天': { en: 'Nine Heavens', group: 'mover', code: 'TRAILING_STOP_TAKE_PROFIT', title: 'The parabolic blow-off',
+      market: 'Gone parabolic: hype at its peak, overbought.',
+      tech: 'Stop adding; protect gains with a tight trailing stop.', value: 'Do not buy at the peak; consider taking some profit.' },
+    '白虎': { en: 'White Tiger', group: 'mover', code: 'DEFEND_OR_HEDGE', title: 'The hostile attack',
+      market: 'Short-seller reports, hostile bids, forced liquidations and panic selling.',
+      tech: 'Downward momentum: stand aside, or hedge if that is part of your plan.', value: 'Step aside until the selling exhausts itself.' }
+  };
+  var SLOT_NAME = { '勾陈': '白虎', '朱雀': '玄武', '腾蛇': '螣蛇' };   // a Yang-plate name back to its slot; 腾蛇 is the plate's spelling of 螣蛇
+  function deityRead(x, style) {
+    if (!x || !x.spirit) return null;
+    var key = DEITY[x.spirit] ? x.spirit : SLOT_NAME[x.spirit], d = DEITY[key];
+    if (!d) return null;
+    var combo = global.QPData && global.QPData.stemCombo ? global.QPData.stemCombo(x.heavenStemCn, x.earthStemCn) : null;
+    var action = d.group === 'mover' && key === '六合' ? (combo && combo.rating === 'bad' ? d.bad : d.good) : (style === 'technical' ? d.tech : d.value);
+    return { deity: key, shown: x.spirit, en: d.en, group: d.group, code: d.code, title: d.title, market: d.market, action: action,
+      fraud: !!d.fraud, skip: style === 'value' && !!d.skipValue, combo: combo ? combo.cn + ' ' + combo.ratingEn : null, palace: x.dir };
+  }
+  /** A Rob Wealth (劫财) ten-year luck pillar or year for this person. */
+  function robWealthPeriod(user, pillars) {
+    if (!user || !user.pillars) return null;
+    var dm = user.pillars.day.stem, out = [], yr = pillars.year.stem;
+    if (C.tenGod(dm, yr).i === 1) out.push('this year (' + pillars.year.cn + ')');
+    var age = (pillars && user.birth) ? (new Date().getFullYear() - user.birth.y) : null;
+    (user.luck && user.luck.pillars || []).forEach(function (l) { if (age !== null && age >= l.from && age < l.to && C.tenGod(dm, l.pillar.stem).i === 1) out.push('your luck pillar ' + l.pillar.cn); });
+    return out.length ? out : null;
+  }
+
+
+  /* ---------- crash protocol: 白虎 → 值符 → 九天 ----------
+   * Convergence: the White Tiger at profit or capital, in a Seven Killings (七杀) luck pillar or year, in a falling market.
+   * Countermeasure: the hours when the Chief (值符) sits over 戊 or over the Day Stem, and its direction.
+   * Handoff: stabilised when the White Tiger has left capital and the Chief anchors 戊 on the day plate; the gate is the
+   * Nine Heavens with the Open or Life Door. */
+  function slotOf(x) { return x && x.spirit ? (SLOT_NAME[x.spirit] || x.spirit) : null; }
+  function tenGodPeriod(user, pillars, god) {
+    if (!user || !user.pillars) return null;
+    var dm = user.pillars.day.stem, out = [];
+    if (C.tenGod(dm, pillars.year.stem).i === god) out.push('this year (' + pillars.year.cn + ')');
+    var age = user.birth ? new Date().getFullYear() - user.birth.y : null;
+    (user.luck && user.luck.pillars || []).forEach(function (l) { if (age !== null && age >= l.from && age < l.to && C.tenGod(dm, l.pillar.stem).i === god) out.push('your luck pillar ' + l.pillar.cn); });
+    return out.length ? out : null;
+  }
+  function slotLabel(w, i) { return (i === 0 ? 'Now · ' : '') + w.toDateString().slice(0, 10) + ' · ' + pad(w.getHours() - (w.getHours() % 2 === 0 ? 1 : 0)) + ':00'; }
+  function hourAt(start, i) {
+    var w = new Date(start.getTime() + i * 7200000);
+    try { return { w: w, r: global.QPQimen.chartFor('hour', { y: w.getFullYear(), m: w.getMonth() + 1, d: w.getDate(), hour: w.getHours(), min: 30 }) }; } catch (e) { return null; }
+  }
+  function dayAt(t, k) {
+    var d = new Date(t.y, t.m - 1, t.d + k, 12);
+    try { return { w: d, r: global.QPQimen.chartFor('day', { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate(), hour: 12, min: 0 }) }; } catch (e) { return null; }
+  }
+  function crashProtocol(user, t, opts) {
+    var Q = global.QPQimen, g = godSets(user), start = new Date(t.y, t.m - 1, t.d, t.hour, 0);
+    var hr = Q.chartFor('hour', { y: t.y, m: t.m, d: t.d, hour: t.hour, min: t.min || 0 }), dy = Q.chartFor('day', { y: t.y, m: t.m, d: t.d, hour: 12, min: 0 });
+    var phH = phases(hr.chart, 'technical'), phD = phases(dy.chart, 'value');
+    var tigerAt = [phH.wu && slotOf(phH.wu) === '白虎' ? 'capital' : null, phH.life && slotOf(phH.life) === '白虎' ? 'profit' : null].filter(Boolean);
+    var sk = tenGodPeriod(user, hr.pillars, 6), falling = opts.trend === 'falling';
+    var canHold = g ? (g.strong && g.fav.indexOf(6) >= 0) : false;
+    var convergence = tigerAt.length && sk && falling ? { at: tigerAt, sk: sk, mode: canHold ? 'DISCIPLINED' : 'HARD_LOCKDOWN' } : null;
+    var chiefHours = [];
+    for (var i = 0; i < 12 && chiefHours.length < 3; i++) {
+      var h = hourAt(start, i); if (!h) continue;
+      var chief = pals(h.r.chart).filter(function (x) { return x.spirit === '值符'; })[0];
+      if (!chief) continue;
+      var ds = null; try { ds = Q.askerPalace(h.r.chart, h.r.pillars); } catch (e) {}
+      var overWu = heav(chief).indexOf('戊') >= 0, overYou = !!ds && num(ds) === num(chief);
+      if (overWu || overYou) chiefHours.push({ label: slotLabel(h.w, i), pillar: h.r.pillars.hour.cn, dir: chief.dir, isVoid: !!chief.isEmpty,
+        over: [overWu ? 'capital (戊)' : null, overYou ? 'your Day Stem' : null].filter(Boolean).join(' and ') });
+    }
+    var chiefNow = phH.P.filter(function (x) { return x.spirit === '值符'; })[0];
+    var tigerDay = !!(phD.wu && slotOf(phD.wu) === '白虎') || !!(phD.life && slotOf(phD.life) === '白虎');
+    var stabilised = !tigerDay && !!(phD.wu && phD.wu.spirit === '值符');
+    var nineGate = function (chart) { return pals(chart).filter(function (x) { return x.spirit === '九天' && (x.gate === '开门' || x.gate === '生门') && !x.isEmpty; })[0]; };
+    var dayGate = null, hourGate = null, k;
+    for (k = 0; k < 14 && !dayGate; k++) { var d = dayAt(t, k); if (!d) continue; var gx = nineGate(d.r.chart);
+      if (gx) dayGate = { label: d.w.toDateString().slice(0, 10), pillar: d.r.pillars.day.cn, dir: gx.dir, door: gx.gate }; }
+    for (k = 0; k < 24 && !hourGate; k++) { var hh = hourAt(start, k); if (!hh) continue; var hx = nineGate(hh.r.chart);
+      if (hx) hourGate = { label: slotLabel(hh.w, k), pillar: hh.r.pillars.hour.cn, dir: hx.dir, door: hx.gate }; }
+    var phase = tigerAt.length || tigerDay ? 'TIGER' : stabilised ? 'CHIEF_FLOOR' : 'WAITING';
+    return { tigerAt: tigerAt, sevenKillings: sk, falling: falling, canHold: canHold, convergence: convergence,
+      chiefNow: chiefNow ? { dir: chiefNow.dir, isVoid: !!chiefNow.isEmpty } : null, chiefHours: chiefHours, stabilised: stabilised,
+      dayGate: dayGate, hourGate: hourGate, phase: phase };
+  }
+
+  /* ---------- Nine Earth accumulation (九地): the compressed spring ----------
+   * Setup: 九地 with the Life Door or with 戊, on the style's plate or the day plate. Rejected if 戊 is in its tomb (Qian) or the
+   * palace is void. Confirmed when 戊 is in season (旺 or 相 by the stem rule). The catalyst: the Nine Heavens or the
+   * Traveling Horse arriving in that palace on a later day or month plate; 杜门 (Delusion), 惊门 (Fear) or 螣蛇 there make it a fake-out. */
+  var EARTH_SEASON = { 0: 'dead', 1: 'xiang', 2: 'wang', 3: 'xiu', 4: 'qiu' };   // 戊 (earth) by the month element: wood 死, fire 相, earth 旺, metal 休, water 囚
+  var MONTH_EL_IDX = [4, 2, 0, 0, 2, 1, 1, 2, 3, 3, 2, 4];
+  function nineEarth(user, t, opts) {
+    var Q = global.QPQimen, S = global.QPSystems, style = opts.style === 'value' ? 'value' : 'technical';
+    var cands = [];
+    var look = function (r, label) {
+      var ph = phases(r.chart, style);
+      [['profit', ph.life], ['capital', ph.wu]].forEach(function (p) { if (p[1] && p[1].spirit === '九地') cands.push({ at: p[0], x: p[1], ph: ph, r: r, plate: label }); });
+    };
+    try { look(Q.chartFor(style === 'technical' ? 'hour' : 'day', { y: t.y, m: t.m, d: t.d, hour: t.hour, min: t.min || 0 }), style === 'technical' ? 'hour' : 'day'); } catch (e) {}
+    if (style === 'technical') try { look(Q.chartFor('day', { y: t.y, m: t.m, d: t.d, hour: 12, min: 0 }), 'day'); } catch (e) {}
+    if (!cands.length) return { found: false };
+    var c = cands[0], wu = c.ph.wu, mEl = MONTH_EL_IDX[c.r.pillars.month.branch], season = EARTH_SEASON[mEl];
+    var rejected = [];
+    if (wu && num(wu) === 6) rejected.push('戊 is in its tomb (Qian, Northwest): dead or frozen, not accumulating.');
+    if (c.x.isEmpty) rejected.push('The palace is void: a value trap.');
+    var status = rejected.length ? 'REJECTED' : (season === 'wang' || season === 'xiang') ? 'DEEP_VALUE_ACCUMULATION' : 'RESTING';
+    var sector = stars(c.x).filter(function (s) { return SECTORS[s]; })[0];
+    // Catalyst: the Nine Heavens or the Horse arriving in this palace, on the next 14 day plates and the next 6 month plates.
+    var target = num(c.x), catalysts = [];
+    var check = function (r, label, branch) {
+      var P = pals(r.chart), x = P.filter(function (p) { return num(p) === target; })[0];
+      if (!x) return;
+      var horse = S && S.horseOf ? S.horseOf(branch) : null, horseHere = horse && (x.branches || []).indexOf(horse.branchCn) >= 0;
+      if (x.spirit === '九天' || horseHere) {
+        var fake = [x.gate === '杜门' ? '杜门 Delusion Door' : null, x.gate === '惊门' ? '惊门 Fear Door' : null, slotOf(x) === '螣蛇' || x.spirit === '螣蛇' ? '螣蛇' : null].filter(Boolean);
+        catalysts.push({ label: label, by: [x.spirit === '九天' ? 'Nine Heavens 九天' : null, horseHere ? 'Traveling Horse 驛馬' : null].filter(Boolean).join(' and '), fake: fake });
+      }
+    };
+    for (var k = 1; k <= 14 && catalysts.length < 2; k++) { var d = dayAt(t, k); if (d) check(d.r, d.w.toDateString().slice(0, 10) + ' (' + d.r.pillars.day.cn + ' day)', d.r.pillars.day.branch); }
+    var monthCat = null;
+    var P2 = global.QPPlanner, A = global.QPAstro;
+    if (P2 && A) P2.solarMonths({ y: t.y, m: t.m, d: t.d }).slice(1, 7).some(function (m) {
+      var md = A.jdToLocal(m.t0 + 7), r; try { r = Q.chartFor('month', { y: md.y, m: md.m, d: Math.floor(md.d), hour: 12, min: 0 }); } catch (e) { return false; }
+      var before = catalysts.length; check(r, r.pillars.month.cn + ' month (from ' + Math.floor(A.jdToLocal(m.t0).d) + '/' + A.jdToLocal(m.t0).m + ')', r.pillars.month.branch);
+      if (catalysts.length > before) { monthCat = catalysts.pop(); return true; } return false;
+    });
+    return { found: true, at: c.at, plate: c.plate, palace: c.x.dir, door: c.x.gate, star: sector || null, sector: sector ? SECTORS[sector].sector : null,
+      season: { wang: '旺 Prosperous', xiang: '相 Supported', xiu: '休 Resting', qiu: '囚 Trapped', dead: '死 Dead' }[season], status: status, rejected: rejected,
+      catalysts: catalysts, monthCatalyst: monthCat };
+  }
+
   /* ---------- the whole reading, and the windows ahead ---------- */
   function plateFor(style, dt) {
     var Q = global.QPQimen;
@@ -175,9 +328,19 @@
     var r = plateFor(style, dt), ch = r.chart, ph = phases(ch, style);
     var st = strategies(ch, style, ph, opts), sec = sectors(ch, ph, r.pillars, user);
     var bestS = st.slice().sort(function (a, b) { return b.score - a.score; })[0];
-    var verdict = ph.capital.status === 'BLOCKED' ? 'Stand aside' : ph.yield.status === 'ZERO' ? 'No real yield' : bestS && bestS.score >= 60 ? 'Favourable set-up' : 'Neutral';
+    var deities = { life: deityRead(ph.life, style), capital: deityRead(ph.wu, style) };
+    var rob = robWealthPeriod(user, r.pillars), fraudAt = [deities.capital && deities.capital.fraud ? 'capital' : null, deities.life && deities.life.fraud ? 'profit' : null].filter(Boolean);
+    var lockdown = rob && fraudAt.length ? { rob: rob, at: fraudAt, palace: fraudAt[0] === 'capital' ? ph.wu.dir : ph.life.dir } : null;
+    sec.forEach(function (s) {
+      var x = ph.P.filter(function (p) { return stars(p).indexOf(s.star) >= 0; })[0], d = deityRead(x, style);
+      s.deity = d;
+      if (d && d.fraud) { s.flags.push('Black Tortoise here: a fraud signal' + (rob ? ', and a Rob Wealth period makes it a lockdown' : '') + '.'); s.status = rob ? 'HARD_LOCKDOWN' : 'FRAUD_FLAG'; s.score = 0; }
+      else if (d && d.skip) { s.flags.push('Soaring Snake: a volatility trap; value investors skip it.'); s.status = 'SKIP'; s.score = 0; }
+    });
+    sec.sort(function (a, b) { return b.score - a.score; });
+    var verdict = lockdown ? 'Fraud lockdown' : fraudAt.length ? 'Stand aside' : ph.capital.status === 'BLOCKED' ? 'Stand aside' : ph.yield.status === 'ZERO' ? 'No real yield' : bestS && bestS.score >= 60 ? 'Favourable set-up' : 'Neutral';
     return { style: style, posture: style === 'technical' ? 'Guest 客 · hour plate' : 'Host 主 · day plate', chart: ch, pillars: r.pillars, phases: ph,
-      strategies: st, sectors: sec, verdict: verdict };
+      strategies: st, sectors: sec, verdict: verdict, deities: deities, robWealth: rob, lockdown: lockdown, fraudAt: fraudAt };
   }
   function windows(user, dt, opts, count) {
     var style = opts.style === 'value' ? 'value' : 'technical', step = style === 'technical' ? 7200000 : 86400000, n = count || (style === 'technical' ? 12 : 14);
@@ -322,5 +485,5 @@
     ];
   }
 
-  global.QPInvest = { instruments: instruments, monthsAhead: monthsAhead, allClearPlan: allClearPlan, godSets: godSets, INSTRUMENTS: INSTRUMENTS, THREAT: THREAT, read: read, windows: windows, phases: phases, sectors: sectors, strategies: strategies, SECTORS: SECTORS, STRATEGIES: STRATEGIES, SEASON_MULT: SEASON_MULT };
+  global.QPInvest = { crashProtocol: crashProtocol, nineEarth: nineEarth, tenGodPeriod: tenGodPeriod, DEITY: DEITY, deityRead: deityRead, robWealthPeriod: robWealthPeriod, instruments: instruments, monthsAhead: monthsAhead, allClearPlan: allClearPlan, godSets: godSets, INSTRUMENTS: INSTRUMENTS, THREAT: THREAT, read: read, windows: windows, phases: phases, sectors: sectors, strategies: strategies, SECTORS: SECTORS, STRATEGIES: STRATEGIES, SEASON_MULT: SEASON_MULT };
 })(typeof window !== 'undefined' ? window : globalThis);
