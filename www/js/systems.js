@@ -545,6 +545,46 @@
     var out = [horseOf(pillars.year.branch), horseOf(pillars.day.branch)];
     return out[0].branch === out[1].branch ? [out[0]] : out;
   }
+
+  /* ---------- Shen Sha for tactical timing ----------
+   * The stars an hour carries, read from the candidate day and from the person's own chart, weighted by what they want to do.
+   * Helpful stars add to a Qimen window's score and hostile ones take away; the Qimen plate still decides the palace and the door. */
+  var SS_ACADEMIC = { 0:5, 1:6, 2:8, 4:8, 3:9, 5:9, 6:11, 7:0, 8:2, 9:3 };
+  var SS_PROSPER = { 0:2, 1:3, 2:5, 4:5, 3:6, 5:6, 6:8, 7:9, 8:11, 9:0 };
+  var SS_PEACH = { water:9, fire:3, metal:6, wood:0 }, SS_ROBBERY = { water:5, fire:11, metal:2, wood:8 };
+  var SS_CALAMITY = { water:6, fire:0, metal:3, wood:9 }, SS_LOSS = { water:11, fire:5, metal:8, wood:2 };
+  var SS_MONTH_VIRTUE = { 2:2, 6:2, 10:2, 8:8, 0:8, 4:8, 11:0, 3:0, 7:0, 5:6, 9:6, 1:6 };   // 月德 stem index by month branch
+  function ssTriad(b) { return [8, 0, 4].indexOf(b) >= 0 ? 'water' : [2, 6, 10].indexOf(b) >= 0 ? 'fire' : [5, 9, 1].indexOf(b) >= 0 ? 'metal' : 'wood'; }
+  // Goals each star serves best; elsewhere a helpful star still adds a little.
+  var SS_GOALS = {
+    noble: ['noble', 'power', 'recognition', 'agreement', 'obstacles', 'opportunity', 'turnaround', 'protection'],
+    horse: ['sell', 'opportunity', 'income', 'lostPerson', 'courage', 'turnaround'],
+    academic: ['knowledge', 'wisdom', 'clarity', 'truth', 'intuition'],
+    peach: ['relationships', 'charisma', 'truce', 'sell'],
+    prosper: ['wealth', 'income', 'sell', 'collect'],
+    virtue: ['protection', 'health', 'truce', 'release', 'stability']
+  };
+  function shenShaHour(p, natal, goalKey) {
+    var hb = p.hour.branch, stars = [], score = 0;
+    var fit = function (kind) { return (SS_GOALS[kind] || []).indexOf(goalKey) >= 0; };
+    var plus = function (kind, cn, en, why, full) { var v = fit(kind) ? full : full * 0.3; score += v; stars.push({ cn: cn, en: en, tone: 'good', why: why, weight: Math.round(v * 10) / 10 }); };
+    var minus = function (cn, en, why, v) { score -= v; stars.push({ cn: cn, en: en, tone: 'caution', why: why, weight: -v }); };
+    if (noblemen(p.day.stem).some(function (n) { return n.branch === hb; })) plus('noble', '天乙貴人', 'Heavenly Nobleman', 'the day\'s Nobleman hour: help comes from people in charge', 1.2);
+    if (natal && noblemen(natal.day.stem).some(function (n) { return n.branch === hb; })) plus('noble', '天乙貴人', 'Heavenly Nobleman (yours)', 'your own Nobleman hour', 1.2);
+    if (horseOf(p.day.branch).branch === hb) plus('horse', '驛馬', 'Travelling Horse', 'the day\'s Horse hour: things move quickly', 1);
+    if (natal && myHorses(natal).some(function (h) { return h.branch === hb; })) plus('horse', '驛馬', 'Travelling Horse (yours)', 'your own Horse hour', 1);
+    if (natal && SS_ACADEMIC[natal.day.stem] === hb) plus('academic', '文昌', 'Academic Star (yours)', 'your Academic Star hour: clear thinking and words', 1.2);
+    if (natal && (SS_PEACH[ssTriad(natal.year.branch)] === hb || SS_PEACH[ssTriad(natal.day.branch)] === hb)) plus('peach', '桃花', 'Peach Blossom (yours)', 'your Peach Blossom hour: warmth and appeal', 1.2);
+    if (natal && SS_PROSPER[natal.day.stem] === hb) plus('prosper', '祿', 'Prosperity (yours)', 'your Prosperity hour: earning on your own strength', 1);
+    if (SS_MONTH_VIRTUE[p.month.branch] === p.hour.stem) plus('virtue', '月德', 'Monthly Virtue', 'the month\'s Virtue stem rules this hour: protection', 0.8);
+    var t = ssTriad(p.day.branch);
+    if (SS_ROBBERY[t] === hb) minus('劫煞', 'Robbery Star', 'the day\'s Robbery hour: guard money and agreements', ['wealth', 'income', 'collect', 'sell', 'agreement'].indexOf(goalKey) >= 0 ? 1.2 : 0.6);
+    if (SS_CALAMITY[t] === hb) minus('災煞', 'Calamity Star', 'the day\'s Calamity hour: haste causes upsets', 0.8);
+    if (SS_LOSS[t] === hb) minus('亡神', 'Loss Spirit', 'the day\'s Loss hour: things slip away', 0.5);
+    if (natal && (hb + 6) % 12 === natal.day.branch) minus('沖', 'Clashes your day branch', 'the hour clashes your own day branch', 1);
+    else if (natal && (hb + 6) % 12 === natal.year.branch) minus('沖', 'Clashes your year branch', 'the hour clashes your year branch', 0.5);
+    return { score: Math.round(score * 10) / 10, stars: stars };
+  }
   /** The day's Five Disharmony Hour: its branch and pillar. */
   function wuBuYuHour(dayStem) {
     var b = WU_BU_YU_BRANCH[dayStem], s = (((dayStem % 5) * 2) + b) % 10;
@@ -1498,7 +1538,7 @@
     zwdsPeriod: zwdsPeriod, zwdsDecades: zwdsDecades, SIHUA: SIHUA, HUA: HUA, STAR_TONE: STAR_TONE,
     brightness: brightness, BRIGHT: BRIGHT, BRIGHT_EN: BRIGHT_EN, starEffect: starEffect,
     placeMinors: placeMinors, MINOR_EN: MINOR_EN, MINOR_ABBR: MINOR_ABBR, MINOR_TONE: MINOR_TONE,
-    wuBuYuHour: wuBuYuHour, noblemen: noblemen, horseOf: horseOf, myHorses: myHorses, qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
+    wuBuYuHour: wuBuYuHour, noblemen: noblemen, horseOf: horseOf, myHorses: myHorses, shenShaHour: shenShaHour, qimen: qimen, flyingQimen: flyingQimen, formations: formations, yijing: yijing, hexFromLines: hexFromLines, qimenRimHex: qimenRimHex, qimenFlownNumber: qimenFlownNumber, xk: { HEX: HEX, HEX_EN: HEX_EN, TRIGRAMS: TRIGRAMS, TRI_BITS: TRI_BITS, XK_TRI_NUM: XK_TRI_NUM, XK_PERIOD: XK_PERIOD },
     TRIGRAMS: TRIGRAMS, TRI_EN: TRI_EN,
     strengthOf: strengthOf, STRENGTH: STRENGTH, starSeason: starSeason, STAR_STAGE: STAR_STAGE, hostGuest: hostGuest, hostGuestRead: hostGuestRead, doorSeason: doorSeason, doorPalace: doorVsPalace, disharmony: disharmony, nobleGrave: nobleGrave, horsePalace: horsePalace, forecastRules: forecastRules, HEALTH_CARE: HEALTH_CARE,
     annualStar: annualStar, monthStar: monthStar, flyingStars: flyingStars,

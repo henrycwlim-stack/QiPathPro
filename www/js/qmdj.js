@@ -1051,11 +1051,14 @@
           if (!r) return;
           if (!best || r.score > best.score) { second = best; best = r; } else if (!second || r.score > second.score) second = r;
         });
-        if (best) out.push({ y: gy, m: gm, d: gd, hour: hh, branch: b, range: C.HOUR_RANGE[b], dayPillar: p.day.cn, hourPillar: p.hour.cn,
-          dun: chart.dun, ju: chart.ju, best: best, second: second });
+        if (!best) continue;
+        // Shen Sha for this hour, from the day and the person's own chart, weighted by the goal.
+        var ss = S.shenShaHour(p, opts && opts.natal ? opts.natal : null, goalKey);
+        out.push({ y: gy, m: gm, d: gd, hour: hh, branch: b, range: C.HOUR_RANGE[b], dayPillar: p.day.cn, hourPillar: p.hour.cn,
+          dun: chart.dun, ju: chart.ju, best: best, second: second, shenSha: ss, total: Math.round((best.score + ss.score) * 10) / 10 });
       }
     }
-    out.sort(function (a, b) { return b.best.score - a.best.score; });
+    out.sort(function (a, b) { return b.total - a.total || b.best.score - a.best.score; });
     return { goal: goal, stage: stage, searched: days, list: out.slice(0, 12) };
   }
 

@@ -49,6 +49,17 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.17 — Shen Sha in Qimen tactical timing
+Version folder 10.17.0 (versionCode 73), copied from 10.16.0.
+- **Hour scoring:** the Manifest hour search now adds Shen Sha to each window's Qimen score, read from the candidate day and from the
+  person's own chart: 天乙貴人 (the day's and yours), 驛馬 (the day's and yours), your 文昌, 桃花 and 祿, and the month's 月德. Each counts
+  in full when it suits the goal (Nobleman for noble help, recognition and agreements; Horse for selling and opportunity; Academic
+  for knowledge and clarity; Peach Blossom for relationships and charisma; Prosperity for wealth and income; Virtue for
+  protection) and a little otherwise. The day's 劫煞, 災煞 and 亡神 hours, and hours that clash the person's day or year branch,
+  count against. The Qimen plate still chooses the palace, door and direction.
+- **Results:** every suggested hour shows its Shen Sha as tags, and the chosen window has a 'Shen Sha in this hour' block with each
+  star's weight and reason.
+
 ### 10.16 — Heavenly Nobleman 天乙貴人 and Travelling Horse 驛馬 in daily timing
 Version folder 10.16.0 (versionCode 72), copied from 10.15.0. Both stars were already in the BaZi chart's Shen Sha; they now drive
 the day as well.

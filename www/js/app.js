@@ -5607,6 +5607,16 @@
           'Five Disharmony hours are left out. Joey Yap times these practices by Seven Stars levels, which QiPath cannot calculate, so this ranking is QiPath\'s own.</div>' +
           '</div><div id="mFound"></div>') +
         yearPalacesHtml(now().y) + storyHtml(now().y) +
+        (function () {
+          var ss = S.shenShaHour(pM, user.pillars, mGoal.key);
+          return block('Shen Sha in this hour', pM.day.cn + ' day · ' + pM.hour.cn + ' hour · for ' + mGoal.label.toLowerCase(),
+            (ss.stars.length ? xkRows(ss.stars.map(function (s) {
+              return [s.cn + '<small>' + esc(s.en) + '</small>', '<span class="' + (s.tone === 'good' ? 'good-t' : 'bad-t') + '">' + (s.weight > 0 ? '+' : '') + s.weight + '</span> ' +
+                '<span class="plain" style="display:inline">' + esc(s.why) + '</span>'];
+            })) : '<div class="plain">No notable Shen Sha in this hour, for the day or for you.</div>') +
+            '<div class="hint">The hour search adds these to the Qimen score: helpful stars count fully when they suit the goal and a little otherwise; ' +
+              'Robbery, Calamity and Loss hours, and hours that clash your own day or year branch, count against. The Qimen plate still chooses the palace, door and direction.</div>');
+        })() +
         block('Choose the window', 'the hour chart for any date and hour',
           '<div class="panel">' +
           whenPicker('mDate', 'mHour', pick.dt, 'Date') +
@@ -5654,7 +5664,7 @@
         manifestSearch.from = fromISO($('mFrom').value);
         $('mFound').innerHTML = '<div class="hint">Searching ' + manifestSearch.days + ' days&hellip;</div>';
         setTimeout(function () {
-          manifestSearch.found = Q.searchManifest(manifestSearch.from, manifestSearch.days, mGoal.key, mStage.key, mFav, { daytime: manifestSearch.daytime });
+          manifestSearch.found = Q.searchManifest(manifestSearch.from, manifestSearch.days, mGoal.key, mStage.key, mFav, { daytime: manifestSearch.daytime, natal: user.pillars });
           paintFound();
         }, 30);
       };
@@ -5670,6 +5680,8 @@
               '<small>' + x.range + ' &middot; ' + x.hourPillar + ' hour</small></span>' +
               '<span class="v"><b>Back to ' + r.back + '</b> <small style="display:inline">face ' + r.face + ', palace ' + r.num + ' ' + r.palace.name + '</small><br>' +
               fitTag(r) + '<small>' + esc(r.why.slice(0, 3).join('; ')) + (r.warn.length ? '<br><span class="bad-t">Watch: ' + esc(r.warn.slice(0, 2).join('; ')) + '</span>' : '') + '</small>' +
+              (x.shenSha && x.shenSha.stars.length ? '<div class="ss-chips">' + x.shenSha.stars.map(function (s) {
+                return '<span class="tag' + (s.tone === 'good' ? ' on' : ' off') + '" title="' + esc(s.why) + '">' + s.cn + ' ' + esc(s.en) + '</span>'; }).join('') + '</div>' : '') +
               '<button class="btn ghost" data-muse="' + i + '" style="margin-top:6px">Use this hour</button></span></div>';
           }).join('') + '</div>';
         $('mFound').querySelectorAll('[data-muse]').forEach(function (b) {

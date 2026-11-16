@@ -962,3 +962,6 @@ a[data-la]{color:inherit;text-decoration:underline dotted;text-underline-offset:
 
 .hours .hr .b i.hs{font-style:normal;color:var(--celadon);font-size:.62em;margin-left:2px}
 .horse-note{margin-top:6px}
+
+.ss-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.ss-chips .tag{font-size:.7rem}
