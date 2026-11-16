@@ -6752,8 +6752,8 @@
             'Keep your real resources and your decision-maker behind a front, a representative or a holding position, and show them only when you act.' +
             (cc.hide.youAreJia ? ' Your Day Stem is 甲, so you are read from ' + cc.hide.stem + ': you are already the hidden commander.' : '') + '</div>']);
           if (cc) ccRows.push(['Wandering Wonders<small>三奇游六仪 · incl. 乙游己辛 “Wandering Ji”</small>',
-            cc.now.wander ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.wander.join(', ')) + ' palace<div class="plain">The Chief has brought this xun\'s stem onto its paired Wonder: favourable for any undertaking, more so with an auspicious door.</div>'
-              : cc.next.wander ? '<span>Next: <b>' + esc(cc.next.wander.label) + '</b> (' + cc.next.wander.hourPillar + ' hour, ' + esc(cc.next.wander.dirs.join(', ')) + ')</span><div class="plain">When the Chief brings this xun\'s stem onto its paired Wonder. A good hour for the main move.</div>'
+            cc.now.wander ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.wander.join(', ')) + ' palace<div class="plain">In the Chief\'s palace a Yi stem sits over the Wonder that wanders to it: favourable for any undertaking, more so with an auspicious door.</div>'
+              : cc.next.wander ? '<span>Next: <b>' + esc(cc.next.wander.label) + '</b> (' + cc.next.wander.hourPillar + ' hour, ' + esc(cc.next.wander.dirs.join(', ')) + ')</span><div class="plain">When a Yi stem sits over its paired Wonder in the Chief\'s palace. A good hour for the main move.</div>'
               : '<div class="plain">Does not form in the next three days.</div>']);
           if (cc) ccRows.push(['Jade Maiden Guards the Door<small>玉女守门</small>',
             cc.now.maiden ? '<b class="good-t">Forms now</b> in the ' + esc(cc.now.maiden.join(', ')) + ' palace<div class="plain">The hour for confidential talks, quiet requests and protective arrangements.</div>'

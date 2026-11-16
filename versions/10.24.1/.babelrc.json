@@ -1,0 +1,7 @@
+{
+  "presets": [["@babel/preset-env", {
+    "targets": { "chrome": "50", "android": "5.0" },
+    "modules": false
+  }]],
+  "assumptions": { "setPublicClassFields": true, "noDocumentAll": true }
+}

@@ -39,15 +39,18 @@
     S0('fei_niao_die', '飞鸟跌穴', 'Flying Bird Falls into Cave', A, 'Excellent for major undertakings: business, moves, travel, lending, launching a campaign and winning a case.', [R('丙', ['F', '戊'])]),
     // The tables list 丁 in the heaven column too, but the dated charts and Warcraft's example mark 丁 on the earth plate with the envoy door.
     // 三奇游六仪, as the Imperial Qi Men Compendium (御定奇門寶鑑) states it: 乙 wanders to 己 and 辛, 丙 to 戊 and 庚, 丁 to 壬 and 癸,
-    // and it holds only when this xun's Chief (直符) comes to that palace. So: the Chief carries the 符首 onto a Wonder that pairs with it.
+    // and it holds only when this xun's Chief (直符) comes to that palace. Two conditions, both required:
+    //   1. pairing: a 六儀 on the heaven plate over a Wonder on the earth plate that wanders to it (儀加奇);
+    //   2. activation: the Chief (直符) sits in that same palace. Without it the pairing is inert.
+    // Either heaven stem counts, so a stem lodged from the centre that pairs in the Chief's palace qualifies too.
     { id: 'san_qi_you_liu_yi', name: '三奇游六仪', nameEn: 'Three Wonders Wander the Six Yi', category: A, source: 'baojian',
-      description: 'The Chief brings this xun\'s leading stem onto a Wonder that wanders to it (乙游己辛, 丙游戊庚, 丁游壬癸). Favourable for all undertakings, more so with an auspicious door.',
+      description: 'In the Chief\'s palace, a Yi stem sits over the Wonder that wanders to it (乙游己辛, 丙游戊庚, 丁游壬癸). Favourable for all undertakings, more so with an auspicious door.',
       detect: function (p, m) {
         var PAIR = { '乙': ['己', '辛'], '丙': ['戊', '庚'], '丁': ['壬', '癸'] };
         return p.filter(function (x) {
           if (!x.number || x.number === 5 || x.spirit !== '值符') return false;
-          if (x.heavenStemCn !== m.fuShou && x.heavenStem2Cn !== m.fuShou) return false;
-          return [x.earthStemCn, x.earthStem2Cn].some(function (e) { return PAIR[e] && PAIR[e].indexOf(m.fuShou) >= 0; });
+          var hs = [x.heavenStemCn, x.heavenStem2Cn].filter(Boolean);
+          return [x.earthStemCn, x.earthStem2Cn].some(function (e) { return PAIR[e] && hs.some(function (h) { return PAIR[e].indexOf(h) >= 0; }); });
         }).map(function (x) { return x.number; });
       } },
     S0('yu_nv_shou', '玉女守门', 'Jade Maiden Watches the Door', A, 'Favours relationships, connection, mediation, study and exams.', [R(null, '丁', 'ENV')]),

@@ -49,6 +49,15 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.24.1 — 三奇游六仪: the two conditions, tested
+Version folder 10.24.1 (versionCode 81), copied from 10.24.0.
+- The formation now enforces exactly two conditions: (1) a 六儀 on the heaven plate over the Wonder that wanders to it
+  (乙 with 己 or 辛, 丙 with 戊 or 庚, 丁 with 壬 or 癸), and (2) the Chief (直符) in that same palace. Without the Chief it is inert.
+- Either heaven stem of the Chief's palace may make the pairing, so a stem lodged from the centre now counts. 10.24.0 required the
+  Chief's own stem and missed 49 such palaces in 2026.
+- Tested over every two-hour period of 2026: 584 hits (13% of hours); none without the Chief, none without a valid pairing, and no
+  palace that met both conditions was missed.
+
 ### 10.24 — Concealment: Hiding the Stem and the Wandering Wonders
 Version folder 10.24.0 (versionCode 80), copied from 10.23.0. A Concealment part in the Opposition sector on Consult › Crisis.
 - **三奇游六仪, Three Wonders Wander the Six Yi:** rebuilt from the Imperial Qi Men Compendium (御定奇門寶鑑) rule. 乙 wanders to
