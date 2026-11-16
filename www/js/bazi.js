@@ -356,6 +356,10 @@
     return out;
   }
 
+  /** The stars one incoming branch (a luck pillar, year, month or day) switches on for this chart. */
+  function starsOnBranch(p, b) {
+    return branchHits(p, [b]).map(function (h) { var m = STAR_META[h.key]; return { key: h.key, cn: m.cn, en: m.en, tone: m.tone, note: m.note, use: STAR_USE[h.key] || '' }; });
+  }
   /** The stars the current luck pillar and a given year switch on for this chart. */
   function activeStars(user, year) {
     var p = user.pillars, out = [], age = year - user.birth.y, lp = null;
@@ -2066,7 +2070,7 @@
   global.QPBazi = {
     compatibility: compatibility, AREAS: AREAS, AREA_ADVICE: AREA_ADVICE, AREA_ADVICE_NATAL: AREA_ADVICE_NATAL, areaResults: areaResults, areaLevel: areaLevel,
     areasNatal: areasNatal, areasYear: areasYear, areasMonth: areasMonth, branchStars: branchStars, SIX_UNION: SIX_UNION, STEM_UNION: STEM_UNION, areasRelations: areasRelations, areasTogether: areasTogether,
-    analyse: analyse, stageOf: stageOf, findStars: findStars, activeStars: activeStars, STAR_USE: STAR_USE, findRelations: findRelations,
+    analyse: analyse, stageOf: stageOf, findStars: findStars, activeStars: activeStars, starsOnBranch: starsOnBranch, STAR_USE: STAR_USE, findRelations: findRelations,
     assessStrength: assessStrength, diagnose: diagnose,
     STAGES: STAGES, STAR_META: STAR_META, DOMAIN_DEF: DOMAIN_DEF, TIAO_HOU: TIAO_HOU,
     SIX_DESTRUCTION: SIX_DESTRUCTION, HARM_KIND: HARM_KIND, fourHarms: fourHarms, timingHarms: timingHarms,

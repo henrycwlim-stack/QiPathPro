@@ -49,6 +49,23 @@ All of it is saved with the chart and fed to the destiny AI reading, which gains
 Both were checked against an independent reference chart, along with Noble People, Intelligence,
 Peach Blossom, Sky Horse and Taiji Nobleman. Each is placed on the destiny plate by its branch.
 
+### 10.19 — Crisis navigator: the three-phase protocol
+Version folder 10.19.0 (versionCode 75), copied from 10.18.0.
+- **Phase 1, Your active stars:** the Shen Sha that the luck pillar, year, month and day switch on in the person's chart; clashes,
+  punishments, harms and destructions against each natal pillar, with the Year Breaker (歲破); and Ten God friction (傷官見官,
+  官見傷官, 七殺 on a weak Day Master, 劫財).
+- **Objective from the stars:** backing and sign-off when the Nobleman is active, defusing deadlock for Officer friction, managing
+  confrontation for clashes, a clean pivot for the Horse, protecting cash for draining stars. A switch weights the hours for this
+  objective instead of the crisis type.
+- **Phase 2, The hour plate:** the live nine-palace plate with the Day Stem (you) and Hour Stem (the crisis) palaces marked, and
+  who has the upper hand.
+- **Phase 3, Where to face:** the palace of the Chief (值符) or Open Door (开门) with good stems, with how to use it for calls,
+  meetings and sending the key message.
+- **Phase 3, stem windows:** every window shows whether the hour stem combines (合) with or clashes (冲) the day stem and scores it;
+  a move the Horse calls for is placed in a combining window.
+- **Phase 3, Opposition sector:** the Harm Door and Death Door palaces, the opponent's palace, hostile formations, the person's
+  active clashes, and counter-steps including windows where a Nine Dun (九遁) concealment formation forms.
+
 ### 10.18 — Crisis navigator: Qimen hour plates with BaZi symbolic stars, live
 Version folder 10.18.0 (versionCode 74), copied from 10.17.0. A new engine, `crisis.js` (`window.QPCrisis`), and a new Consult tab.
 - **Safety first:** the screen opens with the local emergency number and crisis lines, and says plainly that danger and health

@@ -6590,7 +6590,7 @@
   }
 
   /* ---------------- Consult › Crisis: Qimen hour plate and Shen Sha, live ---------------- */
-  var crisisState = { type: 'cash', timer: null, slot: null };
+  var crisisState = { type: 'cash', timer: null, slot: null, useStars: true };
   function crisisSafetyHtml() {
     var CO = window.QPCoach, cc = CO ? CO.detectCountry() : 'OTHER', H = CO ? CO.HELPLINES[cc] : null;
     return '<div class="notice crisis-safe"><b>If anyone is in danger, hurt, or thinking of harming themselves, stop here.</b> ' +
@@ -6600,7 +6600,10 @@
   }
   function renderCrisis(host) {
     var CR = window.QPCrisis, st = crisisState, t = now();
-    var r = areasSafe(function () { return CR.navigate(user, t, st.type, 7); });
+    var tr = areasSafe(function () { return CR.triggers(user, t); }) || { stars: [], conflicts: [], friction: [] };
+    var objs = CR.objectives(tr), goal = st.useStars && objs.length ? objs[0].goal : null;
+    var r = areasSafe(function () { return CR.navigate(user, t, st.type, 7, goal); });
+    var hp = areasSafe(function () { return CR.hourPlate(user, t, r ? r.goal : null); });
     st.slot = r && r.now ? r.now.hourPillar : null;
     var callCls = { Act: 'good-t', Prepare: '', Hold: 'bad-t' };
     var typeOpts = CR.TYPES.map(function (x) { return '<option value="' + x.key + '"' + (x.key === st.type ? ' selected' : '') + '>' + esc(x.label) + '</option>'; }).join('');
@@ -6620,17 +6623,78 @@
             ['Your stars now', r.now.shenSha.stars.length ? r.now.shenSha.stars.map(function (s) {
               return '<span class="' + (s.tone === 'good' ? 'good-t' : 'bad-t') + '">' + s.cn + '</span> <small style="display:inline">' + esc(s.why) + '</small>'; }).join('<br>') : '<small>none this hour</small>']
           ])) +
+        (function () {
+          // Phase 1: what today's pillars switch on in your chart, and the objective they point to.
+          var toneCls = function (t) { return t === 'good' ? 'good-t' : t === 'caution' ? 'bad-t' : ''; };
+          var starRows = tr.stars.map(function (s) { return [s.cn + '<small>' + esc(s.en) + '</small>', '<span class="' + toneCls(s.tone) + '">' + esc(s.via) + '</span><div class="plain">' + esc(s.use || s.note) + '</div>']; });
+          var conRows = tr.conflicts.map(function (c) { return [c.cn + '<small>' + esc(c.en) + '</small>', '<span class="bad-t">' + esc(c.via) + ' × your ' + esc(c.with) + '</span><div class="plain">' + esc(c.text) + '</div>']; });
+          var frRows = tr.friction.map(function (f) { return [f.cn + '<small>' + esc(f.en) + '</small>', '<span class="bad-t">' + esc(f.via) + '</span><div class="plain">' + esc(f.text) + '</div>']; });
+          return block('Your active stars', 'Phase 1 · what the luck pillar, year, month and day switch on in your chart',
+            (starRows.length ? xkRows(starRows) : '<div class="plain">No Shen Sha switched on today.</div>') +
+            (conRows.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Clashes and punishments</h3>' + xkRows(conRows) : '') +
+            (frRows.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Ten God friction</h3>' + xkRows(frRows) : '')) +
+            block('Objective', 'what to aim for, from your stars',
+              (objs.length ? '<div class="plain" style="margin-bottom:8px"><b>' + esc(objs[0].text) + '</b> <small>(' + esc(objs[0].why) + ')</small></div>' +
+                (objs.length > 1 ? '<div class="hint">Also: ' + objs.slice(1).map(function (o) { return esc(o.text); }).join(' ') + '</div>' : '') : '<div class="plain">No single star dominates; the crisis type sets the aim.</div>') +
+              '<label class="check" style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.88rem"><input type="checkbox" id="crUseStars"' + (st.useStars && objs.length ? ' checked' : '') + (objs.length ? '' : ' disabled') + '> ' +
+                'Weight the hours for this objective instead of the crisis type</label>');
+        })() +
+        (function () {
+          // Phase 2: the live hour plate, you and the opponent marked.
+          if (!hp) return '';
+          var Q = window.QPQimen, relText = { same: 'you stand level with each other', produces: 'you feed the other side: you give more than you get', controls: 'you have the upper hand',
+            produced_by: 'the other side feeds you: they are inclined to give way', controlled_by: 'the other side has the upper hand: do not confront them head-on' };
+          return block('The hour plate', 'Phase 2 · ' + hp.pillars.hour.cn + ' hour · ' + hp.chart.dun + ' ju ' + hp.chart.ju,
+            plateHtml(hp.chart, hp.res.formations, [hp.you && hp.you.num, hp.opp && hp.opp.num].filter(Boolean), false, null, { res: hp.res }) +
+            xkRows([
+              ['You (Day Stem)', hp.you ? C.STEMS[hp.pillars.day.stem] + ' in the <b>' + esc(hp.you.dir) + '</b> palace <small>' + [hp.you.spirit, hp.you.starCn, hp.you.gate].filter(Boolean).join(' · ') + '</small>' : '—'],
+              ['The crisis (Hour Stem)', hp.opp ? hp.pillars.hour.cn.charAt(0) + ' in the <b>' + esc(hp.opp.dir) + '</b> palace <small>' + [hp.opp.spirit, hp.opp.starCn, hp.opp.gate].filter(Boolean).join(' · ') + '</small>' : '—'],
+              ['Balance', '<div class="plain">' + esc(relText[hp.youOpp] || 'not clear this hour') + '</div>']
+            ]) + '<div class="hint">Deities show hidden backing, stars the conditions, doors the action, and stems the players.</div>');
+        })() +
+        (function () {
+          // Phase 3.1: where to face.
+          if (!hp || !hp.face) return '';
+          var forNoble = (r.goal === 'noble');
+          return block('Where to face', 'Phase 3 · the compass for this hour',
+            '<div class="plain" style="margin-bottom:8px">Face <b class="good-t">' + esc(hp.face.dir) + '</b>: ' + esc(hp.faceWhy) + '.' + (forNoble ? ' With the Nobleman active, this is the sector that carries backing from above.' : '') + '</div>' +
+            '<div class="plain">Sit facing it for the call or meeting, and draft or send the key email, statement or offer while facing it. ' +
+              'If you can only choose a seat, put your back to ' + esc(r.now.worstDirection) + '.</div>');
+        })() +
+        (function () {
+          // Phase 3.3: the opposition's sector and the counter-steps.
+          if (!hp) return '';
+          var rowsO = [];
+          if (hp.harm) rowsO.push(['Harm Door 伤门', '<b class="bad-t">' + esc(hp.harm.dir) + '</b><div class="plain">Where conflict and injury gather this hour.</div>']);
+          if (hp.death) rowsO.push(['Death Door 死门', '<b class="bad-t">' + esc(hp.death.dir) + '</b><div class="plain">Where things stall and end.</div>']);
+          if (hp.opp) rowsO.push(['The opponent', '<b>' + esc(hp.opp.dir) + '</b><div class="plain">The crisis sits here; let it come to you rather than moving toward it.</div>']);
+          hp.hostile.slice(0, 4).forEach(function (f) { rowsO.push([f.name + '<small>' + esc(f.en) + '</small>', '<span class="bad-t">' + esc(f.dirs.join(', ')) + '</span>']); });
+          var natalBad = tr.conflicts.filter(function (c) { return c.kind !== 'union'; }).slice(0, 3);
+          var dunWin = r.list.filter(function (x) { return x.dun && x.dun.length && x.call !== 'Hold'; })[0];
+          var steps = [];
+          if (hp.harm || hp.death) steps.push('Do not meet, sign or confront facing ' + [hp.harm, hp.death].filter(Boolean).map(function (x) { return x.dir; }).join(' or ') + ' this hour, and keep those parts of the room or building quiet.');
+          if (hp.opp) steps.push('Do not go toward the ' + hp.opp.dir + ' to have it out; deal with it from where you are, in writing where you can.');
+          if (natalBad.length) steps.push('Your chart is under ' + natalBad.map(function (c) { return c.cn + ' (' + c.with + ')'; }).join(', ') + ': keep the parts of life those pillars govern out of the fight.');
+          if (dunWin) steps.push('For a quiet, protective or covert move, use ' + dunWin.label.replace('Now · ', '') + ', when ' + dunWin.dun.map(function (d) { return d.name + ' ' + d.en + ' (' + d.dirs.join(', ') + ')'; }).join(' and ') + ' forms: the plate hides and shields the move.');
+          return block('Opposition sector', 'Phase 3 · where the hostile forces sit, and how to work around them',
+            (rowsO.length ? xkRows(rowsO) : '') +
+            (steps.length ? '<h3 style="margin:12px 0 6px;font-size:.9rem">Counter-steps</h3><ol class="cr-plan">' + steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' : '') +
+            '<div class="hint">These are the traditional ways to avoid and shield against a hostile sector: positioning, timing and the Nine Dun (九遁) concealment formations. They work by keeping you out of the line of conflict, not by acting on anyone.</div>');
+        })() +
         block('Your plan', 'in plain English', '<ol class="cr-plan">' + r.plan.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
           '<h3 style="margin:12px 0 6px;font-size:.9rem">Steady the situation first</h3><ul class="cr-plan">' + r.steady.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>') +
         block('The next hours', 'each two-hour window, Qimen plus your stars',
           xkRows(r.list.map(function (x) {
             return [esc(x.label) + '<small>' + x.hourPillar + '</small>', '<b class="' + callCls[x.call] + '">' + x.call + '</b> <small style="display:inline">' + esc(x.verdict) + ' · ' + esc(x.direction) + '</small>' +
               (x.shenSha.stars.length ? '<div class="ss-chips">' + x.shenSha.stars.map(function (s) { return '<span class="tag' + (s.tone === 'good' ? ' on' : ' off') + '" title="' + esc(s.why) + '">' + s.cn + '</span>'; }).join('') + '</div>' : '') +
+              (x.stemRel ? '<div><small class="' + (x.stemRel.kind === 'combine' ? 'good-t' : 'bad-t') + '">Day and hour stems ' + x.stemRel.cn + ': ' + esc(x.stemRel.text) + '</small></div>' : '') +
+              (x.dun && x.dun.length ? '<div><small>' + x.dun.map(function (d) { return d.name + ' ' + esc(d.en); }).join(', ') + '</small></div>' : '') +
               (x.wuBuYu ? '<div><small class="bad-t">Five Disharmony Hour</small></div>' : '')];
           })) +
           '<div class="hint">Act means the plate and your stars both support a move; Prepare means steady and get ready; Hold means do not escalate. ' +
             'The Qimen reading uses the ' + esc(r.type.label.toLowerCase()) + ' symbols; your stars are weighted for what this crisis needs. Timing helps, but it never replaces professional, legal, financial or medical help.</div>'));
     $('crType').onchange = function () { st.type = this.value; renderCrisis(host); };
+    if ($('crUseStars')) $('crUseStars').onchange = function () { st.useStars = this.checked; renderCrisis(host); };
     $('crRefresh').onclick = function () { renderCrisis(host); };
     // Live: re-read every minute while this screen is showing, and repaint when the hour window changes.
     if (st.timer) clearInterval(st.timer);
